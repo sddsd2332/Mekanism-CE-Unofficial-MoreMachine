@@ -20,3 +20,4 @@ MDK.zip
 *.blend2
 /bin
 !/libs/**
+/run

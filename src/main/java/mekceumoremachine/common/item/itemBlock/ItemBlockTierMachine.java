@@ -1,5 +1,6 @@
 package mekceumoremachine.common.item.itemBlock;
 
+import mekanism.api.energy.IEnergizedItem;
 import mekanism.common.base.*;
 import mekanism.common.capabilities.ItemCapabilityWrapper;
 import mekanism.common.config.MekanismConfig;
@@ -213,7 +214,10 @@ public abstract class ItemBlockTierMachine extends ItemBlock implements ISustain
 
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
-        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper());
+        if (this instanceof IEnergizedItem) {
+            return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper());
+        }
+        return super.initCapabilities(stack, nbt);
     }
 
 }
