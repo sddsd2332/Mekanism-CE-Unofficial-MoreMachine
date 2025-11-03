@@ -1,4 +1,4 @@
-package mekceumoremachine.client.model;
+package mekceumoremachine.client.model.machine;
 
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;

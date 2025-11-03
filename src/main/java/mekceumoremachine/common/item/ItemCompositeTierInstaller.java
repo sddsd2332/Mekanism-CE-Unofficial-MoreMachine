@@ -6,9 +6,11 @@ import mekanism.common.item.ItemMekanism;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.factory.TileEntityFactory;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
+import mekanism.common.util.LangUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.interfaces.ITierFirstUpgrade;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -17,8 +19,11 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 
 public class ItemCompositeTierInstaller extends ItemMekanism {
 
@@ -116,5 +121,10 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
         return "item.CompositeTierInstaller";
     }
 
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
+        list.add(LangUtils.localize("tooltip.CompositeTierInstaller"));
+    }
 
 }

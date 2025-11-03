@@ -10,6 +10,4 @@ public class BlockStateActiveTierMachine extends BlockStateTierMachine {
     public BlockStateActiveTierMachine(BlockTierMachine block) {
         super(block, activeProperty);
     }
-
-
 }

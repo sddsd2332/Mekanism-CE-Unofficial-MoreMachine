@@ -1,10 +1,10 @@
-package mekceumoremachine.client.render.tileentity;
+package mekceumoremachine.client.render.tileentity.machine;
 
 import mekanism.api.gas.GasStack;
 import mekanism.client.render.GasRenderMap;
 import mekanism.client.render.MekanismRenderer;
 import mekanism.common.util.MekanismUtils;
-import mekceumoremachine.client.model.ModelTierIsotopicCentrifuge;
+import mekceumoremachine.client.model.machine.ModelTierIsotopicCentrifuge;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.machine.TileEntityTierIsotopicCentrifuge;
 import net.minecraft.client.renderer.GlStateManager;

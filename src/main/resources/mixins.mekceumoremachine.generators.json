@@ -1,0 +1,13 @@
+{
+  "package": "mekceumoremachine.mixin.generators",
+  "refmap": "mixins.mekceumoremachine.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinTileEntityWindGenerator"
+  ],
+  "server": [],
+  "client": [
+  ]
+}

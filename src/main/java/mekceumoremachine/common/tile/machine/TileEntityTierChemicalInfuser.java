@@ -449,7 +449,6 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         } else {
             world.setBlockToAir(getPos());
         }
-
         world.setBlockState(getPos(), MultiblockMachineBlocks.MultiblockMachine.getStateFromMeta(1),3);
         if (world.getTileEntity(getPos()) instanceof TileEntityLargeChemicalInfuser tile){
             tile.onPlace();
@@ -485,8 +484,6 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
             markNoUpdateSync();
             return true;
         }
-
-
         return false;
     }
 

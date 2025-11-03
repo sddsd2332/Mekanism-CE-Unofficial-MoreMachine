@@ -29,10 +29,6 @@
         "x": 90
       }
     },
-    "active": {
-      "true": {},
-      "false": {}
-    },
     "inventory": [
       {}
     ]

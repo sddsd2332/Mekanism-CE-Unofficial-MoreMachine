@@ -3,7 +3,7 @@
   "defaults": {
     "textures": {
       "3": "mekanism:blocks/models/gas_tank_basic_valve",
-      "details": "mekceumoremachine:blocks/models/ambient_accumulator_basic"
+      "details": "mekceumoremachine:blocks/models/ambient_accumulator/basic"
     },
     "model": "mekceumoremachine:ambient_accumulator"
   },
@@ -12,25 +12,25 @@
       "elite": {
         "textures": {
           "3": "mekanism:blocks/models/gas_tank_elite_valve",
-          "details": "mekceumoremachine:blocks/models/ambient_accumulator_elite"
+          "details": "mekceumoremachine:blocks/models/ambient_accumulator/elite"
         }
       },
       "advanced": {
         "textures": {
           "3": "mekanism:blocks/models/gas_tank_advanced_valve",
-          "details": "mekceumoremachine:blocks/models/ambient_accumulator_advanced"
+          "details": "mekceumoremachine:blocks/models/ambient_accumulator/advanced"
         }
       },
       "ultimate": {
         "textures": {
           "3": "mekanism:blocks/models/gas_tank_ultimate_valve",
-          "details": "mekceumoremachine:blocks/models/ambient_accumulator_ultimate"
+          "details": "mekceumoremachine:blocks/models/ambient_accumulator/ultimate"
         }
       },
       "basic": {
         "textures": {
           "3": "mekanism:blocks/models/gas_tank_basic_valve",
-          "details": "mekceumoremachine:blocks/models/ambient_accumulator_basic"
+          "details": "mekceumoremachine:blocks/models/ambient_accumulator/basic"
         }
       },
       "creative": {}

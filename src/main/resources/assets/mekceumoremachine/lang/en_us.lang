@@ -10,47 +10,72 @@ tile.WirelessChargingStation.Basic.name=Basic Wireless Power Station
 tile.WirelessChargingStation.Advanced.name=Advanced Wireless Power Station
 tile.WirelessChargingStation.Elite.name=Elite Wireless Power Station
 tile.WirelessChargingStation.Ultimate.name=Ultimate Wireless Power Station
+tooltip.WirelessChargingStation=Items within the range that can be charged for players, MEK's robots, and machines
 
 tile.TierElectricPump.Basic.name=Basic Electric Pump
 tile.TierElectricPump.Advanced.name=Advanced Electric Pump
 tile.TierElectricPump.Elite.name=Elite Electric Pump
 tile.TierElectricPump.Ultimate.name=Ultimate Electric Pump
+tooltip.TierElectricPump=Faster, better electric pump
 
 tile.TierIsotopicCentrifuge.Basic.name=Basic Isotopic Centrifuge
 tile.TierIsotopicCentrifuge.Advanced.name=Advanced Isotopic Centrifuge
 tile.TierIsotopicCentrifuge.Elite.name=Elite Isotopic Centrifuge
 tile.TierIsotopicCentrifuge.Ultimate.name=Ultimate Isotopic Centrifuge
+tooltip.TierIsotopicCentrifuge=Faster-spinning isotope centrifuge
 
 tile.TierRotaryCondensentrator.Basic.name=Basic Rotary Condensentrator
 tile.TierRotaryCondensentrator.Advanced.name=Advanced Rotary Condensentrator
 tile.TierRotaryCondensentrator.Elite.name=Elite Rotary Condensentrator
 tile.TierRotaryCondensentrator.Ultimate.name=Ultimate Rotary Condensentrator
+tooltip.TierRotaryCondensentrator=A machine that quickly converts gas and its liquid form into each other
 
 tile.TierElectrolyticSeparator.Basic.name=Basic Electrolytic Separator
 tile.TierElectrolyticSeparator.Advanced.name=Advanced Electrolytic Separator
 tile.TierElectrolyticSeparator.Elite.name=Elite Electrolytic Separator
 tile.TierElectrolyticSeparator.Ultimate.name=Ultimate Electrolytic Separator
+tooltip.TierElectrolyticSeparator=A machine that more quickly separates a specific fluid into two different gases through electrolysis.
 
 tile.TierSolarNeutronActivator.Basic.name=Basic Solar Neutron Activator
 tile.TierSolarNeutronActivator.Advanced.name=Advanced Solar Neutron Activator
 tile.TierSolarNeutronActivator.Elite.name=Elite Solar Neutron Activator
 tile.TierSolarNeutronActivator.Ultimate.name=Ultimate Solar Neutron Activator
+tooltip.TierSolarNeutronActivator=A machine that introduces the Sun's neutron radiation into its own chamber can produce various isotopes more quickly.
 
 tile.TierChemicalInfuser.Basic.name=Basic Chemical Infuser
 tile.TierChemicalInfuser.Advanced.name=Advanced Chemical Infuser
 tile.TierChemicalInfuser.Elite.name=Elite Chemical Infuser
 tile.TierChemicalInfuser.Ultimate.name=Ultimate Chemical Infuser
+tooltip.TierChemicalInfuser=A machine that can produce new gases more quickly by injecting two other gases.
 
 tile.TierAmbientAccumulator.Basic.name=Basic Ambient Gas Collector (Electric)
 tile.TierAmbientAccumulator.Advanced.name=Advanced Ambient Gas Collector (Electric)
 tile.TierAmbientAccumulator.Elite.name=Elite Ambient Gas Collector (Electric)
 tile.TierAmbientAccumulator.Ultimate.name=Ultimate Ambient Gas Collector (Electric)
+tooltip.TierAmbientAccumulator=A machine that can collect gases in the current dimension faster using energy
 
 tile.TierRadioactiveWasteBarrel.Basic.name=Basic Radioactive Waste Barrel
 tile.TierRadioactiveWasteBarrel.Advanced.name=Advanced Radioactive Waste Barrel
 tile.TierRadioactiveWasteBarrel.Elite.name=Elite Radioactive Waste Barrel
 tile.TierRadioactiveWasteBarrel.Ultimate.name=Ultimate Radioactive Waste Barrel
+tooltip.TierRadioactiveWasteBarrel=A barrel that can be used to store radioactive waste 'more safely'.
+
+tile.TierChemicalWasher.Basic.name=Basic Chemical Washer
+tile.TierChemicalWasher.Advanced.name=Advanced Chemical Washer
+tile.TierChemicalWasher.Elite.name=Elite Chemical Washer
+tile.TierChemicalWasher.Ultimate.name=Ultimate Chemical Washer
+tooltip.TierChemicalWasher=A super machine that quickly cleans up untreated slurry, getting everything ready for crystallization.
+
+tile.TierWindGenerator.Basic.name=Basic Wind Generator
+tile.TierWindGenerator.Advanced.name=Advanced Wind Generator
+tile.TierWindGenerator.Elite.name=Elite Wind Generator
+tile.TierWindGenerator.Ultimate.name=Ultimate Wind Generator
+tile.BigWindGenerator.name=Big Wind Generator
+tooltip.BigWindGenerator=A generator that uses the strength of the wind to produce energy, with greater efficiency at higher levels.
 
 item.CompositeTierInstaller.name=Composite Upgrade Installation Kit
+tooltip.CompositeTierInstaller=Installation component capable of directly upgrading the machine to its final level
 item.LargeMachineryUpgradeComponents.name=Large Machinery Upgrade Components
+tooltip.LargeMachineryUpgradeComponents=Installation components capable of upgrading the machine to a large model
 tooltip.largeMachineUpgrade.pos=Cannot upgrade because the location contains a block
+tooltip.mekceumoremachine.remove=This machine is not recommended for use. Please use the corresponding machine from Mekanism:MoreMachine.

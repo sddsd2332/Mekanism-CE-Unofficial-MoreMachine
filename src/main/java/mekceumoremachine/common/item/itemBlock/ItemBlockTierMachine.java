@@ -1,10 +1,7 @@
 package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.base.*;
-import mekanism.common.capabilities.ItemCapabilityWrapper;
 import mekanism.common.config.MekanismConfig;
-import mekanism.common.integration.forgeenergy.ForgeEnergyItemWrapper;
-import mekanism.common.integration.tesla.TeslaItemWrapper;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.tier.BaseTier;
@@ -26,7 +23,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -211,9 +207,5 @@ public abstract class ItemBlockTierMachine extends ItemBlock implements ISustain
         return hasSecurity(stack);
     }
 
-    @Override
-    public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
-        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper());
-    }
 
 }

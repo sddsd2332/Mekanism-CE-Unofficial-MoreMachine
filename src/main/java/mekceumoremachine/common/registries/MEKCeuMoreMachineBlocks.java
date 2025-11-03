@@ -21,6 +21,9 @@ public class MEKCeuMoreMachineBlocks {
     public static Block TierChemicalInfuser = new BlockTierChemicalInfuser();
     public static Block TierAmbientAccumulator = new BlockTierAmbientAccumulator();
     public static Block TierRadioactiveWasteBarrel = new BlockTierRadioactiveWasteBarrel();
+    public static Block TierChemicalWasher = new BlockTierChemicalWasher();
+    public static Block TierWindGenerator = new BlockTierWindGenerator();
+    public static Block BigWindGenerator = new BlockBigWindGenerator();
 
     public static void registerBlocks(IForgeRegistry<Block> registry) {
         registry.register(init(WirelessCharging, "WirelessCharging"));
@@ -31,7 +34,10 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(TierSolarNeutronActivator, "TierSolarNeutronActivator"));
         registry.register(init(TierChemicalInfuser, "TierChemicalInfuser"));
         registry.register(init(TierAmbientAccumulator, "TierAmbientAccumulator"));
-        registry.register(init(TierRadioactiveWasteBarrel,"TierRadioactiveWasteBarrel"));
+        registry.register(init(TierRadioactiveWasteBarrel, "TierRadioactiveWasteBarrel"));
+        registry.register(init(TierChemicalWasher, "TierChemicalWasher"));
+        registry.register(init(TierWindGenerator, "TierWindGenerator"));
+        registry.register(init(BigWindGenerator,"BigWindGenerator"));
     }
 
     public static void registerItemBlocks(IForgeRegistry<Item> registry) {
@@ -43,7 +49,10 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierSolarNeutronActivator(TierSolarNeutronActivator), "TierSolarNeutronActivator"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalInfuser(TierChemicalInfuser), "TierChemicalInfuser"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierAmbientAccumulator(TierAmbientAccumulator), "TierAmbientAccumulator"));
-        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierRadioactiveWasteBarrel(TierRadioactiveWasteBarrel),"TierRadioactiveWasteBarrel"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierRadioactiveWasteBarrel(TierRadioactiveWasteBarrel), "TierRadioactiveWasteBarrel"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalWasher(TierChemicalWasher), "TierChemicalWasher"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierWindGenerator(TierWindGenerator), "TierWindGenerator"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockBigWindGenerator(BigWindGenerator),"BigWindGenerator"));
     }
 
     public static Block init(Block block, String name) {

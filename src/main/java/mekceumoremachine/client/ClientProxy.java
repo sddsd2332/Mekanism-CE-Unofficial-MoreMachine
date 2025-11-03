@@ -5,17 +5,24 @@ import mekanism.client.render.item.ItemLayerWrapper;
 import mekanism.client.render.tileentity.RenderConfigurableMachine;
 import mekanism.common.base.ITierItem;
 import mekceumoremachine.client.gui.*;
-import mekceumoremachine.client.render.item.RenderTierIsotopicCentrifugeItem;
-import mekceumoremachine.client.render.item.RenderTierSolarNeutronActivatorItem;
-import mekceumoremachine.client.render.item.RenderWirelessChargingStationItem;
-import mekceumoremachine.client.render.tileentity.RenderTierIsotopicCentrifuge;
-import mekceumoremachine.client.render.tileentity.RenderTierSolarNeutronActivator;
-import mekceumoremachine.client.render.tileentity.RenderWirelessChargingStation;
+import mekceumoremachine.client.render.item.generator.RenderBigWindGeneratorItem;
+import mekceumoremachine.client.render.item.generator.RenderTierWindGeneratorItem;
+import mekceumoremachine.client.render.item.machine.RenderTierIsotopicCentrifugeItem;
+import mekceumoremachine.client.render.item.machine.RenderTierSolarNeutronActivatorItem;
+import mekceumoremachine.client.render.item.machine.RenderWirelessChargingStationItem;
+import mekceumoremachine.client.render.tileentity.generator.RenderBigWindGenerator;
+import mekceumoremachine.client.render.tileentity.generator.RenderTierWindGenerator;
+import mekceumoremachine.client.render.tileentity.machine.RenderTierIsotopicCentrifuge;
+import mekceumoremachine.client.render.tileentity.machine.RenderTierSolarNeutronActivator;
+import mekceumoremachine.client.render.tileentity.machine.RenderWirelessChargingStation;
 import mekceumoremachine.common.CommonProxy;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.common.tier.MachineTier;
+import mekceumoremachine.common.tile.generator.TileEntityBaseWindGenerator;
+import mekceumoremachine.common.tile.generator.TileEntityBigWindGenerator;
+import mekceumoremachine.common.tile.generator.TileEntityTierWindGenerator;
 import mekceumoremachine.common.tile.machine.*;
 import net.minecraft.block.Block;
 import net.minecraft.client.gui.GuiScreen;
@@ -50,6 +57,9 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierSolarNeutronActivator.class, new RenderTierSolarNeutronActivator());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalInfuser.class, new RenderConfigurableMachine<>());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAmbientAccumulator.class, new RenderConfigurableMachine<>());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalWasher.class, new RenderConfigurableMachine<>());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierWindGenerator.class, new RenderTierWindGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBigWindGenerator.class,new RenderBigWindGenerator());
     }
 
     @Override
@@ -61,6 +71,8 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.WirelessCharging).setTileEntityItemStackRenderer(new RenderWirelessChargingStationItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge).setTileEntityItemStackRenderer(new RenderTierIsotopicCentrifugeItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator).setTileEntityItemStackRenderer(new RenderTierSolarNeutronActivatorItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierWindGenerator).setTileEntityItemStackRenderer(new RenderTierWindGeneratorItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.BigWindGenerator).setTileEntityItemStackRenderer(new RenderBigWindGeneratorItem());
     }
 
     @Override
@@ -74,6 +86,9 @@ public class ClientProxy extends CommonProxy {
         addModel(MEKCeuMoreMachineBlocks.TierChemicalInfuser, "TierChemicalInfuser");
         addModel(MEKCeuMoreMachineBlocks.TierAmbientAccumulator, "TierAmbientAccumulator");
         addModel(MEKCeuMoreMachineBlocks.TierRadioactiveWasteBarrel, "TierRadioactiveWasteBarrel");
+        addModel(MEKCeuMoreMachineBlocks.TierChemicalWasher, "TierChemicalWasher");
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierWindGenerator), 0, getInventoryMRL("TierWindGenerator"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.BigWindGenerator),0,getInventoryMRL("BigWindGenerator"));
     }
 
     public void addModel(Block block, String type) {
@@ -104,6 +119,12 @@ public class ClientProxy extends CommonProxy {
 
         ModelResourceLocation TierSolarNeutronActivator = getInventoryMRL("TierSolarNeutronActivator");
         modelRegistry.putObject(TierSolarNeutronActivator, RenderTierSolarNeutronActivatorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierSolarNeutronActivator)));
+
+        ModelResourceLocation TierWindGenerator = getInventoryMRL("TierWindGenerator");
+        modelRegistry.putObject(TierWindGenerator, RenderTierWindGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierWindGenerator)));
+
+        ModelResourceLocation BigWindGenerator = getInventoryMRL("BigWindGenerator");
+        modelRegistry.putObject(BigWindGenerator,RenderBigWindGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(BigWindGenerator)));
     }
 
     @Override
@@ -118,15 +139,19 @@ public class ClientProxy extends CommonProxy {
             case 0 -> new GuiWirelessCharging(player.inventory, (TileEntityWirelessChargingStation) tileEntity);
             case 1 -> new GuiTierElectricPump(player.inventory, (TileEntityTierElectricPump) tileEntity);
             case 2 -> new GuiTierIsotopicCentrifuge(player.inventory, (TileEntityTierIsotopicCentrifuge) tileEntity);
-            case 3 ->
-                    new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
-            case 4 ->
-                    new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
-            case 5 ->
-                    new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
+            case 3 -> new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
+            case 4 -> new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
+            case 5 -> new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
             case 6 -> new GuiTierChemicalInfuser(player.inventory, (TileEntityTierChemicalInfuser) tileEntity);
             case 7 -> new GuiTierAmbientAccumulator(player.inventory, (TileEntityTierAmbientAccumulator) tileEntity);
+            case 8 -> new GuiTierChemicalWasher(player.inventory, (TileEntityTierChemicalWasher) tileEntity);
+            case 9 -> new GuiBaseWindGenerator(player.inventory,(TileEntityBaseWindGenerator) tileEntity);
             default -> null;
         };
+    }
+
+    @Override
+    public void init() {
+        MinecraftForge.EVENT_BUS.register(new ClientTickHandler());
     }
 }

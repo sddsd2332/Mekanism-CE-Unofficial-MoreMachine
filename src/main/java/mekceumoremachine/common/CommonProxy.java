@@ -2,6 +2,9 @@ package mekceumoremachine.common;
 
 import mekanism.common.base.IGuiProvider;
 import mekceumoremachine.common.inventory.container.*;
+import mekceumoremachine.common.tile.generator.TileEntityBaseWindGenerator;
+import mekceumoremachine.common.tile.generator.TileEntityBigWindGenerator;
+import mekceumoremachine.common.tile.generator.TileEntityTierWindGenerator;
 import mekceumoremachine.common.tile.machine.*;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
@@ -27,7 +30,10 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityTierSolarNeutronActivator.class, "tier_solar_neutron_activator");
         registerTileEntity(TileEntityTierChemicalInfuser.class, "tier_chemical_infuser");
         registerTileEntity(TileEntityTierAmbientAccumulator.class, "tier_ambient_accumulator");
-        registerTileEntity(TileEntityTierRadioactiveWasteBarrel.class,"tier_radioactive_waste_barrel");
+        registerTileEntity(TileEntityTierRadioactiveWasteBarrel.class, "tier_radioactive_waste_barrel");
+        registerTileEntity(TileEntityTierChemicalWasher.class,"tier_chemical_washer");
+        registerTileEntity(TileEntityTierWindGenerator.class,"tier_wind_generator");
+        registerTileEntity(TileEntityBigWindGenerator.class,"big_wind_generator");
     }
 
 
@@ -40,11 +46,13 @@ public class CommonProxy implements IGuiProvider {
     public void registerBlockRenders() {
     }
 
+    public void init(){
+    }
+
     public void preInit() {
     }
 
     public void loadConfiguration() {
-
     }
 
     @Override
@@ -64,7 +72,9 @@ public class CommonProxy implements IGuiProvider {
             case 4 -> new ContainerTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
             case 5 -> new ContainerTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
             case 6 -> new ContainerTierChemicalInfuser(player.inventory, (TileEntityTierChemicalInfuser) tileEntity);
-            case 7 -> new ContainerTierAmbientAccumulator(player.inventory,(TileEntityTierAmbientAccumulator) tileEntity);
+            case 7 -> new ContainerTierAmbientAccumulator(player.inventory, (TileEntityTierAmbientAccumulator) tileEntity);
+            case 8 -> new ContainerTierChemicalWasher(player.inventory, (TileEntityTierChemicalWasher) tileEntity);
+            case 9 -> new ContainerBaseWindGenerator(player.inventory,(TileEntityBaseWindGenerator) tileEntity);
             default -> null;
         };
     }

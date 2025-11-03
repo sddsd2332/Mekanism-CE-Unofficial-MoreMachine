@@ -1,8 +1,8 @@
-package mekceumoremachine.client.render.tileentity;
+package mekceumoremachine.client.render.tileentity.machine;
 
 import mekanism.client.render.MekanismRenderer;
 import mekanism.common.util.MekanismUtils;
-import mekceumoremachine.client.model.ModelWirelessChargingStation;
+import mekceumoremachine.client.model.machine.ModelWirelessChargingStation;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingStation;
 import net.minecraft.client.renderer.GlStateManager;

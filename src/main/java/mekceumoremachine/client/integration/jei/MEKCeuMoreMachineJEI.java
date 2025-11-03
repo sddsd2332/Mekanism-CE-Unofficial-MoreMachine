@@ -41,6 +41,8 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.TierSolarNeutronActivator);
         registry(registry, MEKCeuMoreMachineBlocks.TierChemicalInfuser);
         registry(registry, MEKCeuMoreMachineBlocks.TierAmbientAccumulator);
+        registry(registry, MEKCeuMoreMachineBlocks.TierChemicalWasher);
+        registry(registry,MEKCeuMoreMachineBlocks.TierWindGenerator);
     }
 
     public void registry(ISubtypeRegistry registry, Block block) {
@@ -56,5 +58,6 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierNeutronActivator(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalInfuser(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierAmbientAccumulator(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerTierWasher(registry);
     }
 }

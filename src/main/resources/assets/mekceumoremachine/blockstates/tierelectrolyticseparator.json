@@ -3,7 +3,7 @@
   "defaults": {
     "textures": {
       "all": "mekanism:blocks/models/electrolytic_separator",
-      "all1": "mekceumoremachine:blocks/models/electrolytic_separator_basic_valve"
+      "all1": "mekceumoremachine:blocks/models/electrolytic_separator/basic"
     },
     "model": "mekceumoremachine:electrolytic_separator"
   },
@@ -11,22 +11,22 @@
     "tier": {
       "elite": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electrolytic_separator_elite_valve"
+          "all1": "mekceumoremachine:blocks/models/electrolytic_separator/elite"
         }
       },
       "advanced": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electrolytic_separator_advanced_valve"
+          "all1": "mekceumoremachine:blocks/models/electrolytic_separator/advanced"
         }
       },
       "ultimate": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electrolytic_separator_ultimate_valve"
+          "all1": "mekceumoremachine:blocks/models/electrolytic_separator/ultimate"
         }
       },
       "basic": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electrolytic_separator_basic_valve"
+          "all1": "mekceumoremachine:blocks/models/electrolytic_separator/basic"
         }
       },
       "creative": {}

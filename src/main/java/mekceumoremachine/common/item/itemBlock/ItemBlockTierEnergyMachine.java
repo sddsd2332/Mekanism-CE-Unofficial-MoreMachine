@@ -4,9 +4,12 @@ import cofh.redstoneflux.api.IEnergyContainerItem;
 import ic2.api.item.IElectricItemManager;
 import ic2.api.item.ISpecialElectricItem;
 import mekanism.api.energy.IEnergizedItem;
+import mekanism.common.capabilities.ItemCapabilityWrapper;
 import mekanism.common.integration.MekanismHooks;
+import mekanism.common.integration.forgeenergy.ForgeEnergyItemWrapper;
 import mekanism.common.integration.ic2.IC2ItemManager;
 import mekanism.common.integration.redstoneflux.RFIntegration;
+import mekanism.common.integration.tesla.TeslaItemWrapper;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.MekanismUtils;
@@ -16,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fml.common.Optional.Method;
 import net.minecraftforge.fml.common.Optional.Interface;
 import net.minecraftforge.fml.common.Optional.InterfaceList;
@@ -162,5 +166,10 @@ public abstract class ItemBlockTierEnergyMachine extends ItemBlockTierMachine im
     @Method(modid = MekanismHooks.IC2_MOD_ID)
     public IElectricItemManager getManager(ItemStack itemStack) {
         return IC2ItemManager.getManager(this);
+    }
+
+    @Override
+    public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
+        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper());
     }
 }

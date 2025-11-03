@@ -2,7 +2,7 @@
   "forge_marker": 1,
   "defaults": {
     "textures": {
-      "all1": "mekceumoremachine:blocks/models/chemical_infuser_basic_valve"
+      "all1": "mekceumoremachine:blocks/models/chemical_infuser/basic"
     },
     "model": "mekceumoremachine:chemical_infuser"
   },
@@ -10,22 +10,22 @@
     "tier": {
       "elite": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/chemical_infuser_elite_valve"
+          "all1": "mekceumoremachine:blocks/models/chemical_infuser/elite"
         }
       },
       "advanced": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/chemical_infuser_advanced_valve"
+          "all1": "mekceumoremachine:blocks/models/chemical_infuser/advanced"
         }
       },
       "ultimate": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/chemical_infuser_ultimate_valve"
+          "all1": "mekceumoremachine:blocks/models/chemical_infuser/ultimate"
         }
       },
       "basic": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/chemical_infuser_basic_valve"
+          "all1": "mekceumoremachine:blocks/models/chemical_infuser/basic"
         }
       },
       "creative": {}

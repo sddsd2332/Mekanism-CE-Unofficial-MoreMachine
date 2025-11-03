@@ -1,8 +1,8 @@
-package mekceumoremachine.client.render.tileentity;
+package mekceumoremachine.client.render.tileentity.machine;
 
 import mekanism.client.render.MekanismRenderer;
 import mekanism.common.util.MekanismUtils;
-import mekceumoremachine.client.model.ModelTierSolarNeutronActivator;
+import mekceumoremachine.client.model.machine.ModelTierSolarNeutronActivator;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.machine.TileEntityTierSolarNeutronActivator;
 import net.minecraft.client.renderer.GlStateManager;

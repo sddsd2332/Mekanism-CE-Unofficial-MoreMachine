@@ -2,8 +2,8 @@
   "forge_marker": 1,
   "defaults": {
     "textures": {
-      "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel_basic",
-      "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel_basic"
+      "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel/basic",
+      "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel/basic"
     },
     "model": "mekceumoremachine:radioactive_waste_barrel"
   },
@@ -11,26 +11,26 @@
     "tier": {
       "elite": {
         "textures": {
-          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel_elite",
-          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel_elite"
+          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel/elite",
+          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel/elite"
         }
       },
       "advanced": {
         "textures": {
-          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel_advanced",
-          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel_advanced"
+          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel/advanced",
+          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel/advanced"
         }
       },
       "ultimate": {
         "textures": {
-          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel_ultimate",
-          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel_ultimate"
+          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel/ultimate",
+          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel/ultimate"
         }
       },
       "basic": {
         "textures": {
-          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel_basic",
-          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel_basic"
+          "particle": "mekceumoremachine:blocks/models/radioactive_waste_barrel/basic",
+          "barrel": "mekceumoremachine:blocks/models/radioactive_waste_barrel/basic"
         }
       },
       "creative": {}

@@ -3,7 +3,7 @@
   "defaults": {
     "textures": {
       "all": "mekanism:blocks/models/rotary_condensentrator",
-      "all1": "mekceumoremachine:blocks/models/rotary_condensentrator_basic_valve"
+      "all1": "mekceumoremachine:blocks/models/rotary_condensentrator/basic"
     },
     "model": "mekceumoremachine:rotary_condensentrator"
   },
@@ -11,22 +11,22 @@
     "tier": {
       "elite": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator_elite_valve"
+          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator/elite"
         }
       },
       "advanced": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator_advanced_valve"
+          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator/advanced"
         }
       },
       "ultimate": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator_ultimate_valve"
+          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator/ultimate"
         }
       },
       "basic": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator_basic_valve"
+          "all1": "mekceumoremachine:blocks/models/rotary_condensentrator/basic"
         }
       },
       "creative": {}

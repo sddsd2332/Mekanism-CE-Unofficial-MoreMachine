@@ -21,6 +21,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
@@ -78,6 +79,7 @@ public class MEKCeuMoreMachine implements IModule {
         //Load the proxy
         proxy.registerTileEntities();
         proxy.registerTESRs();
+        proxy.init();
 
     }
 
@@ -119,6 +121,7 @@ public class MEKCeuMoreMachine implements IModule {
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.WirelessCharging, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge,0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator,0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator,0);
     }
 
     @SubscribeEvent
@@ -126,4 +129,8 @@ public class MEKCeuMoreMachine implements IModule {
         MEKCeuMoreMachineRecipes.addRecipes();
     }
 
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public static void removeRecipes(RegistryEvent.Register<IRecipe> event){
+        MEKCeuMoreMachineRecipes.removeRecipes();
+    }
 }

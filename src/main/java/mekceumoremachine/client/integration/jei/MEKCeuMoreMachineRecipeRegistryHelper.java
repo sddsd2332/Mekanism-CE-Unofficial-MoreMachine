@@ -44,6 +44,11 @@ public class MEKCeuMoreMachineRecipeRegistryHelper {
         registerRecipeMachineTierItem(registry,MEKCeuMoreMachineBlocks.TierAmbientAccumulator,Recipe.AMBIENT_ACCUMULATOR.getJEICategory());
     }
 
+    public static void registerTierWasher(IModRegistry registry) {
+        registry.addRecipeClickArea(GuiTierChemicalWasher.class,61, 39, 55, 8, Recipe.CHEMICAL_WASHER.getJEICategory());
+        registerRecipeMachineTierItem(registry,MEKCeuMoreMachineBlocks.TierChemicalWasher,Recipe.CHEMICAL_WASHER.getJEICategory());
+    }
+
     private static void registerRecipeMachineTierItem(IModRegistry registry, Block block, String... recipe) {
         for (MachineTier tier : MachineTier.values()) {
             ItemStack add = new ItemStack(block);

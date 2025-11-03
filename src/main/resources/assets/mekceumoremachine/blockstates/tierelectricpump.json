@@ -3,7 +3,7 @@
   "defaults": {
     "textures": {
       "all": "mekanism:blocks/models/electric_pump",
-      "all1": "mekceumoremachine:blocks/models/electric_pump_basic_valve"
+      "all1": "mekceumoremachine:blocks/models/electric_pump/basic"
     },
     "model": "mekceumoremachine:electric_pump"
   },
@@ -11,22 +11,22 @@
     "tier": {
       "elite": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electric_pump_elite_valve"
+          "all1": "mekceumoremachine:blocks/models/electric_pump/elite"
         }
       },
       "advanced": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electric_pump_advanced_valve"
+          "all1": "mekceumoremachine:blocks/models/electric_pump/advanced"
         }
       },
       "ultimate": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electric_pump_ultimate_valve"
+          "all1": "mekceumoremachine:blocks/models/electric_pump/ultimate"
         }
       },
       "basic": {
         "textures": {
-          "all1": "mekceumoremachine:blocks/models/electric_pump_basic_valve"
+          "all1": "mekceumoremachine:blocks/models/electric_pump/basic"
         }
       },
       "creative": {}

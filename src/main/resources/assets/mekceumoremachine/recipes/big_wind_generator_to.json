@@ -1,0 +1,12 @@
+{
+  "result": {
+    "item": "mekceumoremachine:bigwindgenerator"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "mekanismmultiblockmachine:multiblockgenerator",
+      "data": 0
+    }
+  ]
+}

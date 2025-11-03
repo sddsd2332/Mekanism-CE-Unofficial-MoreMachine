@@ -1,0 +1,55 @@
+{
+  "forge_marker": 1,
+  "defaults": {
+    "textures": {
+      "all1": "mekceumoremachine:blocks/models/chemical_washer/basic"
+    },
+    "model": "mekceumoremachine:chemical_washer"
+  },
+  "variants": {
+    "tier": {
+      "elite": {
+        "textures": {
+          "all1": "mekceumoremachine:blocks/models/chemical_washer/elite"
+        }
+      },
+      "advanced": {
+        "textures": {
+          "all1": "mekceumoremachine:blocks/models/chemical_washer/advanced"
+        }
+      },
+      "ultimate": {
+        "textures": {
+          "all1": "mekceumoremachine:blocks/models/chemical_washer/ultimate"
+        }
+      },
+      "basic": {
+        "textures": {
+          "all1": "mekceumoremachine:blocks/models/chemical_washer/basic"
+        }
+      },
+      "creative": {}
+    },
+    "facing": {
+      "east": {
+        "y": 90
+      },
+      "south": {
+        "y": 180
+      },
+      "north": {},
+      "west": {
+        "y": -90
+      },
+      "up": {
+        "x": -90
+      },
+      "down": {
+        "x": 90
+      }
+    },
+    "inventory": [
+      {}
+    ]
+  }
+}
