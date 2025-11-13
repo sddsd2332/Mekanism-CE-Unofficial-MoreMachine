@@ -125,6 +125,7 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         possibleProcess *= tier.processes;
         possibleProcess = Math.min(outputTank.getNeeded(), possibleProcess);
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return possibleProcess;
     }
 
@@ -323,6 +324,9 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
     @Override
     public boolean upgrade(BaseTier upgradeTier) {
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+            return false;
+        }
+        if (upgradeTier == BaseTier.CREATIVE){
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];

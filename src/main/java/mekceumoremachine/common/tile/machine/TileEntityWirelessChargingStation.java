@@ -254,6 +254,9 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();

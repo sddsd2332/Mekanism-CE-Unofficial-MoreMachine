@@ -29,7 +29,7 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
-import mekanism.multiblockmachine.common.MultiblockMachineBlocks;
+import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
 import mekanism.multiblockmachine.common.tile.machine.TileEntityLargeElectrolyticSeparator;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
@@ -160,6 +160,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         getProcess(recipe, true, energyPerTick, true, false);
         prevEnergy = getEnergy();
         dumpAmount = 8 * Math.min((int) Math.pow(2, upgradeComponent.getUpgrades(Upgrade.SPEED)), MekanismConfig.current().mekce.MAXspeedmachines.val());
+        dumpAmount *= tier.processes;
     }
 
     @Override
@@ -225,6 +226,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         }
         possibleProcess = Math.min(Math.min((int) Math.pow(2, upgradeComponent.getUpgrades(Upgrade.SPEED)), MekanismConfig.current().mekce.MAXspeedmachines.val()) * tier.processes, possibleProcess);
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return Math.min(fluidTank.getFluidAmount() / recipe.recipeInput.ingredient.amount, possibleProcess);
     }
 
@@ -545,6 +547,9 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         fluidTank.setCapacity(tier.processes * 10 * MAX_GAS);
         leftTank.setMaxGas(tier.processes * MAX_GAS);
@@ -618,7 +623,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
             world.setBlockToAir(getPos());
         }
 
-        world.setBlockState(getPos(), MultiblockMachineBlocks.MultiblockMachine.getStateFromMeta(0), 3);
+        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeElectrolyticSeparator.getDefaultState(), 3);
         if (world.getTileEntity(getPos()) instanceof TileEntityLargeElectrolyticSeparator tile) {
             tile.onPlace();
             //Basic

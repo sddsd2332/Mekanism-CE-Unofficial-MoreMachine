@@ -71,8 +71,6 @@ tile.TierWindGenerator.Advanced.name=高级风力发电机
 tile.TierWindGenerator.Elite.name=精英风力发电机
 tile.TierWindGenerator.Ultimate.name=终极风力发电机
 tooltip.TierWindGenerator=一种利用风的强度产生能量的发电机, 在较高的地方效率更高。
-tile.BigWindGenerator.name=大型风力发电机
-tooltip.BigWindGenerator=一种利用风的强度产生能量的发电机, 在较高的地方效率更高。
 
 tile.TierChemicalDissolutionChamber.Basic.name=基础化学溶解室
 tile.TierChemicalDissolutionChamber.Advanced.name=高级化学溶解室
@@ -91,6 +89,12 @@ tile.TierChemicalOxidizer.Advanced.name=高级化学氧化机
 tile.TierChemicalOxidizer.Elite.name=精英化学氧化机
 tile.TierChemicalOxidizer.Ultimate.name=终极化学氧化机
 tooltip.TierChemicalOxidizer=一台能够将固态材料氧化成气态产物的机器。
+
+tile.TierGasGenerator.Basic.name=基础燃气发电机
+tile.TierGasGenerator.Advanced.name=高级燃气发电机
+tile.TierGasGenerator.Elite.name=精英燃气发电机
+tile.TierGasGenerator.Ultimate.name=终极燃气发电机
+tooltip.TierGasGenerator=一台利用不同的气体供能的发电机。
 
 item.CompositeTierInstaller.name=复合升级安装套件
 tooltip.CompositeTierInstaller=能够将机器直接升级到最终等级的安装组件

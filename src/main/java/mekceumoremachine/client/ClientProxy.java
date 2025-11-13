@@ -7,10 +7,10 @@ import mekanism.client.render.tileentity.RenderConfigurableMachine;
 import mekanism.common.base.ITierItem;
 import mekceumoremachine.client.gui.*;
 import mekceumoremachine.client.render.MEKCeuMoreMachineRenderer;
-import mekceumoremachine.client.render.item.generator.RenderBigWindGeneratorItem;
+import mekceumoremachine.client.render.item.generator.RenderTierGasGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierWindGeneratorItem;
 import mekceumoremachine.client.render.item.machine.*;
-import mekceumoremachine.client.render.tileentity.generator.RenderBigWindGenerator;
+import mekceumoremachine.client.render.tileentity.generator.RenderTierGasGenerator;
 import mekceumoremachine.client.render.tileentity.generator.RenderTierWindGenerator;
 import mekceumoremachine.client.render.tileentity.machine.*;
 import mekceumoremachine.common.CommonProxy;
@@ -21,7 +21,7 @@ import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.generator.TileEntityBaseWindGenerator;
-import mekceumoremachine.common.tile.generator.TileEntityBigWindGenerator;
+import mekceumoremachine.common.tile.generator.TileEntityTierGasGenerator;
 import mekceumoremachine.common.tile.generator.TileEntityTierWindGenerator;
 import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemicalDissolutionChamber;
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
@@ -70,10 +70,10 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAmbientAccumulator.class, new RenderConfigurableMachine<>());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalWasher.class, new RenderConfigurableMachine<>());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierWindGenerator.class, new RenderTierWindGenerator());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBigWindGenerator.class, new RenderBigWindGenerator());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalDissolutionChamber.class, RenderTierChemicalDissolutionChamber.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierNutritionalLiquifier.class, RenderTierNutritionalLiquifier.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalOxidizer.class, new RenderConfigurableMachine<>());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierGasGenerator.class,new RenderTierGasGenerator());
     }
 
     @Override
@@ -86,9 +86,9 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge).setTileEntityItemStackRenderer(new RenderTierIsotopicCentrifugeItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator).setTileEntityItemStackRenderer(new RenderTierSolarNeutronActivatorItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierWindGenerator).setTileEntityItemStackRenderer(new RenderTierWindGeneratorItem());
-        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.BigWindGenerator).setTileEntityItemStackRenderer(new RenderBigWindGeneratorItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber).setTileEntityItemStackRenderer(new RenderTierChemicalDissolutionChamberItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierNutritionalLiquifier).setTileEntityItemStackRenderer(new RenderTierNutritionalLiquifierItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierGasGenerator).setTileEntityItemStackRenderer(new RenderTierGasGeneratorItem());
     }
 
     @Override
@@ -104,7 +104,7 @@ public class ClientProxy extends CommonProxy {
         addModel(MEKCeuMoreMachineBlocks.TierRadioactiveWasteBarrel, "TierRadioactiveWasteBarrel");
         addModel(MEKCeuMoreMachineBlocks.TierChemicalWasher, "TierChemicalWasher");
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierWindGenerator), 0, getInventoryMRL("TierWindGenerator"));
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.BigWindGenerator), 0, getInventoryMRL("BigWindGenerator"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierGasGenerator), 0, getInventoryMRL("TierGasGenerator"));
         for (int i = 0; i < 4; i++) {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber), i, getInventoryMRL("TierChemicalDissolutionChamber"));
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierNutritionalLiquifier), i, getInventoryMRL("TierNutritionalLiquifier"));
@@ -194,16 +194,14 @@ public class ClientProxy extends CommonProxy {
         ModelResourceLocation TierWindGenerator = getInventoryMRL("TierWindGenerator");
         modelRegistry.putObject(TierWindGenerator, RenderTierWindGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierWindGenerator)));
 
-        ModelResourceLocation BigWindGenerator = getInventoryMRL("BigWindGenerator");
-        modelRegistry.putObject(BigWindGenerator, RenderBigWindGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(BigWindGenerator)));
-
         ModelResourceLocation TierChemicalDissolutionChamber = getInventoryMRL("TierChemicalDissolutionChamber");
         modelRegistry.putObject(TierChemicalDissolutionChamber, RenderTierChemicalDissolutionChamberItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierChemicalDissolutionChamber)));
 
         ModelResourceLocation TierNutritionalLiquifier = getInventoryMRL("TierNutritionalLiquifier");
         modelRegistry.putObject(TierNutritionalLiquifier, RenderTierNutritionalLiquifierItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierNutritionalLiquifier)));
 
-
+        ModelResourceLocation TierGasGenerator = getInventoryMRL("TierGasGenerator");
+        modelRegistry.putObject(TierGasGenerator, RenderTierGasGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierGasGenerator)));
     }
 
     @Override
@@ -219,21 +217,17 @@ public class ClientProxy extends CommonProxy {
             case 0 -> new GuiWirelessCharging(player.inventory, (TileEntityWirelessChargingStation) tileEntity);
             case 1 -> new GuiTierElectricPump(player.inventory, (TileEntityTierElectricPump) tileEntity);
             case 2 -> new GuiTierIsotopicCentrifuge(player.inventory, (TileEntityTierIsotopicCentrifuge) tileEntity);
-            case 3 ->
-                    new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
-            case 4 ->
-                    new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
-            case 5 ->
-                    new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
+            case 3 -> new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
+            case 4 -> new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
+            case 5 -> new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
             case 6 -> new GuiTierChemicalInfuser(player.inventory, (TileEntityTierChemicalInfuser) tileEntity);
             case 7 -> new GuiTierAmbientAccumulator(player.inventory, (TileEntityTierAmbientAccumulator) tileEntity);
             case 8 -> new GuiTierChemicalWasher(player.inventory, (TileEntityTierChemicalWasher) tileEntity);
             case 9 -> new GuiBaseWindGenerator(player.inventory, (TileEntityBaseWindGenerator) tileEntity);
-            case 10 ->
-                    new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
-            case 11 ->
-                    new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
+            case 10 -> new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
+            case 11 -> new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
             case 12 -> new GuiTierChemicalOxidizer(player.inventory, (TileEntityTierChemicalOxidizer) tileEntity);
+            case 13 -> new GuiTierGasGenerator(player.inventory,(TileEntityTierGasGenerator) tileEntity);
             default -> null;
         };
     }

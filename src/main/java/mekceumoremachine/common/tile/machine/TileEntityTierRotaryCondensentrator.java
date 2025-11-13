@@ -169,6 +169,7 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
             possibleProcess = Math.min(Math.min(fluidTank.getFluidAmount(), gasTank.getNeeded()), possibleProcess);
         }
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return Math.min(mode ? gasTank.getStored() : fluidTank.getFluidAmount(), possibleProcess);
     }
 
@@ -452,6 +453,9 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     @Override
     public boolean upgrade(BaseTier upgradeTier) {
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+            return false;
+        }
+        if (upgradeTier == BaseTier.CREATIVE){
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];

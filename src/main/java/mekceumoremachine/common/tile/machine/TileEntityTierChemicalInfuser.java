@@ -26,8 +26,7 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
-import mekanism.multiblockmachine.common.MultiblockMachineBlocks;
-import mekanism.multiblockmachine.common.block.states.BlockStateMultiblockMachine;
+import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
 import mekanism.multiblockmachine.common.tile.machine.TileEntityLargeChemicalInfuser;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
@@ -109,7 +108,7 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         TileUtils.drawGas(inventory.get(2), centerTank);
 
         ChemicalInfuserRecipe recipe = getRecipe();
-        double energy = recipe != null ? energyPerTick * getUpgradedUsage(recipe) : 0;
+        double energy = recipe != null ? energyPerTick * getUpgradedUsage(recipe) : energyPerTick;
         getProcess(recipe, true, energy, true, false);
         prevEnergy = getEnergy();
     }
@@ -135,6 +134,7 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         }
         possibleProcess = Math.min(centerTank.getNeeded() / recipe.recipeOutput.output.amount, possibleProcess);
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return possibleProcess;
     }
 
@@ -374,6 +374,9 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         leftTank.setMaxGas(tier.processes * MAX_GAS);
         rightTank.setMaxGas(tier.processes * MAX_GAS);
@@ -449,7 +452,7 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         } else {
             world.setBlockToAir(getPos());
         }
-        world.setBlockState(getPos(), MultiblockMachineBlocks.MultiblockMachine.getStateFromMeta(1),3);
+        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeChemicalInfuser.getDefaultState(),3);
         if (world.getTileEntity(getPos()) instanceof TileEntityLargeChemicalInfuser tile){
             tile.onPlace();
             //Basic

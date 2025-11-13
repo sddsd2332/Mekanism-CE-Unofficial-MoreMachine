@@ -13,7 +13,7 @@ import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.recipe.RecipeHandler;
-import mekanism.common.recipe.inputs.GasInput;
+import mekanism.common.recipe.inputs.GasAndFluidInput;
 import mekanism.common.recipe.machines.WasherRecipe;
 import mekanism.common.recipe.outputs.GasOutput;
 import mekanism.common.tier.BaseTier;
@@ -22,7 +22,7 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
-import mekanism.multiblockmachine.common.MultiblockMachineBlocks;
+import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
 import mekanism.multiblockmachine.common.tile.machine.TileEntityLargeChemicalWasher;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
@@ -50,7 +50,7 @@ import java.util.Map;
 @InterfaceList({
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
-public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInput, GasOutput, WasherRecipe> implements IGasHandler, IFluidHandlerWrapper, ISustainedData, Upgrade.IUpgradeInfoHandler, ITankManager, ITierMachine<MachineTier>, ILargeMachine {
+public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndFluidInput, GasOutput, WasherRecipe> implements IGasHandler, IFluidHandlerWrapper, ISustainedData, Upgrade.IUpgradeInfoHandler, ITankManager, ITierMachine<MachineTier>, ILargeMachine {
 
 
     public static final int MAX_GAS = 10000;
@@ -126,7 +126,7 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
 
     @Override
     public WasherRecipe getRecipe() {
-        GasInput input = getInput();
+        GasAndFluidInput input = getInput();
         if (cachedRecipe == null || !input.testEquality(cachedRecipe.getInput())) {
             cachedRecipe = RecipeHandler.getChemicalWasherRecipe(getInput());
         }
@@ -134,8 +134,8 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
     }
 
     @Override
-    public GasInput getInput() {
-        return new GasInput(inputTank.getGas());
+    public GasAndFluidInput getInput() {
+        return new GasAndFluidInput(inputTank.getGas(), fluidTank.getFluid());
     }
 
     @Override
@@ -149,7 +149,7 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
     }
 
     @Override
-    public Map<GasInput, WasherRecipe> getRecipes() {
+    public Map<GasAndFluidInput, WasherRecipe> getRecipes() {
         return RecipeHandler.Recipe.CHEMICAL_WASHER.get();
     }
 
@@ -164,6 +164,7 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
         possibleProcess *= tier.processes;
         possibleProcess = Math.min(Math.min(inputTank.getStored(), outputTank.getNeeded()), possibleProcess);
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return Math.min(fluidTank.getFluidAmount() / WATER_USAGE, possibleProcess);
     }
 
@@ -381,6 +382,9 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         fluidTank.setCapacity(tier.processes * MAX_FLUID);
         inputTank.setMaxGas(tier.processes * MAX_GAS);
@@ -453,8 +457,8 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasInpu
         } else {
             world.setBlockToAir(getPos());
         }
-        //todo
-        world.setBlockState(getPos(), MultiblockMachineBlocks.MultiblockMachine.getStateFromMeta(2), 3);
+
+        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeChemicalWasher.getDefaultState(), 3);
         if (world.getTileEntity(getPos()) instanceof TileEntityLargeChemicalWasher tile) {
             tile.onPlace();
             //Basic

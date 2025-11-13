@@ -5,6 +5,7 @@ import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.block.states.BlockStateMachine;
+import mekanism.common.recipe.inputs.GasAndFluidInput;
 import mekanism.common.recipe.inputs.GasInput;
 import mekanism.common.recipe.machines.WasherRecipe;
 import mekanism.common.recipe.outputs.GasOutput;
@@ -18,7 +19,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(value = TileEntityChemicalWasher.class, remap = false)
-public abstract class MixinTileEntityChemicalWasher extends TileEntityUpgradeableMachine<GasInput, GasOutput, WasherRecipe> {
+public abstract class MixinTileEntityChemicalWasher extends TileEntityUpgradeableMachine<GasAndFluidInput, GasOutput, WasherRecipe> {
     @Shadow
     public double clientEnergyUsed;
 

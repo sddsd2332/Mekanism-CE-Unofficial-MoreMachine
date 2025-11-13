@@ -539,6 +539,9 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         fluidTank.setCapacity(tier.processes * MAX_FLUID);
         upgradeComponent.getSupportedTypes().forEach(this::recalculateUpgradables);

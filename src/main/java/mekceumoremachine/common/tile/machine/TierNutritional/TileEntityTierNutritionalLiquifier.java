@@ -478,7 +478,7 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
     }
 
     public double getScaledProgress(int process) {
-        return (double) progress[process] / ticksRequired;
+        return Math.max(Math.min( (double)progress[process] / ticksRequired, 1.0D),0.0D);
     }
 
 

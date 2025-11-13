@@ -479,7 +479,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     }
 
     public double getScaledProgress(int process) {
-        return (double) progress[process] / ticksRequired;
+        return Math.max(Math.min( (double)progress[process] / ticksRequired, 1.0D),0.0D);
     }
 
     @Override
@@ -683,8 +683,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         return switch (tier) {
             case BASIC -> new Object[]{injectTank, outputTank1, outputTank2, outputTank3};
             case ADVANCED -> new Object[]{injectTank, outputTank1, outputTank2, outputTank3, outputTank4, outputTank5};
-            case ELITE -> new Object[]{injectTank, outputTank1, outputTank2, outputTank3, outputTank4, outputTank5, outputTank6, outputTank7};
-            case ULTIMATE -> new Object[]{injectTank, outputTank1, outputTank2, outputTank3, outputTank4, outputTank5, outputTank6, outputTank7, outputTank8, outputTank9};
+            case ELITE ->
+                    new Object[]{injectTank, outputTank1, outputTank2, outputTank3, outputTank4, outputTank5, outputTank6, outputTank7};
+            case ULTIMATE ->
+                    new Object[]{injectTank, outputTank1, outputTank2, outputTank3, outputTank4, outputTank5, outputTank6, outputTank7, outputTank8, outputTank9};
         };
     }
 

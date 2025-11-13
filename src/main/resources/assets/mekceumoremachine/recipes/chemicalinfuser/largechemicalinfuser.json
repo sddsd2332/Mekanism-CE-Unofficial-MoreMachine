@@ -1,0 +1,40 @@
+{
+  "result": {
+    "item": "mekanismmultiblockmachine:largechemicalinfuser"
+  },
+  "pattern": [
+    "ABA",
+    "CDC",
+    "EFE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    },
+    "B": {
+      "ore": "alloyUltimate",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "item": "mekanism:machineblock4",
+      "data": 10
+    },
+    "D": {
+      "nbt": {
+        "tier": 3
+      },
+      "item": "mekceumoremachine:tierchemicalinfuser",
+      "type": "mekanism:item_nbt"
+    },
+    "E": {
+      "ore":"blockSteel",
+      "type": "forge:ore_dict"
+    },
+    "F": {
+      "item": "mekanism:basicblock",
+      "data": 8
+    }
+  }
+}

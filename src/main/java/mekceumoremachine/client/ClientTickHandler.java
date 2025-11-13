@@ -4,8 +4,6 @@ import mekanism.common.base.IFactory.RecipeType;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.item.ItemBlockMachine;
 import mekanism.common.util.LangUtils;
-import mekanism.multiblockmachine.common.block.states.BlockStateMultiblockMachineGenerator.MultiblockMachineGeneratorType;
-import mekanism.multiblockmachine.common.item.ItemBlockMultiblockGenerator;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -32,16 +30,6 @@ public class ClientTickHandler {
                         event.getToolTip().add(info.get(0));
                         event.getToolTip().add(LangUtils.localize("tooltip.mekceumoremachine.remove"));
                     }
-                }
-            }
-        } else if (stack.getItem() instanceof ItemBlockMultiblockGenerator) {
-            MultiblockMachineGeneratorType type = MultiblockMachineGeneratorType.get(stack);
-            if (type == MultiblockMachineGeneratorType.LARGE_WIND_GENERATOR) {
-                if (!event.getToolTip().isEmpty()) {
-                    List<String> info = new ArrayList<>(event.getToolTip());
-                    event.getToolTip().clear();
-                    event.getToolTip().add(info.get(0));
-                    event.getToolTip().add(LangUtils.localize("tooltip.mekceumoremachine.remove"));
                 }
             }
         }

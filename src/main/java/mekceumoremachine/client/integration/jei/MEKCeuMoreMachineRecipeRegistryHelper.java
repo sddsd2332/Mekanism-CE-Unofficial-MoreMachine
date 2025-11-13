@@ -1,6 +1,7 @@
 package mekceumoremachine.client.integration.jei;
 
 import mekanism.common.base.ITierItem;
+import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.RecipeHandler.Recipe;
 import mekceumoremachine.client.gui.*;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
@@ -68,6 +69,11 @@ public class MEKCeuMoreMachineRecipeRegistryHelper {
     }
 
 
+    public static void registerGasStackFlueToEnergyRecipe(IModRegistry registry) {
+        registry.addRecipeClickArea(GuiTierGasGenerator.class, 55, 18, 66, 50, RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getJEICategory());
+        registerRecipeMachineTierItem(registry, MEKCeuMoreMachineBlocks.TierGasGenerator, Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getJEICategory());
+    }
+
     private static void registerRecipeMachineTierItem(IModRegistry registry, Block block, String... recipe) {
         for (MachineTier tier : MachineTier.values()) {
             ItemStack add = new ItemStack(block);
@@ -78,7 +84,7 @@ public class MEKCeuMoreMachineRecipeRegistryHelper {
         }
     }
 
-    public static ItemStack getTierFactory(Block block, MachineTier tier) {
+    private static ItemStack getTierFactory(Block block, MachineTier tier) {
         return new ItemStack(block, 1, tier.ordinal());
     }
 }

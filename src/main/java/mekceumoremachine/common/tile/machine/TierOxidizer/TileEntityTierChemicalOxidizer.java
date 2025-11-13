@@ -46,7 +46,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements IGasHandler, ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier> , ITierSorting {
+public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements IGasHandler, ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting {
 
     public static final int MAX_GAS = 10000;
     public GasTank outputTank1 = new GasTank(MAX_GAS);
@@ -478,7 +478,7 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
     }
 
     public double getScaledProgress(int process) {
-        return (double) progress[process] / ticksRequired;
+        return Math.max(Math.min((double) progress[process] / ticksRequired, 1.0D), 0.0D);
     }
 
 

@@ -46,6 +46,7 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber);
         registry(registry, MEKCeuMoreMachineBlocks.TierNutritionalLiquifier);
         registry(registry,MEKCeuMoreMachineBlocks.TierChemicalOxidizer);
+        registry(registry,MEKCeuMoreMachineBlocks.TierGasGenerator);
     }
 
     public void registry(ISubtypeRegistry registry, Block block) {
@@ -65,5 +66,6 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalDissolutionChamber(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierNutritionalLiquifier(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalOxidizer(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerGasStackFlueToEnergyRecipe(registry);
     }
 }

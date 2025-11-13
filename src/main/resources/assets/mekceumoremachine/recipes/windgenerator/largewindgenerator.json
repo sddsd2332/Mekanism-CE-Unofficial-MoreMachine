@@ -1,0 +1,42 @@
+{
+  "result": {
+    "item": "mekanismmultiblockmachine:largewindgenerator"
+  },
+  "pattern": [
+    "ABA",
+    "CDC",
+    "EFE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    },
+    "B": {
+      "nbt": {
+        "tier": 3
+      },
+      "item": "mekceumoremachine:tierwindgenerator",
+      "type": "mekanism:item_nbt"
+    },
+    "C": {
+      "item": "mekanism:basicblock",
+      "data": 8
+    },
+    "D": {
+      "item": "mekanism:machineblock4",
+      "data": 10
+    },
+    "E": {
+      "ore":"blockSteel",
+      "type": "forge:ore_dict"
+    },
+    "F": {
+      "nbt": {"tier": 3},
+      "item": "mekanism:basicblock2",
+      "data": 4,
+      "type": "mekanism:item_nbt"
+    }
+  }
+}

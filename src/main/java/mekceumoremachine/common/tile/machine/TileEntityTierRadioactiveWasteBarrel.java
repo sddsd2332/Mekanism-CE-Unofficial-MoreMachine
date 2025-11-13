@@ -231,6 +231,9 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityBasicBlock i
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
+        if (upgradeTier == BaseTier.CREATIVE){
+            return false;
+        }
         tier = MachineTier.values()[upgradeTier.ordinal()];
         gasTank.setMaxGas(tier.processes * MAX_GAS);
         Mekanism.packetHandler.sendUpdatePacket(this);

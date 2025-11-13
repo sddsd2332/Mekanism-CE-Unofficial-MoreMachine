@@ -177,6 +177,7 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         possibleProcess *= tier.processes;
         possibleProcess = Math.min(Math.min(inputTank.getStored(), outputTank.getNeeded()), possibleProcess);
         possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
+        possibleProcess = Math.max(possibleProcess, 1);
         return Math.min(inputTank.getStored() / recipe.recipeInput.ingredient.amount, possibleProcess);
     }
 
@@ -394,6 +395,9 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     @Override
     public boolean upgrade(BaseTier upgradeTier) {
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+            return false;
+        }
+        if (upgradeTier == BaseTier.CREATIVE){
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];

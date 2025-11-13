@@ -1,0 +1,39 @@
+{
+  "result": {
+    "item": "mekanismmultiblockmachine:largegasgenerator"
+  },
+  "pattern": [
+    "ABA",
+    "CDC",
+    "EFE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    },
+    "B": {
+      "ore": "alloyUltimate",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "item": "mekanism:basicblock",
+      "data": 8
+    },
+    "D": {
+      "item": "mekanismmultiblockmachine:advanced_electrolysis_core"
+    },
+    "E": {
+      "item": "mekanism:machineblock4",
+      "data": 10
+    },
+    "F": {
+      "nbt": {
+        "tier": 3
+      },
+      "item": "mekceumoremachine:tiergasgenerator",
+      "type": "mekanism:item_nbt"
+    }
+  }
+}
