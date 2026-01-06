@@ -43,7 +43,7 @@ public class ItemBlockWirelessCharging extends ItemBlockTierEnergyMachine {
 
     @Override
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {
-        for (int yPos = 1; yPos <= 4; yPos++) {
+        for (int yPos = 1; yPos <= 2; yPos++) {
             BlockPos abovePos = pos.up(yPos);
             if (!world.isValid(abovePos) || !world.getBlockState(abovePos).getBlock().isReplaceable(world, abovePos)) {
                 return true;

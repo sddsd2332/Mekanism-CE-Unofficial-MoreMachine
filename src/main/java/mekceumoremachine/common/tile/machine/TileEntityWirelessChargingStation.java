@@ -10,7 +10,6 @@ import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.SideData;
 import mekanism.common.base.*;
-import mekanism.common.base.target.EnergyAcceptorTarget;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.entity.EntityRobit;
 import mekanism.common.integration.MekanismHooks;
@@ -33,13 +32,8 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Optional;
@@ -49,9 +43,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
         ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier> {
@@ -71,7 +63,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     public boolean chargeRobit;
     public boolean playerArmor;
     public boolean playerInventory;
-    public boolean chargeMachine;
 
 
     public TileEntityWirelessChargingStation() {
@@ -97,10 +88,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         super.onUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
-
-
-        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(getPos().getX() - getRang(), getPos().getY() + 4 - getRang(), getPos().getZ() - getRang(), getPos().getX() + getRang(), getPos().getY() + 4 + getRang(), getPos().getZ() + getRang()), CHARGE_PREDICATE);
-
+        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(getPos().getX() - getRang(), getPos().getY() + 2 - getRang(), getPos().getZ() - getRang(), getPos().getX() + getRang(), getPos().getY() + 2 + getRang(), getPos().getZ() + getRang()), CHARGE_PREDICATE);
         if (MekanismUtils.canFunction(this)) {
             List<EntityLivingBase> addeEtities = new ArrayList<>();
             //如果机器的安全选项不是公开的，只充能该机器对应的所有者
@@ -108,11 +96,9 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
                 for (EntityLivingBase entity : entities) {
                     if (entity instanceof EntityRobit robit && robit.getOwnerUUID().equals(getSecurity().getOwnerUUID())) {
                         addeEtities.add(entity);
-
                     }
                     if (entity instanceof EntityPlayer player && player.getUniqueID().equals(getSecurity().getOwnerUUID())) {
                         addeEtities.add(entity);
-
                     }
                 }
             } else {
@@ -127,7 +113,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
                         robit.setEnergy(robit.getEnergy() + toGive);
                         setEnergy(getEnergy() - toGive);
                     } else if (entity instanceof EntityPlayer player) {
-                        double prevEnergy = getEnergy();
                         List<ItemStack> stacks = new ArrayList<>();
                         if (playerArmor) {
                             stacks.addAll(player.inventory.armorInventory);
@@ -141,19 +126,14 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
                         }
                         if (!stacks.isEmpty()) {
                             for (ItemStack stack : stacks) {
-                                ChargeUtils.charge(stack, this);
-                                if (prevEnergy != getEnergy()) {
+                                if (getEnergy() <= 0) {
                                     break;
                                 }
+                                ChargeUtils.charge(stack, this);
                             }
                         }
                     }
                 }
-            }
-
-
-            if (chargeMachine) {
-                emit();
             }
         }
         int newScale = getScaledEnergyLevel(20);
@@ -161,40 +141,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         prevScale = newScale;
-
     }
 
-    public void emit() {
-        TileEntity tileEntity = this;
-        if (tileEntity.getWorld().isRemote || !MekanismUtils.canFunction(tileEntity)) {
-            return;
-        }
-        if (getRangMachine() != null && !getRangMachine().isEmpty()) {
-            for (int i = 0; i < getRangMachine().size(); i++) {
-                double energyToSend = Math.min(getEnergy(), getMaxOutput());
-                if (!(energyToSend > 0)) {
-                    break;
-                }
-                EnergyAcceptorTarget target = new EnergyAcceptorTarget();
-                for (EnumFacing side : EnumFacing.VALUES) {
-                    for (TileEntity tile : getRangMachine().values()) {
-                        if (CableUtils.isAcceptor(tileEntity, tile, side)) {
-                            EnumFacing opposite = side.getOpposite();
-                            EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, opposite);
-                            if (acceptor != null && acceptor.canReceiveEnergy(opposite) && acceptor.needsEnergy(opposite)) {
-                                target.addHandler(opposite, acceptor);
-                            }
-                        }
-                    }
-                }
-                int curHandlers = target.getHandlers().size();
-                if (curHandlers > 0) {
-                    double sent = EmitUtils.sendToAcceptors(java.util.Collections.singleton(target), curHandlers, energyToSend);
-                    setEnergy(getEnergy() - sent);
-                }
-            }
-        }
-    }
 
     @Optional.Method(modid = MekanismHooks.Baubles_MOD_ID)
     public List<ItemStack> chargeBaublesInventory(EntityPlayer player) {
@@ -204,42 +152,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             stacks.add(baubles.getStackInSlot(i));
         }
         return stacks;
-    }
-
-    public Map<BlockPos, TileEntity> getRangMachine() {
-        if (!chargeMachine) {
-            return new HashMap<>();
-        }
-        World world = getWorld();
-        BlockPos currentPos = getPos().up(4);
-        ChunkPos currentChunk = new ChunkPos(currentPos);
-        Map<BlockPos, TileEntity> rangMachine = new HashMap<>();
-        int rang = tier.processes;
-        for (int chunkX = currentChunk.x - rang; chunkX <= currentChunk.x + rang; chunkX++) {
-            for (int chunkZ = currentChunk.z - rang; chunkZ <= currentChunk.z + rang; chunkZ++) {
-                Chunk chunk = world.getChunkProvider().getLoadedChunk(chunkX, chunkZ);
-                if (chunk == null) {
-                    continue;
-                }
-                Map<BlockPos, TileEntity> tileEntityMap = chunk.getTileEntityMap();
-
-                for (TileEntity tileEntity : tileEntityMap.values()) {
-                    if (tileEntity instanceof TileEntityWirelessChargingStation) {
-                        continue;
-                    }
-                    BlockPos tilePos = tileEntity.getPos();
-                    double distanceSquared = currentPos.distanceSq(tilePos);
-                    if (distanceSquared <= getRang() * getRang()) {
-                        for (EnumFacing side : EnumFacing.values()) {
-                            if (CableUtils.isAcceptor(this, tileEntity, side)) {
-                                rangMachine.put(tilePos, tileEntity);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return rangMachine;
     }
 
 
@@ -254,7 +166,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
+        if (upgradeTier == BaseTier.CREATIVE) {
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];
@@ -352,8 +264,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
                 playerArmor = !playerArmor;
             } else if (type == 2) {
                 playerInventory = !playerInventory;
-            } else if (type == 3) {
-                chargeMachine = !chargeMachine;
             }
         }
 
@@ -364,7 +274,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             chargeRobit = dataStream.readBoolean();
             playerArmor = dataStream.readBoolean();
             playerInventory = dataStream.readBoolean();
-            chargeMachine = dataStream.readBoolean();
             if (prevTier != tier) {
                 MekanismUtils.updateBlock(world, getPos());
             }
@@ -379,7 +288,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         data.add(chargeRobit);
         data.add(playerArmor);
         data.add(playerInventory);
-        data.add(chargeMachine);
         return data;
     }
 
@@ -392,7 +300,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         chargeRobit = nbtTags.getBoolean("chargeRobit");
         playerArmor = nbtTags.getBoolean("playerArmor");
         playerInventory = nbtTags.getBoolean("playerInventory");
-        chargeMachine = nbtTags.getBoolean("chargeMachine");
     }
 
     @Override
@@ -403,7 +310,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         nbtTags.setBoolean("chargeRobit", chargeRobit);
         nbtTags.setBoolean("playerArmor", playerArmor);
         nbtTags.setBoolean("playerInventory", playerInventory);
-        nbtTags.setBoolean("chargeMachine", chargeMachine);
     }
 
 
@@ -483,7 +389,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         nbtTags.setBoolean("chargeRobit", chargeRobit);
         nbtTags.setBoolean("playerArmor", playerArmor);
         nbtTags.setBoolean("playerInventory", playerInventory);
-        nbtTags.setBoolean("chargeMachine", chargeMachine);
         return nbtTags;
     }
 
@@ -492,7 +397,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         chargeRobit = nbtTags.getBoolean("chargeRobit");
         playerArmor = nbtTags.getBoolean("playerArmor");
         playerInventory = nbtTags.getBoolean("playerInventory");
-        chargeMachine = nbtTags.getBoolean("chargeMachine");
     }
 
     @Override
@@ -517,16 +421,12 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         Coord4D current = Coord4D.get(this);
         MekanismUtils.makeBoundingBlock(world, getPos().up(), current);
         MekanismUtils.makeBoundingBlock(world, getPos().up(2), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(3), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(4), current);
     }
 
     @Override
     public void onBreak() {
-        world.setBlockToAir(getPos().up(1));
+        world.setBlockToAir(getPos().up());
         world.setBlockToAir(getPos().up(2));
-        world.setBlockToAir(getPos().up(3));
-        world.setBlockToAir(getPos().up(4));
         world.setBlockToAir(getPos());
     }
 

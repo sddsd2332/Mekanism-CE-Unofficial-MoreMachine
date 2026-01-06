@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class ItemBlockTierMachine extends ItemBlock implements ISustainedInventory, ITierItem, ISecurityItem, IItemTipName {
+public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine implements ISustainedInventory, ITierItem, ISecurityItem, IItemTipName {
 
     public String name;
 
@@ -53,12 +53,6 @@ public abstract class ItemBlockTierMachine extends ItemBlock implements ISustain
     @Override
     public String getItemStackDisplayName(@Nonnull ItemStack itemstack) {
         return getBaseTier(itemstack).getColor() + LangUtils.localize("tile." + name + "." + getBaseTier(itemstack).getSimpleName() + ".name");
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
-        MEKCeuMoreMachineUtils.addInformation(itemstack, world, list, flag);
     }
 
 

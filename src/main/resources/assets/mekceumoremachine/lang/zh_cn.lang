@@ -6,11 +6,11 @@ gui.mekceumoremachine.playerArmor=充能玩家盔甲
 gui.mekceumoremachine.playerInventory=充能玩家物品栏
 gui.mekceumoremachine.chargeMachine=充能机器
 
-tile.WirelessChargingStation.Basic.name=基础无线供能站
-tile.WirelessChargingStation.Advanced.name=高级无线供能站
-tile.WirelessChargingStation.Elite.name=精英无线供能站
-tile.WirelessChargingStation.Ultimate.name=终极无线供能站
-tooltip.WirelessChargingStation=能够充能范围内的玩家内的物品，MEK的机器人以及机器
+tile.WirelessChargingStation.Basic.name=基础无线充电站
+tile.WirelessChargingStation.Advanced.name=高级无线充电站
+tile.WirelessChargingStation.Elite.name=精英无线充电站
+tile.WirelessChargingStation.Ultimate.name=终极无线充电站
+tooltip.WirelessChargingStation=能够充能范围内的玩家内的物品，MEK的机器人
 
 tile.TierElectricPump.Basic.name=基础电动泵
 tile.TierElectricPump.Advanced.name=高级电动泵

@@ -6,11 +6,11 @@ gui.mekceumoremachine.playerArmor=Charged Player Armor
 gui.mekceumoremachine.playerInventory=Charged Player Inventory
 gui.mekceumoremachine.chargeMachine=Charging Machine
 
-tile.WirelessChargingStation.Basic.name=Basic Wireless Power Station
-tile.WirelessChargingStation.Advanced.name=Advanced Wireless Power Station
-tile.WirelessChargingStation.Elite.name=Elite Wireless Power Station
-tile.WirelessChargingStation.Ultimate.name=Ultimate Wireless Power Station
-tooltip.WirelessChargingStation=Items within the range that can be charged for players, MEK's robots, and machines
+tile.WirelessChargingStation.Basic.name=Basic Wireless Charging Station
+tile.WirelessChargingStation.Advanced.name=Advanced Wireless Charging Station
+tile.WirelessChargingStation.Elite.name=Elite Wireless Charging Station
+tile.WirelessChargingStation.Ultimate.name=Ultimate Wireless Charging Station
+tooltip.WirelessChargingStation=Items within the range that can be charged for players, MEK's robots
 
 tile.TierElectricPump.Basic.name=Basic Electric Pump
 tile.TierElectricPump.Advanced.name=Advanced Electric Pump

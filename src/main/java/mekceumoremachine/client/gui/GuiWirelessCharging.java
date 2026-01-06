@@ -31,7 +31,6 @@ public class GuiWirelessCharging extends GuiMekanismTile<TileEntityWirelessCharg
     public static final int CHARGE_ROBIT_BUTTON_ID = 0;
     public static final int PLAYER_ARMOR_BUTTON_ID = 1;
     public static final int PLAYER_INVENTORY_BUTTON_ID = 2;
-    public static final int CHARGE_MACHINE_BUTTON_ID = 3;
 
     public GuiWirelessCharging(InventoryPlayer inventory, TileEntityWirelessChargingStation tile) {
         super(tile, new ContainerWirelessCharging(inventory, tile));
@@ -47,10 +46,9 @@ public class GuiWirelessCharging extends GuiMekanismTile<TileEntityWirelessCharg
         addGuiElement(new GuiOutputSlot(this, resource, 25, 55 + 2, tileEntity).with(GuiSlot.SlotOverlay.PLUS));
         addGuiElement(new GuiPlayerSlot(this, resource,7,83+ 2));
         addGuiElement(new GuiPlayerArmmorSlot(this, resource, 176, 37, false));
-        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 11 + 2));
-        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 27 + 2));
-        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 43 + 2));
-        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 59 + 2));
+        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 15));
+        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 37));
+        addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 59));
     }
 
 
@@ -66,20 +64,18 @@ public class GuiWirelessCharging extends GuiMekanismTile<TileEntityWirelessCharg
     protected void drawGuiContainerBackgroundLayer(int xAxis, int yAxis) {
         super.drawGuiContainerBackgroundLayer(xAxis, yAxis);
         mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.SLOT, "Slot_Icon.png"));
-        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 13 + 2, tileEntity.chargeRobit ? 12 : 0, 88, 12, 12);
-        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 29 + 2, tileEntity.playerArmor ?  12 : 0, 88,12, 12);
-        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 45 + 2, tileEntity.playerInventory ?  12 : 0, 88, 12, 12);
-        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 61 + 2, tileEntity.chargeMachine ?  12 : 0, 88,12, 12);
+        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 17, tileEntity.chargeRobit ? 12 : 0, 88, 12, 12);
+        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 39, tileEntity.playerArmor ?  12 : 0, 88,12, 12);
+        drawTexturedModalRect(guiLeft + 67 + 2, guiTop + 61, tileEntity.playerInventory ?  12 : 0, 88, 12, 12);
     }
 
     @Override
     public void initGui() {
         super.initGui();
         buttonList.clear();
-        buttonList.add(new GuiDisableableButton(CHARGE_ROBIT_BUTTON_ID, guiLeft + 86, guiTop + 11 + 2, 80, 16, LangUtils.localize("gui.mekceumoremachine.chargeRobit")));
-        buttonList.add(new GuiDisableableButton(PLAYER_ARMOR_BUTTON_ID, guiLeft + 86, guiTop + 27 + 2, 80, 16, LangUtils.localize("gui.mekceumoremachine.playerArmor")));
-        buttonList.add(new GuiDisableableButton(PLAYER_INVENTORY_BUTTON_ID, guiLeft + 86, guiTop + 43 +2, 80, 16, LangUtils.localize("gui.mekceumoremachine.playerInventory")));
-        buttonList.add(new GuiDisableableButton(CHARGE_MACHINE_BUTTON_ID, guiLeft + 86, guiTop + 59 + 2, 80, 16, LangUtils.localize("gui.mekceumoremachine.chargeMachine")));
+        buttonList.add(new GuiDisableableButton(CHARGE_ROBIT_BUTTON_ID, guiLeft + 86, guiTop + 15, 80, 16, LangUtils.localize("gui.mekceumoremachine.chargeRobit")));
+        buttonList.add(new GuiDisableableButton(PLAYER_ARMOR_BUTTON_ID, guiLeft + 86, guiTop + 37, 80, 16, LangUtils.localize("gui.mekceumoremachine.playerArmor")));
+        buttonList.add(new GuiDisableableButton(PLAYER_INVENTORY_BUTTON_ID, guiLeft + 86, guiTop + 59, 80, 16, LangUtils.localize("gui.mekceumoremachine.playerInventory")));
     }
 
     @Override
@@ -92,8 +88,6 @@ public class GuiWirelessCharging extends GuiMekanismTile<TileEntityWirelessCharg
                     Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(tileEntity, TileNetworkList.withContents(1)));
             case PLAYER_INVENTORY_BUTTON_ID ->
                     Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(tileEntity, TileNetworkList.withContents(2)));
-            case CHARGE_MACHINE_BUTTON_ID ->
-                    Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(tileEntity, TileNetworkList.withContents(3)));
         }
     }
 

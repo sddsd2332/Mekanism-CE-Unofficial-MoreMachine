@@ -232,67 +232,6 @@ public class MEKCeuMoreMachineUtils {
         return false;
     }
 
-    @SideOnly(Side.CLIENT)
-    public static void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
-        if (!MekKeyHandler.getIsKeyPressed(MekanismKeyHandler.sneakKey)) {
-            /*
-            if (itemstack.getItem() instanceof ISustainedTank tank && itemstack.getCount() <= 1) {
-                FluidStack fluidStack = tank.getFluidStack(itemstack);
-                if (fluidStack != null) {
-                    int amount = tank.getFluidStack(itemstack).amount;
-                    String amountStr = amount == Integer.MAX_VALUE ? LangUtils.localize("gui.infinite") : amount + "mB";
-                    list.add(EnumColor.AQUA + LangUtils.localizeFluidStack(fluidStack) + ": " + EnumColor.GREY + amountStr);
-                } else {
-                    list.add(EnumColor.DARK_RED + LangUtils.localize("gui.empty") + ".");
-                }
-                if (itemstack.getItem() instanceof IFluidItemWrapper wrapper){
-                    int cap = wrapper.getCapacity(itemstack);
-                    list.add(EnumColor.INDIGO + LangUtils.localize("tooltip.capacity") + ": " + EnumColor.GREY + (cap == Integer.MAX_VALUE ? LangUtils.localize("gui.infinite") : cap + " mB"));
-                }
-            }
-
-             */
-
-
-            list.add(LangUtils.localize("tooltip.hold") + " " + EnumColor.INDIGO + GameSettings.getKeyDisplayString(MekanismKeyHandler.sneakKey.getKeyCode()) +
-                    EnumColor.GREY + " " + LangUtils.localize("tooltip.forDetails") + ".");
-            list.add(LangUtils.localize("tooltip.hold") + " " + EnumColor.AQUA + GameSettings.getKeyDisplayString(MekanismKeyHandler.sneakKey.getKeyCode()) +
-                    EnumColor.GREY + " " + LangUtils.localize("tooltip.and") + " " + EnumColor.AQUA +
-                    GameSettings.getKeyDisplayString(MekanismKeyHandler.handModeSwitchKey.getKeyCode()) + EnumColor.GREY + " " + LangUtils.localize("tooltip.forDesc") + ".");
-        } else if (!MekKeyHandler.getIsKeyPressed(MekanismKeyHandler.handModeSwitchKey)) {
-            if (itemstack.getItem() instanceof ISecurityItem iSecurityItem) {
-                if (iSecurityItem.hasSecurity(itemstack)) {
-                    list.add(SecurityUtils.getOwnerDisplay(Minecraft.getMinecraft().player, MekanismClient.clientUUIDMap.get(iSecurityItem.getOwnerUUID(itemstack))));
-                    list.add(EnumColor.GREY + LangUtils.localize("gui.security") + ": " + SecurityUtils.getSecurityDisplay(itemstack, Side.CLIENT));
-                    if (SecurityUtils.isOverridden(itemstack, Side.CLIENT)) {
-                        list.add(EnumColor.RED + "(" + LangUtils.localize("gui.overridden") + ")");
-                    }
-                }
-            }
-            if (itemstack.getItem() instanceof IEnergizedItem energizedItem && itemstack.getCount() <= 1) {
-                list.add(EnumColor.BRIGHT_GREEN + LangUtils.localize("tooltip.storedEnergy") + ": " + EnumColor.GREY + MekanismUtils.getEnergyDisplay(energizedItem.getEnergy(itemstack), energizedItem.getMaxEnergy(itemstack)));
-            }
-
-            if (itemstack.getItem() instanceof ISustainedTank tank && itemstack.getCount() <= 1) {
-                FluidStack fluidStack = tank.getFluidStack(itemstack);
-                if (fluidStack != null && itemstack.getCount() <= 1) {
-                    list.add(EnumColor.PINK + LangUtils.localizeFluidStack(fluidStack) + ": " + EnumColor.GREY + tank.getFluidStack(itemstack).amount + "mB");
-                }
-            }
-            if (itemstack.getItem() instanceof ISustainedInventory inventory) {
-                list.add(EnumColor.AQUA + LangUtils.localize("tooltip.inventory") + ": " + EnumColor.GREY + LangUtils.transYesNo(inventory.getInventory(itemstack) != null && inventory.getInventory(itemstack).tagCount() != 0));
-            }
-
-            if (itemstack.getItem() instanceof ItemBlock block && block.getBlock() != null && block.getBlock() instanceof ITileEntityProvider machine && machine.createNewTileEntity(Minecraft.getMinecraft().world, itemstack.getMetadata()) != null && machine.createNewTileEntity(Minecraft.getMinecraft().world, itemstack.getMetadata()) instanceof IUpgradeTile && ItemDataUtils.hasData(itemstack, "upgrades")) {
-                Upgrade.buildMap(ItemDataUtils.getDataMap(itemstack)).forEach((key, value) -> list.add(key.getColor() + "- " + key.getName() + (key.canMultiply() ? ": " + EnumColor.GREY + "x" + value : "")));
-            }
-        } else {
-            if (itemstack.getItem() instanceof IItemTipName machine) {
-                String getDescription = LangUtils.localize("tooltip." + machine.getItemName());
-                list.addAll(MekanismUtils.splitTooltip(getDescription, itemstack));
-            }
-        }
-    }
 
 
 }

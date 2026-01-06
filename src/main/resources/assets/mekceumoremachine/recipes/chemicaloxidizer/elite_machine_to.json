@@ -1,11 +1,17 @@
 {
   "result": {
     "item": "mekceumoremachine:tierchemicaloxidizer",
-    "data": 2
+    "data": 2,
+    "type": "mekanism:item_nbt"
   },
-  "type": "forge:ore_shapeless",
-  "ingredients": [
-    {
+  "pattern": [
+    "   ",
+    " O ",
+    "   "
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "O":  {
       "nbt": {
         "recipeType": 21
       },
@@ -13,5 +19,5 @@
       "data": 7,
       "type": "mekanism:item_nbt"
     }
-  ]
+  }
 }

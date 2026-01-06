@@ -52,7 +52,7 @@ import java.util.UUID;
         @Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = MekanismHooks.IC2_MOD_ID)
 })
 
-public class ItemBlockTierChemicalDissolutionChamber extends ItemBlock implements IEnergizedItem, ISpecialElectricItem, IEnergyContainerItem, ISustainedInventory, ISecurityItem , IItemTipName {
+public class ItemBlockTierChemicalDissolutionChamber extends ItemBlockMekceuMoreMachine implements IEnergizedItem, ISpecialElectricItem, IEnergyContainerItem, ISustainedInventory, ISecurityItem , IItemTipName {
 
 
     public Block metaBlock;
@@ -96,7 +96,7 @@ public class ItemBlockTierChemicalDissolutionChamber extends ItemBlock implement
     public void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
         MachineType type = MachineType.get(itemstack);
         if (type != null) {
-            MEKCeuMoreMachineUtils.addInformation(itemstack, world, list, flag);
+            super.addInformation(itemstack, world, list, flag);
         }
     }
 

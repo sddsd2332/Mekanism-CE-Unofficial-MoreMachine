@@ -19,8 +19,11 @@ public class RenderWirelessChargingStation extends TileEntitySpecialRenderer<Til
     public void render(TileEntityWirelessChargingStation tileEntity, double x, double y, double z, float partialTick, int destroyStage, float alpha) {
         GlStateManager.pushMatrix();
         GlStateManager.translate((float) x + 0.5F, (float) y + 1.5F, (float) z + 0.5F);
-        bindTexture(MekanismUtils.getResource(MEKCeuMoreMachine.MODID, MekanismUtils.ResourceType.RENDER, "WirelessChargingStation.png"));
+        MekanismRenderer.rotate(tileEntity.facing, 0, 180, 90, 270);
         GlStateManager.rotate(180, 0, 0, 1);
+        bindTexture(MekanismUtils.getResource(MEKCeuMoreMachine.MODID, MekanismUtils.ResourceType.RENDER, "Wireless_Charging_" + tileEntity.tier.getBaseTier().getSimpleName() + ".png"));
+        model.renderModelTier(0.0625F);
+        bindTexture(MekanismUtils.getResource(MEKCeuMoreMachine.MODID, MekanismUtils.ResourceType.RENDER, "Wireless_Charging.png"));
         model.renderModel(0.0625F);
         GlStateManager.popMatrix();
         MekanismRenderer.machineRenderer().render(tileEntity, x, y, z, partialTick, destroyStage, alpha);
