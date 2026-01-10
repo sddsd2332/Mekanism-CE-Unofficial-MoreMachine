@@ -834,7 +834,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             int slotID = inputSlots[i];
             ItemStack stack = inventory.get(slotID);
             int count = stack.getCount();
-            ItemStack output = inventory.get(tier.processes + slotID);
             for (int j = i + 1; j < inputSlots.length; j++) {
                 int checkSlotID = inputSlots[j];
                 ItemStack checkStack = inventory.get(checkSlotID);
