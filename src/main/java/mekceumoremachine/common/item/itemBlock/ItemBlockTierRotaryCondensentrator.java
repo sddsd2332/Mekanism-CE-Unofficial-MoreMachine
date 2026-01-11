@@ -7,7 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
-public class ItemBlockTierRotaryCondensentrator extends ItemBlockTierEnergyMachine {
+public class ItemBlockTierRotaryCondensentrator extends ItemBlockMekceuMoreMachineTier {
 
     public ItemBlockTierRotaryCondensentrator(Block block) {
         super(block, "TierRotaryCondensentrator");

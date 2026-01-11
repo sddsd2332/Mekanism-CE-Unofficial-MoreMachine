@@ -1,5 +1,6 @@
 package mekceumoremachine.common;
 
+import ic2.core.ref.FluidName;
 import io.netty.buffer.ByteBuf;
 import mekanism.api.MekanismAPI;
 import mekanism.common.Mekanism;
@@ -8,6 +9,7 @@ import mekanism.common.base.IModule;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.network.PacketSimpleGui;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
+import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.mekceumoremachine.Tags;
 import net.minecraft.block.Block;
@@ -40,6 +42,11 @@ public class MEKCeuMoreMachine implements IModule {
     public static Version versionNumber = new Version(999, 999, 999);
 
     public static CreativeTabMEKCeuMoreMachine tabMEKCeuMoreMachine = new CreativeTabMEKCeuMoreMachine();
+
+
+    static {
+        MEKCeuMoreMachineFluids.register();
+    }
 
     @SubscribeEvent
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
@@ -81,6 +88,11 @@ public class MEKCeuMoreMachine implements IModule {
         proxy.registerTESRs();
         proxy.init();
 
+        //和IC2兼容
+        if (Mekanism.hooks.IC2Loaded) {
+            MEKCeuMoreMachineFluids.UU_MATTER.setFluid(FluidName.uu_matter.getInstance());
+        }
+
     }
 
     @Override
@@ -119,9 +131,9 @@ public class MEKCeuMoreMachine implements IModule {
     @SubscribeEvent
     public void onBlacklistUpdate(MekanismAPI.BoxBlacklistEvent event) {
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.WirelessCharging, 0);
-        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge,0);
-        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator,0);
-        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator,0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge, 0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator, 0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator, 0);
     }
 
     @SubscribeEvent
@@ -130,7 +142,7 @@ public class MEKCeuMoreMachine implements IModule {
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
-    public static void removeRecipes(RegistryEvent.Register<IRecipe> event){
+    public static void removeRecipes(RegistryEvent.Register<IRecipe> event) {
         MEKCeuMoreMachineRecipes.removeRecipes();
     }
 }

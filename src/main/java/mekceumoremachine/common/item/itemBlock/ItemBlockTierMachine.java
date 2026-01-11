@@ -11,12 +11,9 @@ import mekanism.common.util.LangUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.interfaces.IItemTipName;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
-import mekceumoremachine.common.util.MEKCeuMoreMachineUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -24,11 +21,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.UUID;
 
 public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine implements ISustainedInventory, ITierItem, ISecurityItem, IItemTipName {
@@ -39,7 +33,6 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
         super(block);
         name = tierName;
         setNoRepair();
-        setCreativeTab(MEKCeuMoreMachine.tabMEKCeuMoreMachine);
     }
 
 
@@ -202,7 +195,7 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
         return hasSecurity(stack);
     }
 
-    public  String getItemName(){
+    public String getItemName() {
         return name;
     }
 

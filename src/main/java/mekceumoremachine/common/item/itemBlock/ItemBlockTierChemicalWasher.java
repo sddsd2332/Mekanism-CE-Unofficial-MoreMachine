@@ -7,7 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
-public class ItemBlockTierChemicalWasher extends ItemBlockTierEnergyMachine {
+public class ItemBlockTierChemicalWasher extends ItemBlockMekceuMoreMachineTier {
 
     public ItemBlockTierChemicalWasher(Block block) {
         super(block, "TierChemicalWasher");

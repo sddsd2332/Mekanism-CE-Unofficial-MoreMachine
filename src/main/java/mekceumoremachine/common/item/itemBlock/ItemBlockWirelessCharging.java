@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
 
-public class ItemBlockWirelessCharging extends ItemBlockTierEnergyMachine {
+public class ItemBlockWirelessCharging extends ItemBlockMekceuMoreMachineTier {
 
 
     public ItemBlockWirelessCharging(Block block) {
@@ -31,8 +31,8 @@ public class ItemBlockWirelessCharging extends ItemBlockTierEnergyMachine {
 
 
     @Override
-    public void addOtherMachine(TileEntity tileEntity, ItemStack stack, World world) {
-        super.addOtherMachine(tileEntity, stack, world);
+    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
         if (!world.isRemote) {
             if (tileEntity instanceof TileEntityWirelessChargingStation tile) {
                 Mekanism.packetHandler.sendUpdatePacket(tile);

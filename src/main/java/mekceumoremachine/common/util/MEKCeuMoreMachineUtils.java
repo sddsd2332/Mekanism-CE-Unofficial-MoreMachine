@@ -1,13 +1,8 @@
 package mekceumoremachine.common.util;
 
-import mekanism.api.EnumColor;
 import mekanism.api.IMekWrench;
 import mekanism.api.energy.IEnergizedItem;
 import mekanism.api.energy.IStrictEnergyStorage;
-import mekanism.client.MekKeyHandler;
-import mekanism.client.MekanismClient;
-import mekanism.client.MekanismKeyHandler;
-import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.integration.wrenches.Wrenches;
 import mekanism.common.security.ISecurityItem;
@@ -15,22 +10,15 @@ import mekanism.common.security.ISecurityTile;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.util.ItemDataUtils;
-import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.SecurityUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
-import mekceumoremachine.common.item.interfaces.IItemTipName;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
-import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.GameSettings;
-import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
@@ -42,12 +30,8 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 public class MEKCeuMoreMachineUtils {
 
@@ -91,6 +75,18 @@ public class MEKCeuMoreMachineUtils {
     }
 
     public static void getSubBlocks(Block block, NonNullList<ItemStack> list, boolean charged) {
+        ItemStack addItem = new ItemStack(block);
+        list.add(addItem);
+        if (charged) {
+            ItemStack addChargedItem = new ItemStack(block);
+            if (addChargedItem.getItem() instanceof IEnergizedItem item) {
+                item.setEnergy(addChargedItem, item.getMaxEnergy(addChargedItem));
+            }
+            list.add(addChargedItem);
+        }
+    }
+
+    public static void getSubTierBlocks(Block block, NonNullList<ItemStack> list, boolean charged) {
         for (MachineTier tier : MachineTier.values()) {
             ItemStack addItem = new ItemStack(block);
             if (addItem.getItem() instanceof ITierItem item) {
@@ -231,7 +227,6 @@ public class MEKCeuMoreMachineUtils {
         }
         return false;
     }
-
 
 
 }

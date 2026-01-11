@@ -7,7 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
-public class ItemBlockTierElectrolyticSeparator extends ItemBlockTierEnergyMachine {
+public class ItemBlockTierElectrolyticSeparator extends ItemBlockMekceuMoreMachineTier {
 
     public ItemBlockTierElectrolyticSeparator(Block block) {
         super(block, "TierElectrolyticSeparator");

@@ -9,6 +9,9 @@ import mekceumoremachine.common.tile.machine.TierDissolution.*;
 import mekceumoremachine.common.tile.machine.TierNutritional.*;
 import mekceumoremachine.common.tile.machine.TierOxidizer.*;
 import mekceumoremachine.common.tile.machine.*;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorItemStack;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.tileentity.TileEntity;
@@ -49,6 +52,9 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityTierChemicalOxidizerElite.class, "tier_chemical_oxidizer_elite");
         registerTileEntity(TileEntityTierChemicalOxidizerUltimate.class, "tier_chemical_oxidizer_ultimate");
         registerTileEntity(TileEntityTierGasGenerator.class,"tier_gas_generator");
+        registerTileEntity(TileEntityReplicatorItemStack.class,"replicator_itemstack");
+        registerTileEntity(TileEntityReplicatorGases.class,"replicator_gases");
+        registerTileEntity(TileEntityReplicatorFluidStack.class,"replicator_fluidstack");
     }
 
 
@@ -94,6 +100,9 @@ public class CommonProxy implements IGuiProvider {
             case 11 -> new ContainerTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
             case 12 -> new ContainerTierChemicalOxidizer(player.inventory, (TileEntityTierChemicalOxidizer) tileEntity);
             case 13 -> new ContainerTierGasGenerator(player.inventory, (TileEntityTierGasGenerator) tileEntity);
+            case 14 -> new ContainerReplicatorItemStack(player.inventory,(TileEntityReplicatorItemStack) tileEntity);
+            case 15 -> new ContainerReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
+            case 16 -> new ContainerReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
             default -> null;
         };
     }

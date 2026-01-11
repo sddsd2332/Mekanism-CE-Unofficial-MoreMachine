@@ -96,6 +96,12 @@ tile.TierGasGenerator.Elite.name=精英燃气发电机
 tile.TierGasGenerator.Ultimate.name=终极燃气发电机
 tooltip.TierGasGenerator=一台利用不同的气体供能的发电机。
 
+gas.uu_matter=UU物质（气体）
+item.UUMatter.name=UU物质（物品）
+tile.ReplicatorItemStack.name=复制机(物品)
+tile.ReplicatorGases.name=复制机(气体)
+tile.ReplicatorFluidStack.name=复制机(流体)
+
 item.CompositeTierInstaller.name=复合升级安装套件
 tooltip.CompositeTierInstaller=能够将机器直接升级到最终等级的安装组件
 item.LargeMachineryUpgradeComponents.name=大型机器升级组件

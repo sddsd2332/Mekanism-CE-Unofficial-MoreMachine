@@ -31,6 +31,10 @@ public class MEKCeuMoreMachineBlocks {
     public static Block TierChemicalOxidizer = BlockTierChemicalOxidizer.getBlockMachine(TierChemicalOxidizerMachineBlock.MACHINE_BLOCK);
     public static Block TierGasGenerator = new BlockTierGasGenerator();
 
+    public static Block ReplicatorItemStack = new BlockReplicatorItemStack();
+    public static Block ReplicatorGases = new BlockReplicatorGases();
+    public static Block ReplicatorFluidStack = new BlockReplicatorFluidStack();
+
     public static void registerBlocks(IForgeRegistry<Block> registry) {
         registry.register(init(WirelessCharging, "WirelessCharging"));
         registry.register(init(TierElectricPump, "TierElectricPump"));
@@ -46,7 +50,10 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(TierChemicalDissolutionChamber, "TierChemicalDissolutionChamber"));
         registry.register(init(TierNutritionalLiquifier, "TierNutritionalLiquifier"));
         registry.register(init(TierChemicalOxidizer, "TierChemicalOxidizer"));
-        registry.register(init(TierGasGenerator,"TierGasGenerator"));
+        registry.register(init(TierGasGenerator, "TierGasGenerator"));
+        registry.register(init(ReplicatorItemStack, "ReplicatorItemStack"));
+        registry.register(init(ReplicatorGases, "ReplicatorGases"));
+        registry.register(init(ReplicatorFluidStack,"ReplicatorFluidStack"));
     }
 
     public static void registerItemBlocks(IForgeRegistry<Item> registry) {
@@ -64,7 +71,10 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalDissolutionChamber(TierChemicalDissolutionChamber), "TierChemicalDissolutionChamber"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierNutritionalLiquifier(TierNutritionalLiquifier), "TierNutritionalLiquifier"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalOxidizer(TierChemicalOxidizer), "TierChemicalOxidizer"));
-        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierGasGenerator(TierGasGenerator),"TierGasGenerator"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierGasGenerator(TierGasGenerator), "TierGasGenerator"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorItemStack(ReplicatorItemStack), "ReplicatorItemStack"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorGases(ReplicatorGases), "ReplicatorGases"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorFluidStack(ReplicatorFluidStack),"ReplicatorFluidStack"));
     }
 
     public static Block init(Block block, String name) {

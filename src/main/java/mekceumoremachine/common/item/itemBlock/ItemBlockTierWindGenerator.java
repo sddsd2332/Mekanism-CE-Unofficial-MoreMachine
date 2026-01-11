@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
 
-public class ItemBlockTierWindGenerator extends ItemBlockTierEnergyMachine {
+public class ItemBlockTierWindGenerator extends ItemBlockMekceuMoreMachineTier {
 
     public ItemBlockTierWindGenerator(Block block) {
         super(block, "TierWindGenerator");

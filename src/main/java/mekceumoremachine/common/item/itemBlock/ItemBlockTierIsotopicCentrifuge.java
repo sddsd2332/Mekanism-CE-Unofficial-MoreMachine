@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
 
-public class ItemBlockTierIsotopicCentrifuge extends ItemBlockTierEnergyMachine {
+public class ItemBlockTierIsotopicCentrifuge extends ItemBlockMekceuMoreMachineTier {
 
     public ItemBlockTierIsotopicCentrifuge(Block block) {
         super(block, "TierIsotopicCentrifuge");

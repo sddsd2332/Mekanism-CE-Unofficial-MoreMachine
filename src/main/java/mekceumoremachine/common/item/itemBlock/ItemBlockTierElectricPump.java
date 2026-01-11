@@ -7,13 +7,17 @@ import mekanism.common.util.ItemDataUtils;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.machine.TileEntityTierElectricPump;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 
-public class ItemBlockTierElectricPump extends ItemBlockTierEnergyMachine implements ISustainedTank, IFluidItemWrapper {
+public class ItemBlockTierElectricPump extends ItemBlockMekceuMoreMachineTier implements ISustainedTank, IFluidItemWrapper {
 
     public ItemBlockTierElectricPump(Block block) {
         super(block, "TierElectricPump");
@@ -29,8 +33,8 @@ public class ItemBlockTierElectricPump extends ItemBlockTierEnergyMachine implem
     }
 
     @Override
-    public void addOtherMachine(TileEntity tileEntity, ItemStack stack, World world) {
-        super.addOtherMachine(tileEntity,stack,world);
+    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
         if (tileEntity instanceof ISustainedTank tank) {
             if (hasTank(stack) && getFluidStack(stack) != null) {
                 tank.setFluidStack(getFluidStack(stack));

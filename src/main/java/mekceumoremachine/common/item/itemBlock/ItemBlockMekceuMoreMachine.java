@@ -6,22 +6,27 @@ import mekanism.client.MekKeyHandler;
 import mekanism.client.MekanismClient;
 import mekanism.client.MekanismKeyHandler;
 import mekanism.common.Upgrade;
-import mekanism.common.base.ISustainedInventory;
-import mekanism.common.base.ISustainedTank;
-import mekanism.common.base.IUpgradeTile;
+import mekanism.common.base.*;
+import mekanism.common.config.MekanismConfig;
 import mekanism.common.security.ISecurityItem;
+import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.SecurityUtils;
+import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.interfaces.IItemTipName;
 import net.minecraft.block.Block;
-import net.minecraft.block.ITileEntityProvider;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -30,10 +35,64 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class ItemBlockMekceuMoreMachine extends ItemBlock{
+public class ItemBlockMekceuMoreMachine extends ItemBlock {
 
     public ItemBlockMekceuMoreMachine(Block block) {
         super(block);
+        setCreativeTab(MEKCeuMoreMachine.tabMEKCeuMoreMachine);
+    }
+
+    @Override
+    public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY,
+                                float hitZ, @Nonnull IBlockState state) {
+        if (stack.getCount() > 1 && MekanismConfig.current().mekce.StackingPlacementLimits.val()) {
+            return false;
+        }
+        boolean place = true;
+        Block block = world.getBlockState(pos).getBlock();
+        if (!block.isReplaceable(world, pos)) {
+            return false;
+        }
+        if (canPlace(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
+            place = false;
+        }
+
+        if (place && super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
+            if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
+                if (tileEntity instanceof IUpgradeTile upgradeTile) {
+                    if (ItemDataUtils.hasData(stack, "upgrades")) {
+                        upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                    }
+                }
+                if (tileEntity instanceof ISideConfiguration config) {
+                    if (ItemDataUtils.hasData(stack, "sideDataStored")) {
+                        config.getConfig().read(ItemDataUtils.getDataMap(stack));
+                        config.getEjector().read(ItemDataUtils.getDataMap(stack));
+                    }
+                }
+                if (tileEntity instanceof ISustainedData data) {
+                    if (stack.getTagCompound() != null) {
+                        data.readSustainedData(stack);
+                    }
+                }
+                if (tileEntity instanceof IRedstoneControl redstoneControl) {
+                    if (ItemDataUtils.hasData(stack, "controlType")) {
+                        redstoneControl.setControlType(IRedstoneControl.RedstoneControl.values()[ItemDataUtils.getInt(stack, "controlType")]);
+                    }
+                }
+                addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
+            }
+            return true;
+        }
+        return false;
+    }
+
+
+    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+    }
+
+    public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {
+        return false;
     }
 
     @Override

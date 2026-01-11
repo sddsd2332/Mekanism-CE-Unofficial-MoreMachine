@@ -3,12 +3,21 @@ package mekceumoremachine.client.integration.jei;
 import mekanism.common.base.ITierItem;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.RecipeHandler.Recipe;
+import mekanism.common.recipe.inputs.MachineInput;
+import mekanism.common.recipe.machines.MachineRecipe;
+import mekanism.common.recipe.outputs.MachineOutput;
 import mekceumoremachine.client.gui.*;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorFluidStackRecipeWrapper;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorGasesRecipeWrapper;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorItemStackRecipeWrapper;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.tier.MachineTier;
 import mezz.jei.api.IModRegistry;
+import mezz.jei.api.recipe.IRecipeWrapperFactory;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
+
+import java.util.stream.Collectors;
 
 public class MEKCeuMoreMachineRecipeRegistryHelper {
 
@@ -68,10 +77,34 @@ public class MEKCeuMoreMachineRecipeRegistryHelper {
         }
     }
 
-
     public static void registerGasStackFlueToEnergyRecipe(IModRegistry registry) {
         registry.addRecipeClickArea(GuiTierGasGenerator.class, 55, 18, 66, 50, RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getJEICategory());
         registerRecipeMachineTierItem(registry, MEKCeuMoreMachineBlocks.TierGasGenerator, Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getJEICategory());
+    }
+
+    public static void registerReplicatorItemStackRecipe(IModRegistry registry) {
+        addRecipes(registry, Recipe.REPLICATOR_ITEMSTACK_RECIPE, ReplicatorItemStackRecipeWrapper::new);
+        registry.addRecipeClickArea(GuiReplicatorItemStack.class, 75, 37, 36, 10, Recipe.REPLICATOR_ITEMSTACK_RECIPE.getJEICategory());
+        registry.addRecipeCatalyst(new ItemStack(MEKCeuMoreMachineBlocks.ReplicatorItemStack), Recipe.REPLICATOR_ITEMSTACK_RECIPE.getJEICategory());
+    }
+
+    public static void registerReplicatorGasesRecipe(IModRegistry registry) {
+        addRecipes(registry, Recipe.REPLICATOR_GASES_RECIPE, ReplicatorGasesRecipeWrapper::new);
+        registry.addRecipeClickArea(GuiReplicatorGases.class, 61, 39, 55, 8, Recipe.REPLICATOR_GASES_RECIPE.getJEICategory());
+        registry.addRecipeCatalyst(new ItemStack(MEKCeuMoreMachineBlocks.ReplicatorGases), Recipe.REPLICATOR_GASES_RECIPE.getJEICategory());
+    }
+
+    public static void registerReplicatorFluidStackRecipe(IModRegistry registry) {
+        addRecipes(registry, Recipe.REPLICATOR_FLUIDSTACK_RECIPE, ReplicatorFluidStackRecipeWrapper::new);
+        registry.addRecipeClickArea(GuiReplicatorFluidStack.class, 61, 39, 55, 8, Recipe.REPLICATOR_FLUIDSTACK_RECIPE.getJEICategory());
+        registry.addRecipeCatalyst(new ItemStack(MEKCeuMoreMachineBlocks.ReplicatorFluidStack), Recipe.REPLICATOR_FLUIDSTACK_RECIPE.getJEICategory());
+    }
+
+    private static <INPUT extends MachineInput<INPUT>, OUTPUT extends MachineOutput<OUTPUT>, RECIPE extends MachineRecipe<INPUT, OUTPUT, RECIPE>>
+    void addRecipes(IModRegistry registry, Recipe<INPUT, OUTPUT, RECIPE> type, IRecipeWrapperFactory<RECIPE> factory) {
+        String recipeCategoryUid = type.getJEICategory();
+        registry.handleRecipes(type.getRecipeClass(), factory, recipeCategoryUid);
+        registry.addRecipes(type.get().values().stream().map(factory::getRecipeWrapper).collect(Collectors.toList()), recipeCategoryUid);
     }
 
     private static void registerRecipeMachineTierItem(IModRegistry registry, Block block, String... recipe) {

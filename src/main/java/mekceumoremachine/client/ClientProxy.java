@@ -27,6 +27,9 @@ import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemi
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
 import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemicalOxidizer;
 import mekceumoremachine.common.tile.machine.*;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
+import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorItemStack;
 import net.minecraft.block.Block;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.ItemMeshDefinition;
@@ -73,7 +76,11 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalDissolutionChamber.class, RenderTierChemicalDissolutionChamber.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierNutritionalLiquifier.class, RenderTierNutritionalLiquifier.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalOxidizer.class, new RenderConfigurableMachine<>());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierGasGenerator.class,new RenderTierGasGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierGasGenerator.class, new RenderTierGasGenerator());
+
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorItemStack.class, new RenderReplicatorItemStack());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorGases.class, new RenderReplicatorGases());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorFluidStack.class,new RenderReplicatorFluidStack());
     }
 
     @Override
@@ -89,6 +96,11 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber).setTileEntityItemStackRenderer(new RenderTierChemicalDissolutionChamberItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierNutritionalLiquifier).setTileEntityItemStackRenderer(new RenderTierNutritionalLiquifierItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierGasGenerator).setTileEntityItemStackRenderer(new RenderTierGasGeneratorItem());
+
+        registerItemRender(MEKCeuMoreMachineItems.UUMatter);
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorItemStack).setTileEntityItemStackRenderer(new RenderReplicatorItemStackItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorGases).setTileEntityItemStackRenderer(new RenderReplicatorGasesItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorFluidStack).setTileEntityItemStackRenderer(new RenderReplicatorFluidStackItem());
     }
 
     @Override
@@ -105,11 +117,16 @@ public class ClientProxy extends CommonProxy {
         addModel(MEKCeuMoreMachineBlocks.TierChemicalWasher, "TierChemicalWasher");
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierWindGenerator), 0, getInventoryMRL("TierWindGenerator"));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierGasGenerator), 0, getInventoryMRL("TierGasGenerator"));
+
         for (int i = 0; i < 4; i++) {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber), i, getInventoryMRL("TierChemicalDissolutionChamber"));
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierNutritionalLiquifier), i, getInventoryMRL("TierNutritionalLiquifier"));
         }
         registerTierChemicalOxidizerRenders();
+
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorItemStack), 0, getInventoryMRL("ReplicatorItemStack"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorGases), 0, getInventoryMRL("ReplicatorGases"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorFluidStack), 0, getInventoryMRL("ReplicatorFluidStack"));
     }
 
 
@@ -202,6 +219,15 @@ public class ClientProxy extends CommonProxy {
 
         ModelResourceLocation TierGasGenerator = getInventoryMRL("TierGasGenerator");
         modelRegistry.putObject(TierGasGenerator, RenderTierGasGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierGasGenerator)));
+
+        ModelResourceLocation ReplicatorItemStack = getInventoryMRL("ReplicatorItemStack");
+        modelRegistry.putObject(ReplicatorItemStack, RenderReplicatorItemStackItem.model = new ItemLayerWrapper(modelRegistry.getObject(ReplicatorItemStack)));
+
+        ModelResourceLocation ReplicatorGases = getInventoryMRL("ReplicatorGases");
+        modelRegistry.putObject(ReplicatorGases, RenderReplicatorGasesItem.model = new ItemLayerWrapper(modelRegistry.getObject(ReplicatorGases)));
+
+        ModelResourceLocation ReplicatorFluidStack = getInventoryMRL("ReplicatorFluidStack");
+        modelRegistry.putObject(ReplicatorFluidStack, RenderReplicatorFluidStackItem.model = new ItemLayerWrapper(modelRegistry.getObject(ReplicatorFluidStack)));
     }
 
     @Override
@@ -217,17 +243,25 @@ public class ClientProxy extends CommonProxy {
             case 0 -> new GuiWirelessCharging(player.inventory, (TileEntityWirelessChargingStation) tileEntity);
             case 1 -> new GuiTierElectricPump(player.inventory, (TileEntityTierElectricPump) tileEntity);
             case 2 -> new GuiTierIsotopicCentrifuge(player.inventory, (TileEntityTierIsotopicCentrifuge) tileEntity);
-            case 3 -> new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
-            case 4 -> new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
-            case 5 -> new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
+            case 3 ->
+                    new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
+            case 4 ->
+                    new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
+            case 5 ->
+                    new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
             case 6 -> new GuiTierChemicalInfuser(player.inventory, (TileEntityTierChemicalInfuser) tileEntity);
             case 7 -> new GuiTierAmbientAccumulator(player.inventory, (TileEntityTierAmbientAccumulator) tileEntity);
             case 8 -> new GuiTierChemicalWasher(player.inventory, (TileEntityTierChemicalWasher) tileEntity);
             case 9 -> new GuiBaseWindGenerator(player.inventory, (TileEntityBaseWindGenerator) tileEntity);
-            case 10 -> new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
-            case 11 -> new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
+            case 10 ->
+                    new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
+            case 11 ->
+                    new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
             case 12 -> new GuiTierChemicalOxidizer(player.inventory, (TileEntityTierChemicalOxidizer) tileEntity);
-            case 13 -> new GuiTierGasGenerator(player.inventory,(TileEntityTierGasGenerator) tileEntity);
+            case 13 -> new GuiTierGasGenerator(player.inventory, (TileEntityTierGasGenerator) tileEntity);
+            case 14 -> new GuiReplicatorItemStack(player.inventory, (TileEntityReplicatorItemStack) tileEntity);
+            case 15 -> new GuiReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
+            case 16 -> new GuiReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
             default -> null;
         };
     }

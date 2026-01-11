@@ -149,7 +149,7 @@ public abstract class BlockTierMachine extends BlockMekanismContainer {
 
     @Override
     public void getSubBlocks(CreativeTabs creativetabs, NonNullList<ItemStack> list) {
-        MEKCeuMoreMachineUtils.getSubBlocks(getBlock(), list, canCharged());
+        MEKCeuMoreMachineUtils.getSubTierBlocks(getBlock(), list, canCharged());
     }
 
     public boolean canCharged() {

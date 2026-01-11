@@ -3,13 +3,14 @@ package mekceumoremachine.client.integration.jei;
 
 import mekanism.client.jei.GuiElementHandler;
 import mekanism.common.base.ITierItem;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorFluidStackRecipeCategory;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorGasesRecipeCategory;
+import mekceumoremachine.client.integration.jei.machine.other.ReplicatorItemStackRecipeCategory;
 import mekceumoremachine.common.item.itemBlock.ItemBlockWirelessCharging;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
-import mezz.jei.api.IModPlugin;
-import mezz.jei.api.IModRegistry;
-import mezz.jei.api.ISubtypeRegistry;
+import mezz.jei.api.*;
 import mezz.jei.api.ISubtypeRegistry.ISubtypeInterpreter;
-import mezz.jei.api.JEIPlugin;
+import mezz.jei.api.recipe.IRecipeCategoryRegistration;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
@@ -45,8 +46,20 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.TierWindGenerator);
         registry(registry, MEKCeuMoreMachineBlocks.TierChemicalDissolutionChamber);
         registry(registry, MEKCeuMoreMachineBlocks.TierNutritionalLiquifier);
-        registry(registry,MEKCeuMoreMachineBlocks.TierChemicalOxidizer);
-        registry(registry,MEKCeuMoreMachineBlocks.TierGasGenerator);
+        registry(registry, MEKCeuMoreMachineBlocks.TierChemicalOxidizer);
+        registry(registry, MEKCeuMoreMachineBlocks.TierGasGenerator);
+        registry(registry, MEKCeuMoreMachineBlocks.ReplicatorItemStack);
+        registry(registry, MEKCeuMoreMachineBlocks.ReplicatorGases);
+        registry(registry, MEKCeuMoreMachineBlocks.ReplicatorFluidStack);
+    }
+
+
+    @Override
+    public void registerCategories(IRecipeCategoryRegistration registry) {
+        IGuiHelper guiHelper = registry.getJeiHelpers().getGuiHelper();
+        registry.addRecipeCategories(new ReplicatorItemStackRecipeCategory<>(guiHelper));
+        registry.addRecipeCategories(new ReplicatorGasesRecipeCategory<>(guiHelper));
+        registry.addRecipeCategories(new ReplicatorFluidStackRecipeCategory<>(guiHelper));
     }
 
     public void registry(ISubtypeRegistry registry, Block block) {
@@ -67,5 +80,8 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierNutritionalLiquifier(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalOxidizer(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerGasStackFlueToEnergyRecipe(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorItemStackRecipe(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorGasesRecipe(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorFluidStackRecipe(registry);
     }
 }

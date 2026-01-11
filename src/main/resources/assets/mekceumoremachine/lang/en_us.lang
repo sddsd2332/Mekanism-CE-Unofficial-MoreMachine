@@ -96,6 +96,12 @@ tile.TierGasGenerator.Elite.name=Elite Gas-Burning Generator
 tile.TierGasGenerator.Ultimate.name=Ultimate Gas-Burning Generator
 tooltip.TierGasGenerator=A generator that harnesses the molecular varying gasses to produce energy.
 
+gas.uu_matter=UU Matter(Gas)
+item.UUMatter.name=UU Matter(Item)
+tile.ReplicatorItemStack.name=Replicator(Item)
+tile.ReplicatorGases.name=Replicator(Gas)
+tile.ReplicatorFluidStack.name=Replicator(Fluid)
+
 item.CompositeTierInstaller.name=Composite Upgrade Installation Kit
 tooltip.CompositeTierInstaller=Installation component capable of directly upgrading the machine to its final level
 item.LargeMachineryUpgradeComponents.name=Large Machinery Upgrade Components
