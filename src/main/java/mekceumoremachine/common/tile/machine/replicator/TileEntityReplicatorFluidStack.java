@@ -18,6 +18,7 @@ import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.config.MoreMachineConfig;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -42,7 +43,7 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
 
 
     public TileEntityReplicatorFluidStack() {
-        super("prc", "ReplicatorFluidStack", 80000D, 200, 1, 200);
+        super("prc", "ReplicatorFluidStack", MoreMachineConfig.current().config.ReplicatorFluidStackEnergyStorge.val(), MoreMachineConfig.current().config.ReplicatorFluidStackEnergyUsage.val(), 1, 200);
 
         configComponent = new TileComponentConfig(this, TransmissionType.ENERGY, TransmissionType.FLUID, TransmissionType.GAS);
 

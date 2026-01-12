@@ -102,6 +102,13 @@ tile.ReplicatorItemStack.name=Replicator(Item)
 tile.ReplicatorGases.name=Replicator(Gas)
 tile.ReplicatorFluidStack.name=Replicator(Fluid)
 
+tile.WirelessChargingEnergy.Basic.name=Basic Wireless Power Supply Station
+tile.WirelessChargingEnergy.Advanced.name=Advanced Wireless Power Supply Station
+tile.WirelessChargingEnergy.Elite.name=Elite Wireless Power Supply Station
+tile.WirelessChargingEnergy.Ultimate.name=Ultimate Wireless Power Supply Station
+tooltip.WirelessChargingEnergy=Machines that can be charged within range
+gui.WirelessChargingEnergy.enable=Charging status
+
 item.CompositeTierInstaller.name=Composite Upgrade Installation Kit
 tooltip.CompositeTierInstaller=Installation component capable of directly upgrading the machine to its final level
 item.LargeMachineryUpgradeComponents.name=Large Machinery Upgrade Components

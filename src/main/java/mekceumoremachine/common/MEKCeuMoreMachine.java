@@ -8,6 +8,7 @@ import mekanism.common.Version;
 import mekanism.common.base.IModule;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.network.PacketSimpleGui;
+import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
@@ -17,6 +18,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -26,6 +28,8 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+
+import java.io.File;
 
 @Mod(modid = MEKCeuMoreMachine.MODID, useMetadata = true)
 @Mod.EventBusSubscriber()
@@ -43,6 +47,7 @@ public class MEKCeuMoreMachine implements IModule {
 
     public static CreativeTabMEKCeuMoreMachine tabMEKCeuMoreMachine = new CreativeTabMEKCeuMoreMachine();
 
+    public static Configuration config;
 
     static {
         MEKCeuMoreMachineFluids.register();
@@ -70,7 +75,8 @@ public class MEKCeuMoreMachine implements IModule {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         proxy.preInit();
-        proxy.loadConfiguration();
+        config = new Configuration(new File("config/mekanism/MoreMekMachine.cfg"));
+        loadConfiguration();
     }
 
     @Mod.EventHandler
@@ -124,7 +130,7 @@ public class MEKCeuMoreMachine implements IModule {
     @SubscribeEvent
     public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (event.getModID().equals(MEKCeuMoreMachine.MODID) || event.getModID().equals(Mekanism.MODID)) {
-            proxy.loadConfiguration();
+            loadConfiguration();
         }
     }
 
@@ -134,6 +140,7 @@ public class MEKCeuMoreMachine implements IModule {
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierIsotopicCentrifuge, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator, 0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.WirelessEnergy, 0);
     }
 
     @SubscribeEvent
@@ -144,5 +151,12 @@ public class MEKCeuMoreMachine implements IModule {
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void removeRecipes(RegistryEvent.Register<IRecipe> event) {
         MEKCeuMoreMachineRecipes.removeRecipes();
+    }
+
+    public void loadConfiguration() {
+        MoreMachineConfig.local().config.load(config);
+        if (config.hasChanged()) {
+            config.save();
+        }
     }
 }

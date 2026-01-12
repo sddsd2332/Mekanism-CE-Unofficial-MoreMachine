@@ -51,6 +51,7 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.ReplicatorItemStack);
         registry(registry, MEKCeuMoreMachineBlocks.ReplicatorGases);
         registry(registry, MEKCeuMoreMachineBlocks.ReplicatorFluidStack);
+        registry(registry, MEKCeuMoreMachineBlocks.WirelessEnergy);
     }
 
 

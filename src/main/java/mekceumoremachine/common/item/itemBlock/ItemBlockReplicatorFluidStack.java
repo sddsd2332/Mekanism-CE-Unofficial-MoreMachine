@@ -1,5 +1,6 @@
 package mekceumoremachine.common.item.itemBlock;
 
+import mekceumoremachine.common.config.MoreMachineConfig;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 
@@ -12,7 +13,7 @@ public class ItemBlockReplicatorFluidStack extends ItemBlockMekceuMoreMachineEne
 
     @Override
     public double getMachineStorage(ItemStack stack) {
-        return 80000D;
+        return MoreMachineConfig.current().config.ReplicatorFluidStackEnergyStorge.val();
     }
 
 

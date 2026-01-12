@@ -102,6 +102,13 @@ tile.ReplicatorItemStack.name=复制机(物品)
 tile.ReplicatorGases.name=复制机(气体)
 tile.ReplicatorFluidStack.name=复制机(流体)
 
+tile.WirelessChargingEnergy.Basic.name=基础无线供能站
+tile.WirelessChargingEnergy.Advanced.name=高级无线供能站
+tile.WirelessChargingEnergy.Elite.name=精英无线供能站
+tile.WirelessChargingEnergy.Ultimate.name=终极无线供能站
+tooltip.WirelessChargingEnergy=能够充能范围内的机器
+gui.WirelessChargingEnergy.enable=充能状态
+
 item.CompositeTierInstaller.name=复合升级安装套件
 tooltip.CompositeTierInstaller=能够将机器直接升级到最终等级的安装组件
 item.LargeMachineryUpgradeComponents.name=大型机器升级组件

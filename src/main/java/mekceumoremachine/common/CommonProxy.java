@@ -55,6 +55,7 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityReplicatorItemStack.class,"replicator_itemstack");
         registerTileEntity(TileEntityReplicatorGases.class,"replicator_gases");
         registerTileEntity(TileEntityReplicatorFluidStack.class,"replicator_fluidstack");
+        registerTileEntity(TileEntityWirelessChargingEnergy.class,"wireless_charging_energy");
     }
 
 
@@ -73,8 +74,7 @@ public class CommonProxy implements IGuiProvider {
     public void preInit() {
     }
 
-    public void loadConfiguration() {
-    }
+
 
     @Override
     public Object getClientGui(int ID, EntityPlayer player, World world, BlockPos pos) {
@@ -103,6 +103,7 @@ public class CommonProxy implements IGuiProvider {
             case 14 -> new ContainerReplicatorItemStack(player.inventory,(TileEntityReplicatorItemStack) tileEntity);
             case 15 -> new ContainerReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
             case 16 -> new ContainerReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
+            case 17 -> new ContainerWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
             default -> null;
         };
     }

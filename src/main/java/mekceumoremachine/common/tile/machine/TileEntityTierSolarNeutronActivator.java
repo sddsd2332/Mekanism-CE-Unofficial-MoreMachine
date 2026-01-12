@@ -2,6 +2,7 @@ package mekceumoremachine.common.tile.machine;
 
 import io.netty.buffer.ByteBuf;
 import mekanism.api.Coord4D;
+import mekanism.api.EnumColor;
 import mekanism.api.IConfigCardAccess;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.*;
@@ -26,16 +27,23 @@ import mekanism.common.tile.component.TileComponentUpgrade;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.util.*;
+import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
+import mekanism.multiblockmachine.common.tile.machine.TileEntityLargeSolarNeutronActivator;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
+import mekceumoremachine.common.tile.interfaces.ILargeMachine;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -44,8 +52,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@Optional.InterfaceList({
+        @Optional.Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
+})
 public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBlock implements IUpgradeTile, IRedstoneControl, ISecurityTile, IElectricMachine<GasInput, GasOutput, SolarNeutronRecipe>, IComputerIntegration, ISideConfiguration, IConfigCardAccess,
-        IMachineSlotTip, IBoundingBlock, IGasHandler, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier> {
+        IMachineSlotTip, IBoundingBlock, IGasHandler, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier>, ILargeMachine {
 
 
     public static final int MAX_GAS = 10000;
@@ -505,7 +516,7 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
+        if (upgradeTier == BaseTier.CREATIVE) {
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];
@@ -526,5 +537,70 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     @Override
     public String getName() {
         return LangUtils.localize("tile.TierSolarNeutronActivator." + tier.getBaseTier().getSimpleName() + ".name");
+    }
+
+    public boolean isUpgrade = true;
+
+    @Override
+    @Optional.Method(modid = "mekanismmultiblockmachine")
+    public boolean largeMachineUpgrade(EntityPlayer player) {
+        if (tier != MachineTier.ULTIMATE) {
+            return false;
+        }
+        //检查范围内是否能摆放
+        BlockPos.MutableBlockPos testPos = new BlockPos.MutableBlockPos();
+        for (int yPos = 0; yPos <= 2; yPos++) {
+            for (int xPos = -1; xPos <= 1; xPos++) {
+                for (int zPos = -1; zPos <= 1; zPos++) {
+                    //跳过自己
+                    if (yPos == 0 && xPos == 0 && zPos == 0) {
+                        continue;
+                    }
+                    testPos.setPos(pos.getX() + xPos, pos.getY() + yPos, pos.getZ() + zPos);
+                    Block b = world.getBlockState(testPos).getBlock();
+                    if (!world.isValid(testPos) || !world.isBlockLoaded(testPos, false) || !b.isReplaceable(world, testPos)) {
+                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + EnumColor.GREY + " " + LangUtils.localize("tooltip.largeMachineUpgrade.pos") + ": " + "X " + testPos.getX() + " " + "Y " + testPos.getY() + " " + "Z " + testPos.getZ()));
+                        return false;
+                    }
+                }
+            }
+        }
+        isUpgrade = false;
+        if (world.getTileEntity(getPos()) instanceof IBoundingBlock block) {
+            block.onBreak();
+        } else {
+            world.setBlockToAir(getPos());
+        }
+        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeSolarNeutronActivator.getDefaultState(), 3);
+        if (world.getTileEntity(getPos()) instanceof TileEntityLargeSolarNeutronActivator tile){
+            tile.onPlace();
+            //Basic
+            tile.facing = facing;
+            tile.clientFacing = clientFacing;
+            tile.ticker = ticker;
+            tile.redstone = redstone;
+            tile.redstoneLastTick = redstoneLastTick;
+            tile.doAutoSync = doAutoSync;
+
+            //Machine
+            tile.setActive(isActive);
+            tile.setControlType(getControlType());
+            tile.upgradeComponent.readFrom(upgradeComponent);
+            tile.upgradeComponent.setUpgradeSlot(upgradeComponent.getUpgradeSlot());
+            tile.upgradeComponent.setSupported(Upgrade.THREAD);//升级完后需要添加支持线程升级
+            tile.securityComponent.readFrom(securityComponent);
+            for (int i = 0; i < inventory.size(); i++) {
+                tile.inventory.set(i, inventory.get(i));
+            }
+            tile.inputTank.setGas(inputTank.getGas());
+            tile.outputTank.setGas(outputTank.getGas());
+            tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
+            tile.markNoUpdateSync();
+            Mekanism.packetHandler.sendUpdatePacket(tile);
+            markNoUpdateSync();
+            return true;
+
+        }
+        return false;
     }
 }

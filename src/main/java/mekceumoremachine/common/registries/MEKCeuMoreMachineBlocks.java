@@ -34,6 +34,7 @@ public class MEKCeuMoreMachineBlocks {
     public static Block ReplicatorItemStack = new BlockReplicatorItemStack();
     public static Block ReplicatorGases = new BlockReplicatorGases();
     public static Block ReplicatorFluidStack = new BlockReplicatorFluidStack();
+    public static Block WirelessEnergy = new BlockWirelessEnergy();
 
     public static void registerBlocks(IForgeRegistry<Block> registry) {
         registry.register(init(WirelessCharging, "WirelessCharging"));
@@ -53,7 +54,8 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(TierGasGenerator, "TierGasGenerator"));
         registry.register(init(ReplicatorItemStack, "ReplicatorItemStack"));
         registry.register(init(ReplicatorGases, "ReplicatorGases"));
-        registry.register(init(ReplicatorFluidStack,"ReplicatorFluidStack"));
+        registry.register(init(ReplicatorFluidStack, "ReplicatorFluidStack"));
+        registry.register(init(WirelessEnergy, "WirelessEnergy"));
     }
 
     public static void registerItemBlocks(IForgeRegistry<Item> registry) {
@@ -74,7 +76,8 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierGasGenerator(TierGasGenerator), "TierGasGenerator"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorItemStack(ReplicatorItemStack), "ReplicatorItemStack"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorGases(ReplicatorGases), "ReplicatorGases"));
-        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorFluidStack(ReplicatorFluidStack),"ReplicatorFluidStack"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorFluidStack(ReplicatorFluidStack), "ReplicatorFluidStack"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockWirelessEnergy(WirelessEnergy), "WirelessEnergy"));
     }
 
     public static Block init(Block block, String name) {

@@ -1,0 +1,44 @@
+{
+  "result": {
+    "nbt": {
+      "tier": 0
+    },
+    "item": "mekceumoremachine:wirelessenergy",
+    "type": "mekanism:item_nbt"
+  },
+  "pattern": [
+    "ABA",
+    "CDC",
+    "EFE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "item" : "mekanism:hdpe_sheet"
+    },
+    "B": {
+      "item": "mekanism:machineblock3",
+      "data": 11
+    },
+    "C": {
+      "ore": "circuitBasic",
+      "type": "forge:ore_dict"
+    },
+    "D": {
+      "nbt": {"tier": 0},
+      "item": "mekanism:basicblock2",
+      "data": 4,
+      "type": "mekanism:item_nbt"
+    },
+    "E": {
+      "ore":"PlutoniumPellet",
+      "type": "forge:ore_dict"
+    },
+    "F": {
+      "nbt": {"tier": 0},
+      "item": "mekanism:basicblock2",
+      "data": 3,
+      "type": "mekanism:item_nbt"
+    }
+  }
+}

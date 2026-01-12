@@ -64,6 +64,7 @@ public class MEKCeuMoreMachineRecipes {
         removeMekMultiBlockRecipes("largechemicalinfuser");
         removeMekMultiBlockRecipes("largegasgenerator");
         removeMekMultiBlockRecipes("largewindgenerator");
+        removeMekMultiBlockRecipes("largesolarneutronactivator");
 
     }
 
