@@ -68,7 +68,7 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     public boolean suckedLastOperation;
     public MachineTier tier = MachineTier.BASIC;
 
-    public double BASE_ENERGY_PER_TICK;
+    public double BASE_ENERGY_PER_TICK  = BlockStateMachine.MachineType.ELECTRIC_PUMP.getUsage() * tier.processes;
     public double energyPerTick = BASE_ENERGY_PER_TICK;
     /**
      * How many ticks it takes to run an operation.
@@ -96,8 +96,6 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     public TileEntityTierElectricPump() {
         super("TierElectricPump", 0);
         inventory = NonNullListSynchronized.withSize(4, ItemStack.EMPTY);
-        BASE_MAX_ENERGY = BlockStateMachine.MachineType.ELECTRIC_PUMP.getStorage()* tier.processes;
-        maxEnergy = BASE_MAX_ENERGY;
         upgradeComponent.setSupported(Upgrade.FILTER);
         fluidTank = new FluidTankSync(tier.processes * MAX_FLUID);
     }
@@ -559,6 +557,15 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     @Override
     public MachineTier getTier() {
         return tier;
+    }
+
+    @Override
+    public double getMaxEnergy() {
+        return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
+    }
+
+    public double getTierEnergy() {
+        return BlockStateMachine.MachineType.ELECTRIC_PUMP.getStorage() * tier.processes;
     }
 
 }

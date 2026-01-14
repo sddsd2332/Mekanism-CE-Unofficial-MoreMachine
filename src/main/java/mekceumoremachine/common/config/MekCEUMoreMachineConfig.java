@@ -8,13 +8,13 @@ import mekanism.common.config.options.IntOption;
 public class MekCEUMoreMachineConfig extends BaseConfig {
 
     public DoubleOption ReplicatorItemStackEnergyUsage = new DoubleOption(this, "ReplicatorItemStackEnergyUsage", 200D, "Energy usage of the Item Replicator");
-    public DoubleOption ReplicatorItemStackEnergyStorge = new DoubleOption(this, "ReplicatorItemStackEnergyUsage", 80000D, "Energy Storge of the Item Replicator");
+    public DoubleOption ReplicatorItemStackEnergyStorge = new DoubleOption(this, "ReplicatorItemStackEnergyStorge", 80000D, "Energy Storge of the Item Replicator");
 
     public DoubleOption ReplicatorGasesEnergyUsage = new DoubleOption(this, "ReplicatorGasesEnergyUsage", 200D, "Energy usage of the Gases Replicator");
-    public DoubleOption ReplicatorGasesEnergyStorge = new DoubleOption(this, "ReplicatorGasesEnergyUsage", 80000D, "Energy Storge of the Gases Replicator");
+    public DoubleOption ReplicatorGasesEnergyStorge = new DoubleOption(this, "ReplicatorGasesEnergyStorge", 80000D, "Energy Storge of the Gases Replicator");
 
     public DoubleOption ReplicatorFluidStackEnergyUsage = new DoubleOption(this, "ReplicatorFluidStackEnergyUsage", 200D, "Energy usage of the Fluid Replicator");
-    public DoubleOption ReplicatorFluidStackEnergyStorge = new DoubleOption(this, "ReplicatorFluidStackEnergyUsage", 80000D, "Energy Storge of the Fluid Replicator");
+    public DoubleOption ReplicatorFluidStackEnergyStorge = new DoubleOption(this, "ReplicatorFluidStackEnergyStorge", 80000D, "Energy Storge of the Fluid Replicator");
 
     public BooleanOption enableEuWirelessRecharge = new BooleanOption(this, "enableICWirelessRecharge", true, "Allows machines of the EU series to be charged");
 
