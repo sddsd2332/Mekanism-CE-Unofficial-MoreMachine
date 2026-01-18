@@ -84,8 +84,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     }
 
     @Override
-    public void onUpdateServer() {
-        super.onUpdateServer();
+    public void onAsyncUpdateServer() {
+        super.onAsyncUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
         List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(getPos().getX() - getRang(), getPos().getY() + 2 - getRang(), getPos().getZ() - getRang(), getPos().getX() + getRang(), getPos().getY() + 2 + getRang(), getPos().getZ() + getRang()), CHARGE_PREDICATE);
@@ -152,12 +152,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             stacks.add(baubles.getStackInSlot(i));
         }
         return stacks;
-    }
-
-
-    @Override
-    public boolean supportsAsync() {
-        return false;
     }
 
 

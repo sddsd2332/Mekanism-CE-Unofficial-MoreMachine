@@ -88,8 +88,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
     @Override
-    public void onUpdateServer() {
-        super.onUpdateServer();
+    public void onAsyncUpdateServer() {
+        super.onAsyncUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
         if (enable) {
@@ -265,11 +265,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
     }
 
-
-    @Override
-    public boolean supportsAsync() {
-        return false;
-    }
 
 
     @Override
