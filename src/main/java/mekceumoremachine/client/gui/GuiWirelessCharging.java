@@ -10,6 +10,7 @@ import mekanism.client.gui.element.slot.GuiOutputSlot;
 import mekanism.client.gui.element.tab.GuiSecurityTab;
 import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
 import mekanism.client.gui.element.tab.GuiTransporterConfigTab;
+import mekanism.client.gui.element.tab.GuiVisualsTab;
 import mekanism.common.Mekanism;
 import mekanism.common.network.PacketTileEntity;
 import mekanism.common.util.LangUtils;
@@ -49,6 +50,7 @@ public class GuiWirelessCharging extends GuiMekanismTile<TileEntityWirelessCharg
         addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 15));
         addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 37));
         addGuiElement(new GuiSlot(GuiSlot.SlotType.STATE_HOLDER, this, resource, 67, 59));
+        addGuiElement(new GuiVisualsTab(this, tileEntity, resource, 62));
     }
 
 

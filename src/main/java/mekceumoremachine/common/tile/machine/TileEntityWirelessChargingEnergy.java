@@ -52,7 +52,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization {
 
 
     public MachineTier tier = MachineTier.BASIC;
@@ -67,7 +67,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     public Map<BlockPos, TileEntity> skipMachine = new HashMap<>();
 
     public boolean enable;
-
+    public boolean clientRendering = false;
 
     public TileEntityWirelessChargingEnergy() {
         super("WirelessChargingEnergy", 0);
@@ -264,7 +264,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             }
         }
     }
-
 
 
     @Override
@@ -535,4 +534,15 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     public int getRang() {
         return tier.processes * 16;
     }
+
+    @Override
+    public boolean isClientRendering() {
+        return clientRendering;
+    }
+
+    @Override
+    public void toggleClientRendering() {
+        clientRendering = !clientRendering;
+    }
+
 }

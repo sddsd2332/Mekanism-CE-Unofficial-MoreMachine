@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier> {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier> ,IHasVisualization{
 
     private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> (entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit;
 
@@ -63,7 +63,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     public boolean chargeRobit;
     public boolean playerArmor;
     public boolean playerInventory;
-
+    public boolean clientRendering = false;
 
     public TileEntityWirelessChargingStation() {
         super("WirelessChargingStation", 0);
@@ -438,5 +438,15 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
 
     public int getRang() {
         return tier.processes * 16;
+    }
+
+    @Override
+    public boolean isClientRendering() {
+        return clientRendering;
+    }
+
+    @Override
+    public void toggleClientRendering() {
+        clientRendering = !clientRendering;
     }
 }

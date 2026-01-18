@@ -26,6 +26,9 @@ public class RenderWirelessChargingStation extends TileEntitySpecialRenderer<Til
         bindTexture(MekanismUtils.getResource(MEKCeuMoreMachine.MODID, MekanismUtils.ResourceType.RENDER, "Wireless_Charging.png"));
         model.renderModel(0.0625F);
         GlStateManager.popMatrix();
+        if (tileEntity.clientRendering) {
+            WirelessChargingStationVisualRenderer.render(tileEntity);
+        }
         MekanismRenderer.machineRenderer().render(tileEntity, x, y, z, partialTick, destroyStage, alpha);
     }
 }

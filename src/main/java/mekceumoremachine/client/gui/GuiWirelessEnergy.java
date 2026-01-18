@@ -11,6 +11,7 @@ import mekanism.client.gui.element.slot.GuiOutputSlot;
 import mekanism.client.gui.element.tab.GuiSecurityTab;
 import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
 import mekanism.client.gui.element.tab.GuiTransporterConfigTab;
+import mekanism.client.gui.element.tab.GuiVisualsTab;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.client.gui.element.tab.GuiWirelessEnergyEnable;
@@ -39,6 +40,7 @@ public class GuiWirelessEnergy extends GuiMekanismTile<TileEntityWirelessChargin
         addGuiElement(new GuiInputSlot(this, resource, 16, 34, tileEntity).with(GuiSlot.SlotOverlay.MINUS));
         addGuiElement(new GuiOutputSlot(this, resource, 142, 34, tileEntity).with(GuiSlot.SlotOverlay.PLUS));
         addGuiElement(new GuiPlayerSlot(this, resource));
+        addGuiElement(new GuiVisualsTab(this, tileEntity, resource,93));
     }
 
 
