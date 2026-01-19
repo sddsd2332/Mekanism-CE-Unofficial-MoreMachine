@@ -49,6 +49,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
@@ -85,6 +87,14 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         controlType = RedstoneControl.DISABLED;
         ejectorComponent = new TileComponentEjector(this);
         securityComponent = new TileComponentSecurity(this);
+    }
+
+    @Override
+    public void validate() {
+        super.validate();
+        for (String entry : MoreMachineConfig.current().config.BlacklistMachine.get()) {
+            blacklistTileClassNamePrefix(entry);
+        }
     }
 
     @Override
@@ -162,6 +172,9 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 for (TileEntity tileEntity : chunk.getTileEntityMap().values()) {
                     //跳过含有不能无线充能的机器
                     if (tileEntity instanceof INoWirelessChargingEnergy) {
+                        continue;
+                    }
+                    if (isBlacklistMachine(tileEntity)) {
                         continue;
                     }
                     //跳过mek的线缆
@@ -265,6 +278,32 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
     }
 
+
+    private List<String> blacklistedPrefixes = new LinkedList<>();
+
+    public boolean isBlacklistMachine(TileEntity tile) {
+        if (tile == null) {
+            return true; //Nothing there.
+        }
+        Class<?> tClass = tile.getClass();
+        String className = tClass.getName();
+        String lCClassName = className.toLowerCase();
+        if (lCClassName.startsWith("[L")) {
+            lCClassName = lCClassName.substring(2); //Cull descriptor
+        }
+        for (String pref : blacklistedPrefixes) {
+            if (lCClassName.startsWith(pref)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void blacklistTileClassNamePrefix(String prefix) {
+        if (!blacklistedPrefixes.contains(prefix.toLowerCase())) {
+            blacklistedPrefixes.add(prefix.toLowerCase());
+        }
+    }
 
     @Override
     public boolean upgrade(BaseTier upgradeTier) {

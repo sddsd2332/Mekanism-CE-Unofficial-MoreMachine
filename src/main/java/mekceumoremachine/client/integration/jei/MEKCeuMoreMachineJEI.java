@@ -7,6 +7,7 @@ import mekceumoremachine.client.integration.jei.machine.other.ReplicatorFluidSta
 import mekceumoremachine.client.integration.jei.machine.other.ReplicatorGasesRecipeCategory;
 import mekceumoremachine.client.integration.jei.machine.other.ReplicatorItemStackRecipeCategory;
 import mekceumoremachine.common.item.itemBlock.ItemBlockWirelessCharging;
+import mekceumoremachine.common.item.itemBlock.ItemBlockWirelessEnergy;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mezz.jei.api.*;
 import mezz.jei.api.ISubtypeRegistry.ISubtypeInterpreter;
@@ -25,8 +26,11 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         if (itemStack.getItem() instanceof ITierItem tierItem) {
             ret += ":" + tierItem.getBaseTier(itemStack).getSimpleName();
         }
-        if (itemStack.getItem() instanceof ItemBlockWirelessCharging wirelessCharging) {
-            ret += ":" + (wirelessCharging.getEnergy(itemStack) > 0 ? "filled" : "empty");
+        if (itemStack.getItem() instanceof ItemBlockWirelessCharging wireless) {
+            ret += ":" + (wireless.getEnergy(itemStack) > 0 ? "filled" : "empty");
+        }
+        if (itemStack.getItem() instanceof ItemBlockWirelessEnergy wireless) {
+            ret += ":" + (wireless.getEnergy(itemStack) > 0 ? "filled" : "empty");
         }
 
         return ret.toLowerCase(Locale.ROOT);
