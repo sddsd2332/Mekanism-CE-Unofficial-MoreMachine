@@ -78,13 +78,11 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
     public boolean upgraded;
 
     public TileEntityTierNutritionalLiquifier(MachineTier type) {
-        super("oxidizer", "TierNutritionalLiquifier", 0, MachineType.NUTRITIONAL_LIQUIFIER.getUsage(), 1);
+        super("oxidizer", "TierNutritionalLiquifier", type.processes * MachineType.NUTRITIONAL_LIQUIFIER.getStorage(), MachineType.NUTRITIONAL_LIQUIFIER.getUsage(), 1);
         this.tier = type;
         progress = new int[tier.processes];
         isActive = false;
         cachedRecipe = new NutritionalRecipe[tier.processes];
-        BASE_MAX_ENERGY = maxEnergy = tier.processes * MachineType.NUTRITIONAL_LIQUIFIER.getStorage();
-        BASE_ENERGY_PER_TICK = energyPerTick = tier.processes * MachineType.NUTRITIONAL_LIQUIFIER.getUsage();
         upgradeComponent.getSupportedTypes().forEach(this::recalculateUpgradables);
 
         configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.GAS, TransmissionType.ENERGY);

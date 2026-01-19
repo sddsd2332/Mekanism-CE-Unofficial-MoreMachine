@@ -84,14 +84,12 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     public boolean upgraded;
 
     public TileEntityTierChemicalDissolutionChamber(MachineTier type) {
-        super("dissolution", "TierChemicalDissolutionChamber", 0, MachineType.CHEMICAL_DISSOLUTION_CHAMBER.getUsage(), 2);
+        super("dissolution", "TierChemicalDissolutionChamber", type.processes * MachineType.CHEMICAL_DISSOLUTION_CHAMBER.getStorage(), MachineType.CHEMICAL_DISSOLUTION_CHAMBER.getUsage(), 2);
         this.tier = type;
         injectTank = new GasTank(MAX_GAS * tier.processes);
         progress = new int[tier.processes];
         isActive = false;
         cachedRecipe = new DissolutionRecipe[tier.processes];
-        BASE_MAX_ENERGY = maxEnergy = tier.processes * MachineType.CHEMICAL_DISSOLUTION_CHAMBER.getStorage();
-        BASE_ENERGY_PER_TICK = energyPerTick = tier.processes * MachineType.CHEMICAL_DISSOLUTION_CHAMBER.getUsage();
 
         upgradeComponent.setSupported(Upgrade.GAS);
         upgradeComponent.getSupportedTypes().forEach(this::recalculateUpgradables);
@@ -167,7 +165,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         ChargeUtils.discharge(1, this);
         TileUtils.receiveGasItem(inventory.get(0), injectTank, MekanismFluids.SulfuricAcid);
         injectUsageThisTick = Math.max(BASE_INJECT_USAGE, StatUtils.inversePoisson(injectUsage));
-        injectUsageThisTick *= tier.processes;
+     //   injectUsageThisTick *= tier.processes;
         if (sorting) {
             if (oldSorting) {
                 sortInventory(); //Keeping the old sort prevents some problems
