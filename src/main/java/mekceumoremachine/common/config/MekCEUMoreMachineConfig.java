@@ -34,7 +34,8 @@ public class MekCEUMoreMachineConfig extends BaseConfig {
             "com.supermartijn642.trashcans",
             "com.rwtema.extrautils2.tile.TileTrashCanEnergy",
             "mctmods.immersivetechnology.common.blocks.metal.tileentities.TileEntityTrashEnergy",
-            "cassiokf.industrialrenewal.tileentity.TileEntityTrash"
+            "cassiokf.industrialrenewal.tileentity.TileEntityTrash",
+            "sonar.fluxnetworks.common.tileentity.TileFluxPlug"
     }, "Wireless Charging Station Blacklist,The machines in here do not charge.");
 
     @Override
