@@ -1,7 +1,7 @@
 package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.Mekanism;
-import mekanism.common.tier.InductionCellTier;
+import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingStation;
 import net.minecraft.block.Block;
@@ -63,7 +63,13 @@ public class ItemBlockWirelessCharging extends ItemBlockMekceuMoreMachineTier {
         if (itemStack.getCount() > 1) {
             return 0;
         }
-        return InductionCellTier.values()[getBaseTier(itemStack).ordinal()].getMaxEnergy();
+        return switch (getBaseTier(itemStack)) {
+            case BASIC -> MoreMachineConfig.current().config.BasicWirelessChargingMaxEnergy.val();
+            case ADVANCED -> MoreMachineConfig.current().config.AdvancedWirelessChargingMaxEnergy.val();
+            case ELITE -> MoreMachineConfig.current().config.EliteWirelessChargingMAXEnergy.val();
+            case ULTIMATE -> MoreMachineConfig.current().config.UltimateWirelessChargingMaxEnergy.val();
+            case CREATIVE -> 0;
+        };
     }
 
 }

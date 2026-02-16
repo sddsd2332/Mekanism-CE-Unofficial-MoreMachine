@@ -15,6 +15,7 @@ import mekanism.client.gui.element.tab.GuiVisualsTab;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.client.gui.element.tab.GuiWirelessEnergyEnable;
+import mekceumoremachine.client.gui.element.tab.GuiWirelessEnergyEnableScan;
 import mekceumoremachine.common.inventory.container.ContainerWirelessEnergy;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingEnergy;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -35,12 +36,13 @@ public class GuiWirelessEnergy extends GuiMekanismTile<TileEntityWirelessChargin
         addGuiElement(new GuiSideConfigurationTab(this, tileEntity, resource));
         addGuiElement(new GuiTransporterConfigTab(this, 32, tileEntity, resource));
         addGuiElement(new GuiWirelessEnergyEnable(this, tileEntity, resource));
+        addGuiElement(new GuiWirelessEnergyEnableScan(this, tileEntity, resource));
         addGuiElement(new GuiEnergyGauge(() -> tileEntity, GuiEnergyGauge.Type.WIDE, this, resource, 55, 18));
         addGuiElement(new GuiEnergyInfo(() -> Arrays.asList(LangUtils.localize("gui.storing") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getEnergy(), tileEntity.getMaxEnergy()), LangUtils.localize("gui.maxOutput") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getMaxOutput()) + "/t"), this, resource));
         addGuiElement(new GuiInputSlot(this, resource, 16, 34, tileEntity).with(GuiSlot.SlotOverlay.MINUS));
         addGuiElement(new GuiOutputSlot(this, resource, 142, 34, tileEntity).with(GuiSlot.SlotOverlay.PLUS));
         addGuiElement(new GuiPlayerSlot(this, resource));
-        addGuiElement(new GuiVisualsTab(this, tileEntity, resource,93));
+        addGuiElement(new GuiVisualsTab(this, tileEntity, resource, 93));
     }
 
 

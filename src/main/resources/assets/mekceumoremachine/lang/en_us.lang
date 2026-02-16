@@ -108,6 +108,9 @@ tile.WirelessChargingEnergy.Elite.name=Elite Wireless Power Supply Station
 tile.WirelessChargingEnergy.Ultimate.name=Ultimate Wireless Power Supply Station
 tooltip.WirelessChargingEnergy=Machines that can be charged within range
 gui.WirelessChargingEnergy.enable=Charging status
+gui.WirelessChargingEnergy.scan=Scan machines within range and connect automatically
+gui.WirelessChargingEnergy.quantity=Number of linked devices
+gui.WirelessChargingEnergy.MaxLinks=Reached the maximum number of linked devices
 
 item.CompositeTierInstaller.name=Composite Upgrade Installation Kit
 tooltip.CompositeTierInstaller=Installation component capable of directly upgrading the machine to its final level

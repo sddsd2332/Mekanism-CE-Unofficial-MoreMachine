@@ -8,6 +8,8 @@ import mekanism.common.Version;
 import mekanism.common.base.IModule;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.network.PacketSimpleGui;
+import mekceumoremachine.common.capability.LinkCapability;
+import mekceumoremachine.common.capability.LinkCapabilityProvider;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
@@ -16,9 +18,16 @@ import mekceumoremachine.mekceumoremachine.Tags;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -29,7 +38,9 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.util.Optional;
 
 @Mod(modid = MEKCeuMoreMachine.MODID, useMetadata = true)
 @Mod.EventBusSubscriber()
@@ -77,6 +88,7 @@ public class MEKCeuMoreMachine implements IModule {
         proxy.preInit();
         config = new Configuration(new File("config/mekanism/MoreMekMachine.cfg"));
         loadConfiguration();
+        CapabilityManager.INSTANCE.register(LinkCapability.class, new LinkCapability.Storage(), LinkCapability::new);
     }
 
     @Mod.EventHandler
@@ -158,5 +170,30 @@ public class MEKCeuMoreMachine implements IModule {
         if (config.hasChanged()) {
             config.save();
         }
+    }
+
+    private static final ResourceLocation LINK_CAP = new ResourceLocation(MODID, "link");
+
+    @SubscribeEvent
+    public static void attachCaps(AttachCapabilitiesEvent<TileEntity> event) {
+        if (event.getObject() instanceof TileEntity) {
+            if (!getLinkInfoCap(event.getObject()).isPresent() && !event.getCapabilities().containsKey(LINK_CAP)) {
+                event.addCapability(LINK_CAP, new LinkCapabilityProvider());
+            }
+        }
+    }
+
+    public static Optional<LinkCapability> getLinkInfoCap(TileEntity entity) {
+        return getCapability(entity, LinkCapabilityProvider.LINK_CAPABILITY);
+    }
+
+    public static <T> Optional<T> getCapability(@Nullable ICapabilityProvider provider, Capability<T> capability) {
+        return getCapability(provider, capability, null);
+    }
+
+    public static <T> Optional<T> getCapability(@Nullable ICapabilityProvider provider, Capability<T> capability, @Nullable EnumFacing side) {
+        return provider != null && provider.hasCapability(capability, side) ?
+                Optional.ofNullable(provider.getCapability(capability, side)) :
+                Optional.empty();
     }
 }

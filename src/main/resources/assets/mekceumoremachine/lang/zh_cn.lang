@@ -108,6 +108,9 @@ tile.WirelessChargingEnergy.Elite.name=精英无线供能站
 tile.WirelessChargingEnergy.Ultimate.name=终极无线供能站
 tooltip.WirelessChargingEnergy=能够充能范围内的机器
 gui.WirelessChargingEnergy.enable=充能状态
+gui.WirelessChargingEnergy.scan=扫描范围内的机器,并自动连接
+gui.WirelessChargingEnergy.quantity=已链接机器的数量
+gui.WirelessChargingEnergy.MaxLinks=到达链接机器上限
 
 item.CompositeTierInstaller.name=复合升级安装套件
 tooltip.CompositeTierInstaller=能够将机器直接升级到最终等级的安装组件

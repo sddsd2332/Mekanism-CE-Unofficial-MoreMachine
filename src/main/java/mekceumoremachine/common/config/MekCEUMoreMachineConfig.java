@@ -5,6 +5,8 @@ import mekanism.common.config.options.BooleanOption;
 import mekanism.common.config.options.DoubleOption;
 import mekanism.common.config.options.IntOption;
 import mekanism.common.config.options.StringListOption;
+import mekanism.common.tier.InductionCellTier;
+import mekanism.common.tier.InductionProviderTier;
 
 public class MekCEUMoreMachineConfig extends BaseConfig {
 
@@ -37,6 +39,22 @@ public class MekCEUMoreMachineConfig extends BaseConfig {
             "cassiokf.industrialrenewal.tileentity.TileEntityTrash",
             "sonar.fluxnetworks.common.tileentity.TileFluxPlug"
     }, "Wireless Charging Station Blacklist,The machines in here do not charge.");
+
+    public DoubleOption BasicWirelessChargingMaxEnergy = new DoubleOption(this, "BasicWirelessChargingMaxEnergy", InductionCellTier.BASIC.getBaseMaxEnergy(), "Maximum stored electricity of the basic level of wireless transmission station and wireless power supply station");
+    public DoubleOption AdvancedWirelessChargingMaxEnergy = new DoubleOption(this, "AdvancedWirelessChargingMaxEnergy", InductionCellTier.ADVANCED.getBaseMaxEnergy(), "Maximum stored electricity of advanced levels of wireless transmission stations and wireless power supply stations");
+    public DoubleOption EliteWirelessChargingMAXEnergy = new DoubleOption(this, "EliteWirelessChargingMAXEnergy", InductionCellTier.ELITE.getBaseMaxEnergy(), "Maximum stored electricity of elite level wireless transmission stations and wireless power supply stations");
+    public DoubleOption UltimateWirelessChargingMaxEnergy = new DoubleOption(this, "UltimateWirelessChargingMaxEnergy", InductionCellTier.ULTIMATE.getBaseMaxEnergy(), "Maximum stored electricity at the ultimate level of wireless transmission stations and wireless power supply stations");
+
+    public DoubleOption BasicWirelessChargingOutput = new DoubleOption(this, "BasicWirelessChargingOutput", InductionProviderTier.BASIC.getBaseOutput(), "Maximum transmission power of the basic level of wireless transmission stations and wireless power supply stations");
+    public DoubleOption AdvancedWirelessChargingOutput = new DoubleOption(this, "AdvancedWirelessChargingOutput", InductionProviderTier.ADVANCED.getBaseOutput(), "Maximum transmission power of advanced levels of wireless transmission stations and wireless power supply stations");
+    public DoubleOption EliteWirelessChargingOutput = new DoubleOption(this, "EliteWirelessChargingOutput", InductionProviderTier.ELITE.getBaseOutput(), "Maximum transmission power of elite level wireless transmission stations and wireless power supply stations");
+    public DoubleOption UltimateWirelessChargingOutput = new DoubleOption(this, "UltimateWirelessChargingOutput", InductionProviderTier.ULTIMATE.getBaseOutput(), "Maximum transmission power of the ultimate level of wireless transmission stations and wireless power supply stations");
+
+    public IntOption BasicWirelessChargingLink = new IntOption(this, "BasicWirelessChargingLink", 300, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
+    public IntOption AdvancedWirelessChargingLink = new IntOption(this, "AdvancedWirelessChargingLink", 600, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
+    public IntOption EliteWirelessChargingLink = new IntOption(this, "EliteWirelessChargingLink", 700, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
+    public IntOption UltimateWirelessChargingLink = new IntOption(this, "UltimateWirelessChargingLink", 900, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
+
 
     @Override
     public String getCategory() {

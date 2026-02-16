@@ -25,14 +25,14 @@ public class GuiWirelessEnergyEnable extends GuiTileEntityElement<TileEntityWire
         guiObj.drawTexturedRect(guiWidth - 21, guiHeight + 62, 72, 0, 18, 18);
         mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "State.png"));
         guiObj.drawTexturedRect(guiWidth - 22, guiHeight + 81, 6, 6, 8, 8);
-        guiObj.drawTexturedRect(guiWidth - 21, guiHeight + 82, tileEntity.enable ? 0 : 6, 0, 6, 6);
+        guiObj.drawTexturedRect(guiWidth - 21, guiHeight + 82, tileEntity.enableEmit ? 0 : 6, 0, 6, 6);
         mc.renderEngine.bindTexture(defaultLocation);
     }
 
     @Override
     public void renderForeground(int xAxis, int yAxis) {
         if (inBounds(xAxis, yAxis)) {
-            displayTooltip(LangUtils.localize("gui.WirelessChargingEnergy.enable") + ":" + LangUtils.transOnOffcap(tileEntity.enable), xAxis, yAxis);
+            displayTooltip(LangUtils.localize("gui.WirelessChargingEnergy.enable") + ":" + LangUtils.transOnOffcap(tileEntity.enableEmit), xAxis, yAxis);
         }
         mc.renderEngine.bindTexture(defaultLocation);
     }

@@ -47,12 +47,10 @@ public class WirelessChargingEnergyVisualRenderer {
         DisplayInteger display = DisplayInteger.createAndStart();
         cachedVisuals.put(data, display);
         Model3D toReturn = new Model3D();
-        if (data.radius <= 64) {
-            toReturn.setBlockBounds(-data.radius + 1.01, -data.radius - data.yCoord + 1.01, -data.radius + 1.01, data.radius + 1 - 1.01, data.radius - data.yCoord + 1 - 1.01, data.radius + 1 - 1.01);
-            toReturn.baseBlock = Blocks.WATER;
-            toReturn.setTexture(MekanismRenderer.energyIcon);
-            MekanismRenderer.renderObject(toReturn);
-        }
+        toReturn.setBlockBounds(-data.radius + 1.01, -data.radius - data.yCoord + 1.01, -data.radius + 1.01, data.radius + 1 - 1.01, data.radius - data.yCoord + 1 - 1.01, data.radius + 1 - 1.01);
+        toReturn.baseBlock = Blocks.WATER;
+        toReturn.setTexture(MekanismRenderer.energyIcon);
+        MekanismRenderer.renderObject(toReturn);
         DisplayInteger.endList();
         return display;
     }

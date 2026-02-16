@@ -25,6 +25,7 @@ import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
@@ -179,10 +180,10 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     public double getMaxOutput() {
         return switch (tier) {
-            case BASIC -> InductionProviderTier.BASIC.getOutput();
-            case ADVANCED -> InductionProviderTier.ADVANCED.getOutput();
-            case ELITE -> InductionProviderTier.ELITE.getOutput();
-            case ULTIMATE -> InductionProviderTier.ULTIMATE.getOutput();
+            case BASIC -> MoreMachineConfig.current().config.BasicWirelessChargingOutput.val();
+            case ADVANCED -> MoreMachineConfig.current().config.AdvancedWirelessChargingOutput.val();
+            case ELITE -> MoreMachineConfig.current().config.EliteWirelessChargingOutput.val();
+            case ULTIMATE -> MoreMachineConfig.current().config.UltimateWirelessChargingOutput.val();
         };
     }
 
@@ -213,10 +214,10 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     public double getMaxEnergy() {
         return switch (tier) {
-            case BASIC -> InductionCellTier.BASIC.getMaxEnergy();
-            case ADVANCED -> InductionCellTier.ADVANCED.getMaxEnergy();
-            case ELITE -> InductionCellTier.ELITE.getMaxEnergy();
-            case ULTIMATE -> InductionCellTier.ULTIMATE.getMaxEnergy();
+            case BASIC -> MoreMachineConfig.current().config.BasicWirelessChargingMaxEnergy.val();
+            case ADVANCED -> MoreMachineConfig.current().config.AdvancedWirelessChargingMaxEnergy.val();
+            case ELITE -> MoreMachineConfig.current().config.EliteWirelessChargingMAXEnergy.val();
+            case ULTIMATE -> MoreMachineConfig.current().config.UltimateWirelessChargingMaxEnergy.val();
         };
     }
 
