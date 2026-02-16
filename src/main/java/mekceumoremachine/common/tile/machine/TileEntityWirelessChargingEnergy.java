@@ -26,7 +26,7 @@ import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.attachments.component.ConnectionConfig;
-import mekceumoremachine.common.capability.LinkCapability;
+import mekceumoremachine.common.capability.LinkTileEntity;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.INoWirelessChargingEnergy;
@@ -131,7 +131,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         connections.forEach(connection -> {
             TileEntity tile = getWorldNN().getTileEntity(connection.getPos());
             if (tile != null) {
-                MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkCapability::stopLink);
+                MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkTileEntity::stopLink);
             }
         });
         //全部清空下
@@ -152,7 +152,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 TileEntity tile = getWorldNN().getTileEntity(connections.get(i).getPos());
                 if (tile != null) {
                     //通知移除
-                    MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkCapability::stopLink);
+                    MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkTileEntity::stopLink);
                 }
                 connections.remove(i);
             }
@@ -209,7 +209,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         connections.forEach(connection -> {
             TileEntity tile = getWorldNN().getTileEntity(connection.getPos());
             if (tile != null) {
-                MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkCapability::stopLink);
+                MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkTileEntity::stopLink);
             }
         });
         super.invalidate();
@@ -257,7 +257,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                         continue;
                     }
                     //扫描链接的机器
-                    Optional<LinkCapability> linkCapability = MEKCeuMoreMachine.getLinkInfoCap(tileEntity);
+                    Optional<LinkTileEntity> linkCapability = MEKCeuMoreMachine.getLinkInfoCap(tileEntity);
                     //如果机器是已经扫描了，且已经链接
                     if (linkCapability.isPresent()) {
                         //检查链接的供能站
