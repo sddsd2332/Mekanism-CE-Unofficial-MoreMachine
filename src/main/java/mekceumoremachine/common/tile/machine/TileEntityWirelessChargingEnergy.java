@@ -44,12 +44,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
@@ -289,18 +291,47 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                             }
                             continue;
                         }
+                        //mek的cap相关
+                        if (getCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY).isPresent()) {
+                            Optional<IStrictEnergyAcceptor> acceptor = getCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY);
+                            if (acceptor.isPresent()) {
+                                for (EnumFacing side : EnumFacing.VALUES) {
+                                    if (acceptor.get().canReceiveEnergy(side.getOpposite())) {
+                                        rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                        MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
+                                        break;
+                                    }
+                                }
+                            }
+                            continue;
+                        }
 
                         //forge能量系统
                         if (MekanismUtils.useForge() && MoreMachineConfig.current().config.enableFEWirelessRecharge.val()) {
                             if (tileEntity instanceof IEnergyStorage iEnergyStorage) {
-                                if (iEnergyStorage.canReceive()) {
-                                    rangMachine.add(new ConnectionConfig(tileEntity, EnumFacing.UP));
-                                    MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                    continue;
+                                for (EnumFacing side : EnumFacing.VALUES) {
+                                    if (iEnergyStorage.canReceive()) {
+                                        rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                        MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
+                                        break;
+                                    }
                                 }
+                                continue;
+                            }
+                            if (getCapability(tileEntity, CapabilityEnergy.ENERGY).isPresent()) {
+                                Optional<IEnergyStorage> acceptor = getCapability(tileEntity, CapabilityEnergy.ENERGY);
+                                for (EnumFacing side : EnumFacing.VALUES) {
+                                    if (acceptor.isPresent()) {
+                                        if (acceptor.get().canReceive()) {
+                                            rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                            MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
+                                            break;
+                                        }
+                                    }
+                                }
+                                continue;
                             }
                         }
-
                         //RF能量系统
                         if (MekanismUtils.useRF() && MoreMachineConfig.current().config.enableRFWirelessRecharge.val()) {
                             if (tileEntity instanceof IEnergyReceiver receiver) {
@@ -317,11 +348,14 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
                         //Tesla能量系统
                         if (MekanismUtils.useTesla() && MoreMachineConfig.current().config.enableTeslaWirelessRecharge.val()) {
-                            if (hasCapability(tileEntity, Capabilities.TESLA_CONSUMER_CAPABILITY)) {
-                                rangMachine.add(new ConnectionConfig(tileEntity, EnumFacing.UP));
-                                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                continue;
+                            for (EnumFacing side : EnumFacing.VALUES) {
+                                if (hasCapability(tileEntity, Capabilities.TESLA_CONSUMER_CAPABILITY, side)) {
+                                    rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                    MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
+                                    break;
+                                }
                             }
+                            continue;
                         }
 
                         //IC2的能量系统
@@ -342,14 +376,22 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
 
-    //检查各个面是否有给定的cap
-    public boolean hasCapability(TileEntity tileEntity, Capability<?> cap) {
-        for (EnumFacing side : EnumFacing.VALUES) {
-            if (CapabilityUtils.hasCapability(tileEntity, cap, side.getOpposite())) {
-                return true;
-            }
+    public static <T> Optional<T> getCapability(TileEntity entity, Capability<T> capability) {
+        return getCapability(entity, capability, null);
+    }
+
+
+    public static <T> Optional<T> getCapability(TileEntity entity, Capability<T> capability, @Nullable EnumFacing side) {
+        if (entity.hasCapability(capability, side)) {
+            return Optional.ofNullable(entity.getCapability(capability, side));
+        } else {
+            return Optional.empty();
         }
-        return false;
+    }
+
+    //检查各个面是否有给定的cap
+    public boolean hasCapability(TileEntity tileEntity, Capability<?> cap, EnumFacing side) {
+        return CapabilityUtils.hasCapability(tileEntity, cap, side.getOpposite());
     }
 
     //自动清除错误方块；
