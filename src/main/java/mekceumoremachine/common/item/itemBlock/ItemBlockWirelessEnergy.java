@@ -35,7 +35,9 @@ public class ItemBlockWirelessEnergy extends ItemBlockMekceuMoreMachineTier {
         super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
         if (!world.isRemote) {
             if (tileEntity instanceof TileEntityWirelessChargingEnergy tile) {
-                tile.setScanMachine();//通知机器进行首次扫描
+                if (player.isSneaking()) {
+                    tile.setScanMachine();//通知机器进行首次扫描
+                }
                 Mekanism.packetHandler.sendUpdatePacket(tile);
             }
         }

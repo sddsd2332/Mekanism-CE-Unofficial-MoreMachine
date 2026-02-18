@@ -1,11 +1,10 @@
 package mekceumoremachine.common.tile.machine;
 
-import cofh.redstoneflux.api.IEnergyReceiver;
 import io.netty.buffer.ByteBuf;
 import mekanism.api.Coord4D;
+import mekanism.api.EnumColor;
 import mekanism.api.IConfigCardAccess.ISpecialConfigData;
 import mekanism.api.TileNetworkList;
-import mekanism.api.energy.IStrictEnergyAcceptor;
 import mekanism.api.transmitters.ITransmitter;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
@@ -14,7 +13,6 @@ import mekanism.common.base.*;
 import mekanism.common.base.target.EnergyAcceptorTarget;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.integration.computer.IComputerIntegration;
-import mekanism.common.integration.ic2.IC2Integration;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.component.TileComponentConfig;
@@ -31,7 +29,10 @@ import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.INoWirelessChargingEnergy;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import mekceumoremachine.common.tile.interfaces.ITileConnect;
+import mekceumoremachine.common.util.LinkUtils;
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -40,12 +41,11 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -55,7 +55,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect {
 
 
     public MachineTier tier = MachineTier.BASIC;
@@ -280,92 +280,10 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                     }
                     double distanceSquared = currentPos.distanceSq(tilePos);
                     if (distanceSquared <= getRang() * getRang()) {
-                        //MEK自己的机器
-                        if (tileEntity instanceof IStrictEnergyAcceptor acceptor) {
-                            for (EnumFacing side : EnumFacing.VALUES) {
-                                if (acceptor.canReceiveEnergy(side.getOpposite())) {
-                                    rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                    MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                    break;
-                                }
-                            }
-                            continue;
-                        }
-                        //mek的cap相关
-                        if (getCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY).isPresent()) {
-                            Optional<IStrictEnergyAcceptor> acceptor = getCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY);
-                            if (acceptor.isPresent()) {
-                                for (EnumFacing side : EnumFacing.VALUES) {
-                                    if (acceptor.get().canReceiveEnergy(side.getOpposite())) {
-                                        rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                        MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                        break;
-                                    }
-                                }
-                            }
-                            continue;
-                        }
-
-                        //forge能量系统
-                        if (MekanismUtils.useForge() && MoreMachineConfig.current().config.enableFEWirelessRecharge.val()) {
-                            if (tileEntity instanceof IEnergyStorage iEnergyStorage) {
-                                for (EnumFacing side : EnumFacing.VALUES) {
-                                    if (iEnergyStorage.canReceive()) {
-                                        rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                        MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                        break;
-                                    }
-                                }
-                                continue;
-                            }
-                            if (getCapability(tileEntity, CapabilityEnergy.ENERGY).isPresent()) {
-                                Optional<IEnergyStorage> acceptor = getCapability(tileEntity, CapabilityEnergy.ENERGY);
-                                for (EnumFacing side : EnumFacing.VALUES) {
-                                    if (acceptor.isPresent()) {
-                                        if (acceptor.get().canReceive()) {
-                                            rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                            MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                            break;
-                                        }
-                                    }
-                                }
-                                continue;
-                            }
-                        }
-                        //RF能量系统
-                        if (MekanismUtils.useRF() && MoreMachineConfig.current().config.enableRFWirelessRecharge.val()) {
-                            if (tileEntity instanceof IEnergyReceiver receiver) {
-                                for (EnumFacing side : EnumFacing.VALUES) {
-                                    if (receiver.canConnectEnergy(side.getOpposite())) {
-                                        rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                        MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                        break;
-                                    }
-                                }
-                                continue;
-                            }
-                        }
-
-                        //Tesla能量系统
-                        if (MekanismUtils.useTesla() && MoreMachineConfig.current().config.enableTeslaWirelessRecharge.val()) {
-                            for (EnumFacing side : EnumFacing.VALUES) {
-                                if (hasCapability(tileEntity, Capabilities.TESLA_CONSUMER_CAPABILITY, side)) {
-                                    rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                    MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                    break;
-                                }
-                            }
-                            continue;
-                        }
-
-                        //IC2的能量系统
-                        if (MekanismUtils.useIC2() && MoreMachineConfig.current().config.enableEuWirelessRecharge.val()) {
-                            for (EnumFacing side : EnumFacing.VALUES) {
-                                if (IC2Integration.isAcceptor(tileEntity, side.getOpposite())) {
-                                    rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                                    MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
-                                    break;
-                                }
+                        for (EnumFacing side : EnumFacing.VALUES) {
+                            if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, side)) {
+                                rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                break;
                             }
                         }
                     }
@@ -762,6 +680,102 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             case ELITE -> MoreMachineConfig.current().config.EliteWirelessChargingLink.val();
             case ULTIMATE -> MoreMachineConfig.current().config.UltimateWirelessChargingLink.val();
         };
+    }
+
+
+    @Override
+    public ConnectStatus connectOrCut(TileEntity tileEntity, EnumFacing facing, EntityPlayer player) {
+        ConnectStatus status = linkOrCut(tileEntity, facing, player);
+        if (status != ConnectStatus.CONNECT_FAIL && !getWorldNN().isRemote) {
+            if (status == ConnectStatus.DISCONNECT) {
+                //通知机器断开
+                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(LinkTileEntity::stopLink);
+                //发送成功断开链接的消息
+                player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.INDIGO + LangUtils.localize("tooltip.connector.disconnect")));
+            } else {
+                //通知机器链接
+                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
+                //发送成功链接的消息
+                player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.INDIGO + LangUtils.localize("tooltip.connector.to")));
+            }
+            //通知更新机器
+            Mekanism.packetHandler.sendUpdatePacket(this);
+        }
+        return status;
+    }
+
+    @Override
+    public Coord4D getPosition() {
+        return Coord4D.get(this);
+    }
+
+
+    public ConnectStatus linkOrCut(TileEntity tileEntity, EnumFacing facing, EntityPlayer player) {
+        if (tileEntity == null) {
+            return ConnectStatus.CONNECT_FAIL;
+        }
+        ConnectionConfig config = new ConnectionConfig(tileEntity, facing);
+        // 已存在,移除连接
+        if (connections.stream().anyMatch(c -> c.getPos().equals(config.getPos()))) {
+            //注意，这是通过方块坐标来移除的，所以即使方块的面不对也能正确移除
+            connections.removeIf(c -> c.getPos().equals(config.getPos()));
+            return ConnectStatus.DISCONNECT;
+        } else {
+            if (tileEntity.getPos() == getPos()) {
+                if (!getWorldNN().isRemote) {
+                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.self")));
+                }
+                return ConnectStatus.CONNECT_FAIL;
+            }
+            if (connections.size() >= getMaxLinks()) {
+                if (!getWorldNN().isRemote) {
+                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.maxlinks")));
+                }
+                return ConnectStatus.CONNECT_FAIL;
+            }
+            BlockPos currentPos = getPos().up(2);
+            double distanceSquared = currentPos.distanceSq(tileEntity.getPos());
+            if (distanceSquared <= getRang() * getRang()) {
+                //跳过黑名单匹配的机器
+                if (isBlacklistMachine(tileEntity)) {
+                    if (!getWorldNN().isRemote) {
+                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
+                    }
+                    return ConnectStatus.CONNECT_FAIL;
+                }
+                //跳过mek的线缆
+                if (tileEntity instanceof ITransmitter) {
+                    if (!getWorldNN().isRemote) {
+                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
+                    }
+                    return ConnectStatus.CONNECT_FAIL;
+                }
+
+                if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, facing)) {
+                    connections.add(config);
+                    return ConnectStatus.CONNECT;
+                } else {
+                    if (!getWorldNN().isRemote) {
+                        //无法连接到该方块，因为是不支持的能量系统或者没有能量接口
+                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
+                    }
+                    return ConnectStatus.CONNECT_FAIL;
+                }
+            } else {
+                //连接过远，无法连接
+                if (!getWorldNN().isRemote) {
+                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail_pos")));
+                }
+                return ConnectStatus.CONNECT_FAIL;
+            }
+        }
+    }
+
+
+    public enum ConnectStatus {
+        CONNECT, //成功连接
+        DISCONNECT, //断开连接
+        CONNECT_FAIL// 连接失败
     }
 
 

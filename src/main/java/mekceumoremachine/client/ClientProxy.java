@@ -103,6 +103,7 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorGases).setTileEntityItemStackRenderer(new RenderReplicatorGasesItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorFluidStack).setTileEntityItemStackRenderer(new RenderReplicatorFluidStackItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.WirelessEnergy).setTileEntityItemStackRenderer(new RenderWirelessChargingEnerygItem());
+        registerItemRender(MEKCeuMoreMachineItems.CONNECTOR);
     }
 
     @Override

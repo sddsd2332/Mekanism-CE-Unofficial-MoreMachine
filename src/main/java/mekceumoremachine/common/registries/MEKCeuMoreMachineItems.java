@@ -4,6 +4,7 @@ package mekceumoremachine.common.registries;
 import mekanism.common.item.ItemMekanism;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.ItemCompositeTierInstaller;
+import mekceumoremachine.common.item.ItemConnector;
 import mekceumoremachine.common.item.ItemLargeMachineryUpgradeComponents;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.Item;
@@ -18,6 +19,7 @@ public class MEKCeuMoreMachineItems {
     public static final Item CompositeTierInstaller = new ItemCompositeTierInstaller();
     public static final Item LargeMachineryUpgradeComponents = new ItemLargeMachineryUpgradeComponents();
     public static final Item UUMatter = new ItemMekanism().setRarity(EnumRarity.EPIC).setCreativeTab(MEKCeuMoreMachine.tabMEKCeuMoreMachine);
+    public static final Item CONNECTOR = new ItemConnector();
 
     public static void registerItems(IForgeRegistry<Item> registry) {
         registry.register(init(CompositeTierInstaller, "CompositeTierInstaller"));
@@ -25,6 +27,7 @@ public class MEKCeuMoreMachineItems {
             registry.register(init(LargeMachineryUpgradeComponents, "LargeMachineryUpgradeComponents"));
         }
         registry.register(init(UUMatter,"UUMatter"));
+        registry.register(init(CONNECTOR,"connector"));
     }
 
     public static Item init(Item item, String name) {

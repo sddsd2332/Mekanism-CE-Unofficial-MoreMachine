@@ -1,11 +1,11 @@
 package mekceumoremachine.client.render.tileentity.machine;
 
 import mekanism.client.render.MekanismRenderer;
-import mekanism.common.item.ItemConfigurator;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.client.model.machine.ModelWirelessChargingEnergy;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.attachments.component.ConnectionConfig;
+import mekceumoremachine.common.item.ItemConnector;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingEnergy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -67,10 +67,7 @@ public class RenderWirelessChargingEnergy extends TileEntitySpecialRenderer<Tile
     }
 
     private boolean isConfigurator(ItemStack stack) {
-        if (stack.getItem() instanceof ItemConfigurator configurator) {
-            return configurator.getMode(stack) == ItemConfigurator.ConfiguratorMode.CONFIGURATE_ENERGY;
-        }
-        return false;
+        return stack.getItem() instanceof ItemConnector;
     }
 
 
