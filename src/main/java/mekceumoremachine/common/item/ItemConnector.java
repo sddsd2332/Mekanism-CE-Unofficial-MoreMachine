@@ -82,16 +82,15 @@ public class ItemConnector extends ItemEnergized {
                     NBTTagCompound data = getBaseData(tile);
                     if (!data.isEmpty()) {
                         if (!player.isCreative()) {
-                            setEnergy(stack, getEnergy(stack) - ENERGY_PER_CONFIGURE);
+                            // consume energy for configuration (handled by helper)
+                            consumeConfigureEnergy(stack, player);
                         }
                         setData(stack, data);
-                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.GREY + LangUtils.localize("tooltip.connector.got")));
+                        sendServerMessage(world, player, EnumColor.GREY, "tooltip.connector.got");
                     }
                 }
             } else {
-                if (!world.isRemote) {
-                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.no_energy")));
-                }
+                sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.no_energy");
                 return EnumActionResult.FAIL;
             }
         } else {
@@ -101,27 +100,27 @@ public class ItemConnector extends ItemEnergized {
             }
             //跨维度不可用
             if (world.provider.getDimension() != data.dimensionId) {
-                if (!world.isRemote) {
-                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.across_dimension")));
-                }
+                sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.across_dimension");
                 return EnumActionResult.PASS;
             }
             //绑定的方块相同
             if (pos == data.getPos()) {
-                if (!world.isRemote) {
-                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.self")));
-                }
+                sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.self");
                 return EnumActionResult.PASS;
             }
+
             // 获取保存位置的方块实体
             if (WorldUtils.getTileEntity(world, data.getPos()) instanceof ITileConnect linkTile) {
                 if (world.isBlockLoaded(linkTile.getPosition().getPos())) {
                     if (getEnergy(stack) >= ENERGY_PER_CONFIGURE) {
+                        //如果是客户端直接返回成功，等服务端处理完后会同步数据到客户端，客户端再刷新显示数据
+                        //主要是是防止IC2的获取机器报错
+                        if (world.isRemote) {
+                            return EnumActionResult.SUCCESS;
+                        }
                         switch (linkTile.connectOrCut(tile, side, player)) {
                             case CONNECT, DISCONNECT -> {
-                                if (!world.isRemote && !player.isCreative()) {
-                                    setEnergy(stack, getEnergy(stack) - ENERGY_PER_CONFIGURE);
-                                }
+                                consumeConfigureEnergy(stack, player);
                                 return EnumActionResult.SUCCESS;
                             }
                             case CONNECT_FAIL -> {
@@ -129,24 +128,16 @@ public class ItemConnector extends ItemEnergized {
                             }
                         }
                     } else {
-                        if (!world.isRemote) {
-                            //发送能量不足
-                            player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.no_energy")));
-                        }
+                        sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.no_energy");
                         return EnumActionResult.PASS;
                     }
                 } else {
-                    if (!world.isRemote) {
-                        //发送当前链接的方块区块未加载
-                        player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail_chunk")));
-                    }
+                    sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.fail_chunk");
                     return EnumActionResult.PASS;
                 }
             } else {
                 //发送当前绑定的机器不存在
-                if (!world.isRemote) {
-                    player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail_machine")));
-                }
+                sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.fail_machine");
                 return EnumActionResult.FAIL;
             }
         }
@@ -160,6 +151,20 @@ public class ItemConnector extends ItemEnergized {
             connect.getPosition().write(nbtTags);
         }
         return nbtTags;
+    }
+
+    // Helper to consume configuration energy if player is not in creative mode
+    private void consumeConfigureEnergy(ItemStack stack, EntityPlayer player) {
+        if (!player.isCreative()) {
+            setEnergy(stack, getEnergy(stack) - ENERGY_PER_CONFIGURE);
+        }
+    }
+
+    // Helper: send a localized message from server side only (avoids client-side calls)
+    private void sendServerMessage(World world, EntityPlayer player, EnumColor color, String localizationKey) {
+        if (!world.isRemote) {
+            player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + color + LangUtils.localize(localizationKey)));
+        }
     }
 
     public void setData(ItemStack itemstack, NBTTagCompound data) {
@@ -198,6 +203,7 @@ public class ItemConnector extends ItemEnergized {
                 //发送成功清除数据的消息
                 player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.GREY + LangUtils.localize("tooltip.connector.cleared") + "."));
             }
+            // Always return success on both sides so the action is considered handled client-side too.
             return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
         }
         return super.onItemRightClick(world, player, hand);

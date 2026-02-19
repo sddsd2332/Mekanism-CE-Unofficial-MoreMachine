@@ -283,6 +283,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                         for (EnumFacing side : EnumFacing.VALUES) {
                             if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, side)) {
                                 rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
+                                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(tileEntity));
                                 break;
                             }
                         }
