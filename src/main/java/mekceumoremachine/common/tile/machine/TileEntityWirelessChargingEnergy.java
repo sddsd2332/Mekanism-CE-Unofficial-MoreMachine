@@ -295,23 +295,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
 
-    public static <T> Optional<T> getCapability(TileEntity entity, Capability<T> capability) {
-        return getCapability(entity, capability, null);
-    }
 
 
-    public static <T> Optional<T> getCapability(TileEntity entity, Capability<T> capability, @Nullable EnumFacing side) {
-        if (entity.hasCapability(capability, side)) {
-            return Optional.ofNullable(entity.getCapability(capability, side));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    //检查各个面是否有给定的cap
-    public boolean hasCapability(TileEntity tileEntity, Capability<?> cap, EnumFacing side) {
-        return CapabilityUtils.hasCapability(tileEntity, cap, side.getOpposite());
-    }
 
     //自动清除错误方块；
     public void autoClearErrorMachine() {
@@ -751,7 +736,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                     }
                     return ConnectStatus.CONNECT_FAIL;
                 }
-
                 if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, facing)) {
                     connections.add(config);
                     return ConnectStatus.CONNECT;
@@ -772,12 +756,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
     }
 
-
-    public enum ConnectStatus {
-        CONNECT, //成功连接
-        DISCONNECT, //断开连接
-        CONNECT_FAIL// 连接失败
-    }
 
 
 }

@@ -98,4 +98,5 @@ dependencies {
 
     implementation rfg.deobf("curse.maven:dme-737252:5985530")
     implementation rfg.deobf("curse.maven:patchouli-rofl-edition-905159:6178311")
+    implementation rfg.deobf("curse.maven:catalogue-vintage-1465746:7652301")
 }

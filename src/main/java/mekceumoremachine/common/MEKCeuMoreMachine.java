@@ -37,7 +37,12 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import java.io.File;
 import java.util.Optional;
 
-@Mod(modid = MEKCeuMoreMachine.MODID, useMetadata = true)
+@Mod(modid = MEKCeuMoreMachine.MODID, useMetadata = true,customProperties = {
+        @Mod.CustomProperty(k = "license", v = "MIT"),
+        @Mod.CustomProperty(k = "issueTrackerUrl", v = "https://github.com/sddsd2332/Mekanism-CE-Unofficial-MoreMachine/issues"),
+        @Mod.CustomProperty(k = "iconFile", v = "assets/mekceumoremachine/icon.png"),
+        @Mod.CustomProperty(k = "backgroundFile", v = "assets/mekceumoremachine/background.png")
+})
 @Mod.EventBusSubscriber()
 public class MEKCeuMoreMachine implements IModule {
 
