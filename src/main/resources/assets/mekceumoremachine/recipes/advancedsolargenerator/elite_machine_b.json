@@ -1,0 +1,32 @@
+{
+  "result": {
+    "nbt": {
+      "tier": 2
+    },
+    "item": "mekceumoremachine:tieradvancedsolargenerator",
+    "type": "mekanism:item_nbt"
+  },
+  "pattern": [
+    "ABA",
+    "ABA",
+    "CCC"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "nbt": {
+        "tier": 2
+      },
+      "item": "mekceumoremachine:tiersolargenerator",
+      "type": "mekanism:item_nbt"
+    },
+    "B": {
+      "ore": "circuitElite",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "ore": "ingotIron",
+      "type": "forge:ore_dict"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "result": {
+    "nbt": {
+      "tier": 1
+    },
+    "item": "mekceumoremachine:tieradvancedsolargenerator",
+    "type": "mekanism:item_nbt"
+  },
+  "pattern": [
+    "ECE",
+    "oOo",
+    "ECE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "C": {
+      "ore": "circuitAdvanced",
+      "type": "forge:ore_dict"
+    },
+    "E": {
+      "ore": "alloyAdvanced",
+      "type": "forge:ore_dict"
+    },
+    "o": {
+      "ore": "ingotOsmium",
+      "type": "forge:ore_dict"
+    },
+    "O": {
+      "nbt": {
+        "tier": 0
+      },
+      "item": "mekceumoremachine:tieradvancedsolargenerator",
+      "type": "mekanism:item_nbt"
+    }
+  }
+}
