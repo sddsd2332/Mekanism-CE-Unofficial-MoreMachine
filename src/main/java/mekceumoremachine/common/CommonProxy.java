@@ -1,10 +1,9 @@
 package mekceumoremachine.common;
 
 import mekanism.common.base.IGuiProvider;
+import mekanism.generators.common.inventory.container.ContainerSolarGenerator;
 import mekceumoremachine.common.inventory.container.*;
-import mekceumoremachine.common.tile.generator.TileEntityBaseWindGenerator;
-import mekceumoremachine.common.tile.generator.TileEntityTierGasGenerator;
-import mekceumoremachine.common.tile.generator.TileEntityTierWindGenerator;
+import mekceumoremachine.common.tile.generator.*;
 import mekceumoremachine.common.tile.machine.TierDissolution.*;
 import mekceumoremachine.common.tile.machine.TierNutritional.*;
 import mekceumoremachine.common.tile.machine.TierOxidizer.*;
@@ -56,6 +55,8 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityReplicatorGases.class,"replicator_gases");
         registerTileEntity(TileEntityReplicatorFluidStack.class,"replicator_fluidstack");
         registerTileEntity(TileEntityWirelessChargingEnergy.class,"wireless_charging_energy");
+        registerTileEntity(TileEntityTierSolarGenerator.class, "tier_solar_generator");
+        registerTileEntity(TileEntityTierAdvancedSolarGenerator.class, "tier_advanced_solar_generator");
     }
 
 
@@ -104,6 +105,8 @@ public class CommonProxy implements IGuiProvider {
             case 15 -> new ContainerReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
             case 16 -> new ContainerReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
             case 17 -> new ContainerWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
+            case 18 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
+            case 19 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             default -> null;
         };
     }

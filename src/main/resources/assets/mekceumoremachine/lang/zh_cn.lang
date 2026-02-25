@@ -135,3 +135,15 @@ tooltip.connector.to=已链接
 tooltip.connector.maxlinks=已到达链接方块上限
 tooltip.connector.fail=不支持的机器
 tooltip.connector.fail_pos=链接过远
+
+tile.TierSolarGenerator.Basic.name=基础太阳能发电机
+tile.TierSolarGenerator.Advanced.name=高级太阳能发电机
+tile.TierSolarGenerator.Elite.name=精英太阳能发电机
+tile.TierSolarGenerator.Ultimate.name=终极太阳能发电机
+tooltip.TierSolarGenerator=一台使用太阳能量发电的发电机。
+
+tile.TierAdvancedSolarGenerator.Basic.name=中型基础太阳能发电机
+tile.TierAdvancedSolarGenerator.Advanced.name=中型高级太阳能发电机
+tile.TierAdvancedSolarGenerator.Elite.name=中型精英太阳能发电机
+tile.TierAdvancedSolarGenerator.Ultimate.name=中型终极太阳能发电机
+tooltip.TierAdvancedSolarGenerator=一台直接吸收大部分太阳光产生能量的高级发电机。

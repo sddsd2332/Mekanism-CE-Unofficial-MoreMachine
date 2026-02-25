@@ -35,6 +35,8 @@ public class MEKCeuMoreMachineBlocks {
     public static Block ReplicatorGases = new BlockReplicatorGases();
     public static Block ReplicatorFluidStack = new BlockReplicatorFluidStack();
     public static Block WirelessEnergy = new BlockWirelessEnergy();
+    public static Block TierSolarGenerator = new BlockTierSolarGenerator();
+    public static Block TierAdvancedSolarGenerator = new BlockTierAdvancedSolarGenerator();
 
     public static void registerBlocks(IForgeRegistry<Block> registry) {
         registry.register(init(WirelessCharging, "WirelessCharging"));
@@ -56,6 +58,8 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(ReplicatorGases, "ReplicatorGases"));
         registry.register(init(ReplicatorFluidStack, "ReplicatorFluidStack"));
         registry.register(init(WirelessEnergy, "WirelessEnergy"));
+        registry.register(init(TierSolarGenerator, "TierSolarGenerator"));
+        registry.register(init(TierAdvancedSolarGenerator, "TierAdvancedSolarGenerator"));
     }
 
     public static void registerItemBlocks(IForgeRegistry<Item> registry) {
@@ -78,6 +82,8 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorGases(ReplicatorGases), "ReplicatorGases"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorFluidStack(ReplicatorFluidStack), "ReplicatorFluidStack"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockWirelessEnergy(WirelessEnergy), "WirelessEnergy"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierSolarGenerator(TierSolarGenerator), "TierSolarGenerator"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierAdvancedSolarGenerator(TierAdvancedSolarGenerator), "TierAdvancedSolarGenerator"));
     }
 
     public static Block init(Block block, String name) {

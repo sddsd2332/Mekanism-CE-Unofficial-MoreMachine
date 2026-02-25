@@ -5,12 +5,17 @@ import mekanism.client.render.MekanismRenderer;
 import mekanism.client.render.item.ItemLayerWrapper;
 import mekanism.client.render.tileentity.RenderConfigurableMachine;
 import mekanism.common.base.ITierItem;
+import mekanism.generators.client.gui.GuiSolarGenerator;
 import mekceumoremachine.client.gui.*;
 import mekceumoremachine.client.render.MEKCeuMoreMachineRenderer;
+import mekceumoremachine.client.render.item.generator.RenderTierAdvancedSolarGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierGasGeneratorItem;
+import mekceumoremachine.client.render.item.generator.RenderTierSolarGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierWindGeneratorItem;
 import mekceumoremachine.client.render.item.machine.*;
+import mekceumoremachine.client.render.tileentity.generator.RenderTierAdvancedSolarGenerator;
 import mekceumoremachine.client.render.tileentity.generator.RenderTierGasGenerator;
+import mekceumoremachine.client.render.tileentity.generator.RenderTierSolarGenerator;
 import mekceumoremachine.client.render.tileentity.generator.RenderTierWindGenerator;
 import mekceumoremachine.client.render.tileentity.machine.*;
 import mekceumoremachine.common.CommonProxy;
@@ -20,9 +25,7 @@ import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer.tier
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.common.tier.MachineTier;
-import mekceumoremachine.common.tile.generator.TileEntityBaseWindGenerator;
-import mekceumoremachine.common.tile.generator.TileEntityTierGasGenerator;
-import mekceumoremachine.common.tile.generator.TileEntityTierWindGenerator;
+import mekceumoremachine.common.tile.generator.*;
 import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemicalDissolutionChamber;
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
 import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemicalOxidizer;
@@ -82,6 +85,9 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorGases.class, new RenderReplicatorGases());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorFluidStack.class,new RenderReplicatorFluidStack());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityWirelessChargingEnergy.class,new RenderWirelessChargingEnergy());
+
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierSolarGenerator.class,new RenderTierSolarGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAdvancedSolarGenerator.class,new RenderTierAdvancedSolarGenerator());
     }
 
     @Override
@@ -104,6 +110,9 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorFluidStack).setTileEntityItemStackRenderer(new RenderReplicatorFluidStackItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.WirelessEnergy).setTileEntityItemStackRenderer(new RenderWirelessChargingEnerygItem());
         registerItemRender(MEKCeuMoreMachineItems.CONNECTOR);
+
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarGenerator).setTileEntityItemStackRenderer(new RenderTierSolarGeneratorItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator).setTileEntityItemStackRenderer(new RenderTierAdvancedSolarGeneratorItem());
     }
 
     @Override
@@ -132,6 +141,9 @@ public class ClientProxy extends CommonProxy {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorFluidStack), 0, getInventoryMRL("ReplicatorFluidStack"));
 
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.WirelessEnergy), 0, getInventoryMRL("WirelessEnergy"));
+
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarGenerator), 0, getInventoryMRL("TierSolarGenerator"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator), 0, getInventoryMRL("TierAdvancedSolarGenerator"));
     }
 
 
@@ -238,6 +250,11 @@ public class ClientProxy extends CommonProxy {
         ModelResourceLocation WirelessEnergy = getInventoryMRL("WirelessEnergy");
         modelRegistry.putObject(WirelessEnergy, RenderWirelessChargingEnerygItem.model = new ItemLayerWrapper(modelRegistry.getObject(WirelessEnergy)));
 
+        ModelResourceLocation TierSolarGenerator = getInventoryMRL("TierSolarGenerator");
+        modelRegistry.putObject(TierSolarGenerator, RenderTierSolarGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierSolarGenerator)));
+
+        ModelResourceLocation TierAdvancedSolarGenerator = getInventoryMRL("TierAdvancedSolarGenerator");
+        modelRegistry.putObject(TierAdvancedSolarGenerator, RenderTierAdvancedSolarGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierAdvancedSolarGenerator)));
     }
 
     @Override
@@ -268,6 +285,8 @@ public class ClientProxy extends CommonProxy {
             case 15 -> new GuiReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
             case 16 -> new GuiReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
             case 17 -> new GuiWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
+            case 18 -> new GuiSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
+            case 19 -> new GuiSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             default -> null;
         };
     }

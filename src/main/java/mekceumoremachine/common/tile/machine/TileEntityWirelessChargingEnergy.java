@@ -51,7 +51,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
@@ -293,9 +292,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
         return rangMachine;
     }
-
-
-
 
 
     //自动清除错误方块；
@@ -746,6 +742,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                     }
                     return ConnectStatus.CONNECT_FAIL;
                 }
+
             } else {
                 //连接过远，无法连接
                 if (!getWorldNN().isRemote) {
@@ -755,7 +752,6 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             }
         }
     }
-
 
 
 }

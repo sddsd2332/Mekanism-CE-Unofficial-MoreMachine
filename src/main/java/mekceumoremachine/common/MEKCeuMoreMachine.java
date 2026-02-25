@@ -153,6 +153,7 @@ public class MEKCeuMoreMachine implements IModule {
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierSolarNeutronActivator, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.WirelessEnergy, 0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator,0);
     }
 
     @SubscribeEvent

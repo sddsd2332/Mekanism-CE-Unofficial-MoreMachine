@@ -118,3 +118,15 @@ item.LargeMachineryUpgradeComponents.name=Large Machinery Upgrade Components
 tooltip.LargeMachineryUpgradeComponents=Installation components capable of upgrading the machine to a large model
 tooltip.largeMachineUpgrade.pos=Cannot upgrade because the location contains a block
 tooltip.mekceumoremachine.remove=This machine is not recommended for use. Please use the corresponding machine from Mekanism:MoreMachine.
+
+tile.TierSolarGenerator.Basic.name=Basic Solar Generator
+tile.TierSolarGenerator.Advanced.name=Advanced Solar Generator
+tile.TierSolarGenerator.Elite.name=Elite Solar Generator
+tile.TierSolarGenerator.Ultimate.name=Ultimate Solar Generator
+tooltip.TierSolarGenerator=A generator that uses the power of the sun to produce energy.
+
+tile.TierAdvancedSolarGenerator.Basic.name=Medium-Sized Basic Solar Generator
+tile.TierAdvancedSolarGenerator.Advanced.name=Medium-Sized Advanced Solar Generator
+tile.TierAdvancedSolarGenerator.Elite.name=Medium-Sized Elite Solar Generator
+tile.TierAdvancedSolarGenerator.Ultimate.name=Medium-Sized Ultimate Solar Generator
+tooltip.TierAdvancedSolarGenerator=An advanced generator that directly absorbs the sun's rays with little loss to produce energy.
