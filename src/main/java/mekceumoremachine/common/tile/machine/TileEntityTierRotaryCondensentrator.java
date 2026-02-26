@@ -496,4 +496,9 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         return tier;
     }
 
+    @Override
+    public boolean shouldDumpRadiation(){
+        return true;
+    }
+
 }

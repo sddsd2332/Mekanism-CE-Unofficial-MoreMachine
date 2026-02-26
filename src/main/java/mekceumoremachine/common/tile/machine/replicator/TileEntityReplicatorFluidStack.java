@@ -317,4 +317,9 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
     public FluidTankInfo[] getAllTanks() {
         return new FluidTankInfo[]{inputTank.getInfo(), outputTank.getInfo()};
     }
+
+    @Override
+    public boolean shouldDumpRadiation() {
+        return true;
+    }
 }

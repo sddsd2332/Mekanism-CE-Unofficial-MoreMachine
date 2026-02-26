@@ -101,6 +101,6 @@ public abstract class MixinTileEntityAmbientAccumulatorEnergy extends TileEntity
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

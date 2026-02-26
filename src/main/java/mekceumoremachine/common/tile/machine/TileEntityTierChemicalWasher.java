@@ -382,7 +382,7 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
+        if (upgradeTier == BaseTier.CREATIVE) {
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];
@@ -504,6 +504,6 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

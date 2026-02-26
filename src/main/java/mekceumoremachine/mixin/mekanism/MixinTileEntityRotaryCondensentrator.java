@@ -105,6 +105,6 @@ public abstract class MixinTileEntityRotaryCondensentrator extends TileEntityMac
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

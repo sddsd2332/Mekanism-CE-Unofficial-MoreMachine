@@ -100,6 +100,7 @@ public abstract class MixinTileEntityElectrolyticSeparator extends TileEntityBas
             tile.dumpLeft = dumpLeft;
             tile.dumpRight = dumpRight;
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -114,6 +115,6 @@ public abstract class MixinTileEntityElectrolyticSeparator extends TileEntityBas
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

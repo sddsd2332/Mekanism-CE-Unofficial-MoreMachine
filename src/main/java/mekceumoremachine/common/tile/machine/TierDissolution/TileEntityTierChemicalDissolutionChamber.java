@@ -797,6 +797,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             }
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
             tile.upgraded = true;
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -812,7 +813,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
     @Override
@@ -1047,4 +1048,5 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             }
         }
     }
+
 }

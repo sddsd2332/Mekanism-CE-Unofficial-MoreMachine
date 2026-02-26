@@ -89,6 +89,7 @@ public abstract class MixinTileEntityNutritionalLiquifier extends TileEntityBasi
             tile.outputTank1.setGas(gasTank.getGas());
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
             tile.upgraded = true;
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -104,6 +105,6 @@ public abstract class MixinTileEntityNutritionalLiquifier extends TileEntityBasi
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

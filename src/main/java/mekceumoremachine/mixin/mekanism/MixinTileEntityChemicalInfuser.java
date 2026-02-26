@@ -17,6 +17,7 @@ import mekceumoremachine.common.tile.interfaces.ITierFirstUpgrade;
 import mekceumoremachine.common.tile.machine.TileEntityTierChemicalInfuser;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(value = TileEntityChemicalInfuser.class, remap = false)
 public abstract class MixinTileEntityChemicalInfuser extends TileEntityBasicMachine<ChemicalPairInput, GasOutput, ChemicalInfuserRecipe> implements ITierUpgradeable, ITierFirstUpgrade {
@@ -37,6 +38,7 @@ public abstract class MixinTileEntityChemicalInfuser extends TileEntityBasicMach
         super(soundPath, type, upgradeSlot, baseTicksRequired);
     }
 
+    @Unique
     public boolean isUpgrade = true;
 
     @Override
@@ -88,6 +90,7 @@ public abstract class MixinTileEntityChemicalInfuser extends TileEntityBasicMach
             tile.rightTank.setGas(rightTank.getGas());
             tile.centerTank.setGas(centerTank.getGas());
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -103,6 +106,6 @@ public abstract class MixinTileEntityChemicalInfuser extends TileEntityBasicMach
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

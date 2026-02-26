@@ -88,6 +88,7 @@ public abstract class MixinTileEntityChemicalWasher extends TileEntityUpgradeabl
             tile.inputTank.setGas(inputTank.getGas());
             tile.outputTank.setGas(outputTank.getGas());
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -102,6 +103,6 @@ public abstract class MixinTileEntityChemicalWasher extends TileEntityUpgradeabl
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

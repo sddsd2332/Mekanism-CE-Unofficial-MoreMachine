@@ -17,6 +17,7 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(value = TileEntityChemicalDissolutionChamber.class, remap = false)
 public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEntityUpgradeableMachine<ItemStackInput, GasOutput, DissolutionRecipe> {
@@ -31,6 +32,7 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
         super(soundPath, type, upgradeSlot, baseTicksRequired);
     }
 
+    @Unique
     public boolean isUpgrade = true;
 
 
@@ -48,7 +50,7 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
             inventory.set(2, ItemStack.EMPTY);
             world.spawnEntity(item);
         }
-
+        isUpgrade = false;
         if (world.getTileEntity(getPos()) instanceof IBoundingBlock block) {
             block.onBreak();
         } else {
@@ -96,6 +98,7 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
 
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
             tile.upgraded = true;
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -110,7 +113,7 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
 

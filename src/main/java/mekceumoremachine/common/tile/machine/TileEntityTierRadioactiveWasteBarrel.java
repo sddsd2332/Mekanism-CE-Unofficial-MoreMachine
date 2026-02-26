@@ -255,4 +255,9 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityBasicBlock i
     public ITextComponent getDisplayName() {
         return new TextComponentString(getName());
     }
+
+    @Override
+    public boolean shouldDumpRadiation(){
+        return true;
+    }
 }

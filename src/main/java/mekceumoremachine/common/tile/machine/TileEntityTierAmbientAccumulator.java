@@ -321,6 +321,7 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return MEKCeuMoreMachine.proxy;
     }
 
+
     @Override
     public boolean upgrade(BaseTier upgradeTier) {
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
@@ -358,5 +359,9 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return BlockStateMachine.MachineType.AMBIENT_ACCUMULATOR_ENERGY.getStorage() * tier.processes;
     }
 
+    @Override
+    public boolean shouldDumpRadiation() {
+        return true;
+    }
 
 }

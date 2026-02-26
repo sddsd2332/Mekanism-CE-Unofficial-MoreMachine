@@ -104,8 +104,8 @@ public abstract class MixinTileEntitySolarNeutronActivator extends TileEntityCon
 
             tile.inputTank.setGas(inputTank.getGas());
             tile.outputTank.setGas(outputTank.getGas());
-
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -123,7 +123,7 @@ public abstract class MixinTileEntitySolarNeutronActivator extends TileEntityCon
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
 }

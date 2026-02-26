@@ -761,6 +761,7 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
             }
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
             tile.upgraded = true;
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -775,7 +776,7 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
     @Override

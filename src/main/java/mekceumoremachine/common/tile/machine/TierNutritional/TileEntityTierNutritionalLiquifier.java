@@ -761,6 +761,7 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
             }
             tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
             tile.upgraded = true;
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -775,7 +776,7 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
     @Override

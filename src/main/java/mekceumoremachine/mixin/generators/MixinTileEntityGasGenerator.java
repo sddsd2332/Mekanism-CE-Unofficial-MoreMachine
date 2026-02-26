@@ -69,6 +69,7 @@ public abstract class MixinTileEntityGasGenerator extends TileEntityGenerator im
                 tile.inventory.set(i, inventory.get(i));
             }
             tile.fuelTank.setGas(fuelTank.getGas());
+            tile.isUpgrade = true;
             tile.markNoUpdateSync();
             Mekanism.packetHandler.sendUpdatePacket(tile);
             markNoUpdateSync();
@@ -79,6 +80,6 @@ public abstract class MixinTileEntityGasGenerator extends TileEntityGenerator im
 
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

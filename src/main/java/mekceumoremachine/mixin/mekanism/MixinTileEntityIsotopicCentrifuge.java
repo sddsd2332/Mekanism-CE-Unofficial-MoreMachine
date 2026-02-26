@@ -101,7 +101,7 @@ public abstract class MixinTileEntityIsotopicCentrifuge extends TileEntityBasicM
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
 }

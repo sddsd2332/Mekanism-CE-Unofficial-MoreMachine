@@ -62,6 +62,6 @@ public class MixinTileEntityRadioactiveWasteBarrel extends TileEntityBasicBlock 
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

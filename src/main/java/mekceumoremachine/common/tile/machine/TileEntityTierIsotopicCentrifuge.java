@@ -427,4 +427,9 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         return tier;
     }
 
+
+    @Override
+    public boolean shouldDumpRadiation() {
+        return true;
+    }
 }

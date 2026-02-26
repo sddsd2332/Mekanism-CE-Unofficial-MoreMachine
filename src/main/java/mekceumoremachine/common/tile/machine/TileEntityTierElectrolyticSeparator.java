@@ -671,6 +671,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 }

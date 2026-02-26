@@ -603,4 +603,10 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         }
         return false;
     }
+
+    @Override
+    public boolean shouldDumpRadiation(){
+        return isUpgrade;
+    }
+
 }

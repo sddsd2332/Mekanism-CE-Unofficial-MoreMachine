@@ -281,4 +281,9 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
     public String getName() {
         return LangUtils.localize("tile.ReplicatorItemStack.name");
     }
+
+    @Override
+    public boolean shouldDumpRadiation() {
+        return true;
+    }
 }

@@ -352,7 +352,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         if (upgradeTier.ordinal() != tier.ordinal() + 1) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
+        if (upgradeTier == BaseTier.CREATIVE) {
             return false;
         }
         tier = MachineTier.values()[upgradeTier.ordinal()];
@@ -457,7 +457,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
      */
     @Override
     public boolean shouldDumpRadiation() {
-        return isUpgrade && super.shouldDumpRadiation();
+        return isUpgrade;
     }
 
 

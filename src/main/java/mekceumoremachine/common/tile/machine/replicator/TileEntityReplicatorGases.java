@@ -311,4 +311,9 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     public String getName() {
         return LangUtils.localize("tile.ReplicatorGases.name");
     }
+
+    @Override
+    public boolean shouldDumpRadiation() {
+        return true;
+    }
 }
