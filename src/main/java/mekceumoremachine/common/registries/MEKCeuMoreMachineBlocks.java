@@ -37,6 +37,7 @@ public class MEKCeuMoreMachineBlocks {
     public static Block WirelessEnergy = new BlockWirelessEnergy();
     public static Block TierSolarGenerator = new BlockTierSolarGenerator();
     public static Block TierAdvancedSolarGenerator = new BlockTierAdvancedSolarGenerator();
+    public static Block VoidMineralGenerator = new BlockVoidMineralGenerator();
 
     public static void registerBlocks(IForgeRegistry<Block> registry) {
         registry.register(init(WirelessCharging, "WirelessCharging"));
@@ -60,6 +61,7 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(WirelessEnergy, "WirelessEnergy"));
         registry.register(init(TierSolarGenerator, "TierSolarGenerator"));
         registry.register(init(TierAdvancedSolarGenerator, "TierAdvancedSolarGenerator"));
+        registry.register(init(VoidMineralGenerator, "VoidMineralGenerator"));
     }
 
     public static void registerItemBlocks(IForgeRegistry<Item> registry) {
@@ -84,6 +86,7 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockWirelessEnergy(WirelessEnergy), "WirelessEnergy"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierSolarGenerator(TierSolarGenerator), "TierSolarGenerator"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierAdvancedSolarGenerator(TierAdvancedSolarGenerator), "TierAdvancedSolarGenerator"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockVoidMineralGenerator(VoidMineralGenerator), "VoidMineralGenerator"));
     }
 
     public static Block init(Block block, String name) {

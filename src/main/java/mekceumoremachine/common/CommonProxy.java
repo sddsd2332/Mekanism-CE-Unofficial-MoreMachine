@@ -57,6 +57,7 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityWirelessChargingEnergy.class,"wireless_charging_energy");
         registerTileEntity(TileEntityTierSolarGenerator.class, "tier_solar_generator");
         registerTileEntity(TileEntityTierAdvancedSolarGenerator.class, "tier_advanced_solar_generator");
+        registerTileEntity(TileEntityVoidMineralGenerator.class, "void_mineral_generator");
     }
 
 
@@ -107,6 +108,7 @@ public class CommonProxy implements IGuiProvider {
             case 17 -> new ContainerWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
             case 18 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
             case 19 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
+            case 20 -> new ContainerVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
             default -> null;
         };
     }

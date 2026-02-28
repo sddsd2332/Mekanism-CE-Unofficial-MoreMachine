@@ -15,11 +15,11 @@ import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.mekceumoremachine.Tags;
+import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -29,6 +29,7 @@ import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -113,6 +114,12 @@ public class MEKCeuMoreMachine implements IModule {
 
     }
 
+    @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        // Populate the ore list after all mods have had a chance to register to the OreDictionary
+        VoidMineralGeneratorUitls.populateCanOre();
+    }
+
     @Override
     public Version getVersion() {
         return versionNumber;
@@ -154,6 +161,7 @@ public class MEKCeuMoreMachine implements IModule {
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierWindGenerator, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.WirelessEnergy, 0);
         MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator,0);
+        MekanismAPI.addBoxBlacklist(MEKCeuMoreMachineBlocks.VoidMineralGenerator,0);
     }
 
     @SubscribeEvent

@@ -287,6 +287,7 @@ public class ClientProxy extends CommonProxy {
             case 17 -> new GuiWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
             case 18 -> new GuiSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
             case 19 -> new GuiSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
+            case 20 -> new GuiVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
             default -> null;
         };
     }

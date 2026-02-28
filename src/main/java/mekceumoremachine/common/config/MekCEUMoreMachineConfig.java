@@ -55,6 +55,13 @@ public class MekCEUMoreMachineConfig extends BaseConfig {
     public IntOption EliteWirelessChargingLink = new IntOption(this, "EliteWirelessChargingLink", 700, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
     public IntOption UltimateWirelessChargingLink = new IntOption(this, "UltimateWirelessChargingLink", 900, "Maximum number of connections for the basic wireless power station", 1, Integer.MAX_VALUE);
 
+    public StringListOption OreGenerationBlacklist = new StringListOption(this, "OreGenerationBlacklist", new String[]{}, "Types of minerals that the Void Mineral Generator cannot mine,For example: 'oreIron;");
+    public BooleanOption OreGenerationBlacklistReversal = new BooleanOption(this, "OreGenerationBlacklistReversal", false, "Whether the blacklist of the Void Mineral Generator is reversed. If it is true, the Void Mineral Generator can only mine the types of minerals in the blacklist.");
+
+
+    public IntOption VoidMineralGeneratorTick = new IntOption(this, "VoidMineralGeneratorTick", 200, "How many ticks does the Void Mineral Generator need to complete one operation?", 200, Integer.MAX_VALUE);
+    public DoubleOption VoidMineralGeneratorEnergyUsage = new DoubleOption(this, "VoidMineralGeneratorEnergyUsage", 2500D, "Energy usage of the Void Mineral Generator");
+    public DoubleOption VoidMineralGeneratorEnergyStorge = new DoubleOption(this, "VoidMineralGeneratorEnergyStorge", 50000000D, "Energy Storge of Void Mineral Generator");
 
     @Override
     public String getCategory() {

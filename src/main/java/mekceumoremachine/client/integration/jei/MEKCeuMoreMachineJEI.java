@@ -58,6 +58,7 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.WirelessEnergy);
         registry(registry, MEKCeuMoreMachineBlocks.TierSolarGenerator);
         registry(registry, MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator);
+        registry(registry, MEKCeuMoreMachineBlocks.VoidMineralGenerator);
     }
 
 
