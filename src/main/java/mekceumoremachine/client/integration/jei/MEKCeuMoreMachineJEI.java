@@ -3,19 +3,24 @@ package mekceumoremachine.client.integration.jei;
 
 import mekanism.client.jei.GuiElementHandler;
 import mekanism.common.base.ITierItem;
+import mekanism.common.content.gear.ModuleHelper;
+import mekanism.common.util.LangUtils;
 import mekceumoremachine.client.integration.jei.machine.other.ReplicatorFluidStackRecipeCategory;
 import mekceumoremachine.client.integration.jei.machine.other.ReplicatorGasesRecipeCategory;
 import mekceumoremachine.client.integration.jei.machine.other.ReplicatorItemStackRecipeCategory;
 import mekceumoremachine.common.item.itemBlock.ItemBlockWirelessCharging;
 import mekceumoremachine.common.item.itemBlock.ItemBlockWirelessEnergy;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
+import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
 import mezz.jei.api.*;
 import mezz.jei.api.ISubtypeRegistry.ISubtypeInterpreter;
+import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeCategoryRegistration;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 @JEIPlugin
 public class MEKCeuMoreMachineJEI implements IModPlugin {
@@ -91,5 +96,6 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorItemStackRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorGasesRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorFluidStackRecipe(registry);
+        registry.addIngredientInfo(VoidMineralGeneratorUitls.getCanOre(), VanillaTypes.ITEM, LangUtils.localize("gui.canOre"));
     }
 }

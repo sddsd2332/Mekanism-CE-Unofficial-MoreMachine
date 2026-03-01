@@ -84,8 +84,4 @@ public class ContainerVoidMineralGenerator extends ContainerMekanism<TileEntityV
         return 186;
     }
 
-    @Override
-    protected int getInventorXOffset() {
-        return 48;
-    }
 }

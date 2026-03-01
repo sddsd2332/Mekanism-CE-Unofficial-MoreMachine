@@ -130,3 +130,5 @@ tile.TierAdvancedSolarGenerator.Advanced.name=Medium-Sized Advanced Solar Genera
 tile.TierAdvancedSolarGenerator.Elite.name=Medium-Sized Elite Solar Generator
 tile.TierAdvancedSolarGenerator.Ultimate.name=Medium-Sized Ultimate Solar Generator
 tooltip.TierAdvancedSolarGenerator=An advanced generator that directly absorbs the sun's rays with little loss to produce energy.
+
+gui.canOre=Types of Mined Ore

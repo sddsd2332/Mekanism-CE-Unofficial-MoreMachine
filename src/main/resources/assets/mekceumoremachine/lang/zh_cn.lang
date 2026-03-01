@@ -147,3 +147,5 @@ tile.TierAdvancedSolarGenerator.Advanced.name=中型高级太阳能发电机
 tile.TierAdvancedSolarGenerator.Elite.name=中型精英太阳能发电机
 tile.TierAdvancedSolarGenerator.Ultimate.name=中型终极太阳能发电机
 tooltip.TierAdvancedSolarGenerator=一台直接吸收大部分太阳光产生能量的高级发电机。
+
+gui.canOre=可开采矿石种类

@@ -89,7 +89,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
                 GenerateItem(available);
                 operatingTicks = 0;
             }
-        } else if (prevEnergy >= getEnergy()) {
+        } else  {
+            setActive(false);
+        }
+        if (prevEnergy > getEnergy()){
             setActive(false);
         }
     }
