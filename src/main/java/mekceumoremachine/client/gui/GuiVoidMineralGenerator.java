@@ -9,10 +9,12 @@ import mekanism.client.gui.element.tab.GuiSecurityTab;
 import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
 import mekanism.client.gui.element.tab.GuiTransporterConfigTab;
 import mekanism.client.gui.element.tab.GuiUpgradeTab;
+import mekanism.client.render.MekanismRenderer;
 import mekanism.common.util.LangUtils;
 import mekceumoremachine.common.inventory.container.ContainerVoidMineralGenerator;
 import mekceumoremachine.common.tile.machine.TileEntityVoidMineralGenerator;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -84,7 +86,10 @@ public class GuiVoidMineralGenerator extends GuiMekanismTile<TileEntityVoidMiner
             fontRenderer.drawString(String.valueOf(VoidMineralGeneratorUitls.getCanOre().size()), 179, 206, 0xFF3CFE9A);
             ItemStack[] supported = VoidMineralGeneratorUitls.getCanOre().toArray(new ItemStack[0]);
             if (supported.length > supportedIndex) {
+                GlStateManager.pushMatrix();
+                MekanismRenderer.resetColor();
                 renderItem(supported[supportedIndex], 231, 244);
+                GlStateManager.popMatrix();
                 if (xAxis >= 231 && xAxis <= 231 + 18 && yAxis >= 244 && yAxis <= 244 + 18) {
                     displayTooltip(supported[supportedIndex].getDisplayName(), xAxis, yAxis);
                 }

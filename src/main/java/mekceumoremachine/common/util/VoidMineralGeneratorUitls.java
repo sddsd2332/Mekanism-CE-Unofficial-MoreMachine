@@ -26,14 +26,16 @@ public final class VoidMineralGeneratorUitls {
         canOre.clear();
         String[] oreNames = OreDictionary.getOreNames();
         String[] blacklist = MoreMachineConfig.current().config.OreGenerationBlacklist.get();
+        String[] typeList = MoreMachineConfig.current().config.MineralTypeList.get();
+
         boolean reversal = MoreMachineConfig.current().config.OreGenerationBlacklistReversal.val();
 
         if (oreNames == null || oreNames.length == 0) return;
-
+        if (typeList == null || typeList.length == 0) return;
         // Collect candidate stacks for ore* names
         List<ItemStack> candidates = Arrays.stream(oreNames)
                 .filter(Objects::nonNull)
-                .filter(n -> n.startsWith("ore"))
+                .filter(n -> Arrays.stream(typeList).filter(Objects::nonNull).anyMatch(n::startsWith))
                 .filter(n -> {
                     if (!reversal) return true;
                     if (blacklist == null || blacklist.length == 0) return false;

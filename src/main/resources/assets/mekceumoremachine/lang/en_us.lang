@@ -132,3 +132,8 @@ tile.TierAdvancedSolarGenerator.Ultimate.name=Medium-Sized Ultimate Solar Genera
 tooltip.TierAdvancedSolarGenerator=An advanced generator that directly absorbs the sun's rays with little loss to produce energy.
 
 gui.canOre=Types of Mined Ore
+tile.VoidMineralGenerator.Basic.name=Basic Void Mineral Excavator
+tile.VoidMineralGenerator.Advanced.name=Advanced Void Mineral Excavator
+tile.VoidMineralGenerator.Elite.name=Elite Void Mineral Excavator
+tile.VoidMineralGenerator.Ultimate.name=Ultimate Void Mineral Excavator
+tooltip.VoidMineralGenerator=A machine that can generate minerals in the void. The list of minerals that can be generated can be viewed in the recipe interface of this machine in JEI.

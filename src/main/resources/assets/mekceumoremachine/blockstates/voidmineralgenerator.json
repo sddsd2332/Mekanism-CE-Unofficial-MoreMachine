@@ -1,0 +1,24 @@
+{
+  "forge_marker": 1,
+  "defaults": {
+    "model": "mekanism:nothing"
+  },
+  "variants": {
+    "tier": {
+      "elite": {},
+      "advanced": {},
+      "ultimate": {},
+      "basic": {},
+      "creative": {}
+    },
+    "facing": {
+      "east": {"y": 90},
+      "south": {"y": 180},
+      "north": {},
+      "west": {"y": -90},
+      "up": {"x": -90},
+      "down": {"x": 90}
+    },
+    "inventory": [{}]
+  }
+}

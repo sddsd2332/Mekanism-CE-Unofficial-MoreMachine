@@ -1,0 +1,29 @@
+{
+  "result": {
+    "item": "mekceumoremachine:connector"
+  },
+  "pattern": [
+    "ABA",
+    "CDE",
+    "ABA"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "item": "mekanism:hdpe_sheet"
+    },
+    "B": {
+      "item": "mekanism:teleportationcore"
+    },
+    "C": {
+      "ore": "circuitBasic",
+      "type": "forge:ore_dict"
+    },
+    "D": {
+      "item": "mekanism:configurationcard"
+    },
+    "E": {
+      "item": "mekanism:energytablet"
+    }
+  }
+}

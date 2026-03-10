@@ -88,6 +88,7 @@ public class ClientProxy extends CommonProxy {
 
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierSolarGenerator.class,new RenderTierSolarGenerator());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAdvancedSolarGenerator.class,new RenderTierAdvancedSolarGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityVoidMineralGenerator.class, new RenderVoidMineralGenerator());
     }
 
     @Override
@@ -113,6 +114,7 @@ public class ClientProxy extends CommonProxy {
 
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarGenerator).setTileEntityItemStackRenderer(new RenderTierSolarGeneratorItem());
         Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator).setTileEntityItemStackRenderer(new RenderTierAdvancedSolarGeneratorItem());
+        Item.getItemFromBlock(MEKCeuMoreMachineBlocks.VoidMineralGenerator).setTileEntityItemStackRenderer(new RenderVoidMineralGeneratorItem());
     }
 
     @Override
@@ -144,6 +146,7 @@ public class ClientProxy extends CommonProxy {
 
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierSolarGenerator), 0, getInventoryMRL("TierSolarGenerator"));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator), 0, getInventoryMRL("TierAdvancedSolarGenerator"));
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.VoidMineralGenerator), 0, getInventoryMRL("VoidMineralGenerator"));
     }
 
 
@@ -255,6 +258,9 @@ public class ClientProxy extends CommonProxy {
 
         ModelResourceLocation TierAdvancedSolarGenerator = getInventoryMRL("TierAdvancedSolarGenerator");
         modelRegistry.putObject(TierAdvancedSolarGenerator, RenderTierAdvancedSolarGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(TierAdvancedSolarGenerator)));
+
+        ModelResourceLocation VoidMineralGenerator = getInventoryMRL("VoidMineralGenerator");
+        modelRegistry.putObject(VoidMineralGenerator, RenderVoidMineralGeneratorItem.model = new ItemLayerWrapper(modelRegistry.getObject(VoidMineralGenerator)));
     }
 
     @Override

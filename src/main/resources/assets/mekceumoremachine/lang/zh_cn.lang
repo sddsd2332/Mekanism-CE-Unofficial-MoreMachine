@@ -149,3 +149,8 @@ tile.TierAdvancedSolarGenerator.Ultimate.name=中型终极太阳能发电机
 tooltip.TierAdvancedSolarGenerator=一台直接吸收大部分太阳光产生能量的高级发电机。
 
 gui.canOre=可开采矿石种类
+tile.VoidMineralGenerator.Basic.name=基础虚空矿物采掘机
+tile.VoidMineralGenerator.Advanced.name=高级虚空矿物采掘机
+tile.VoidMineralGenerator.Elite.name=精英虚空矿物采掘机
+tile.VoidMineralGenerator.Ultimate.name=终极虚空矿物采掘机
+tooltip.VoidMineralGenerator=能够虚空中生成矿物的机器,可生成的矿物列表查看jei中的该机器的配方界面

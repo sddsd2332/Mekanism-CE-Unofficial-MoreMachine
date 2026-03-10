@@ -1,12 +1,14 @@
 package mekceumoremachine.common.tile.machine;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Coord4D;
 import mekanism.api.IConfigCardAccess;
 import mekanism.api.TileNetworkList;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.SideData;
 import mekanism.common.Upgrade;
+import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IGuiProvider;
 import mekanism.common.base.ISideConfiguration;
 import mekanism.common.capabilities.Capabilities;
@@ -24,12 +26,14 @@ import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
@@ -42,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier> {
+public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier>, IBoundingBlock {
 
     public TileComponentEjector ejectorComponent;
     public TileComponentConfig configComponent;
@@ -62,13 +66,14 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.OUTPUT, INV_SLOTS));
         configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.OUTPUT_ENHANCED, INV_SLOTS));
         configComponent.setConfig(TransmissionType.ITEM, new byte[]{1, -1, 1, 1, 1, 1});
-        configComponent.setIOConfig(TransmissionType.ENERGY);
-
+        configComponent.setInputConfig(TransmissionType.ENERGY);
+        configComponent.setConfig(TransmissionType.ENERGY, new byte[]{1, -1, 1, 1, 1, 1});
         inventory = NonNullListSynchronized.withSize(83, ItemStack.EMPTY);
 
         ejectorComponent = new TileComponentEjector(this);
         ejectorComponent.setOutputData(TransmissionType.ITEM, configComponent.getOutputs(TransmissionType.ITEM).get(1));
     }
+
 
     @Override
     public void onAsyncUpdateServer() {
@@ -89,10 +94,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
                 GenerateItem(available);
                 operatingTicks = 0;
             }
-        } else  {
+        } else {
             setActive(false);
         }
-        if (prevEnergy > getEnergy()){
+        if (prevEnergy > getEnergy()) {
             setActive(false);
         }
     }
@@ -261,11 +266,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return ejectorComponent;
     }
 
-    /*
+
     @Override
     public void onPlace() {
-        Coord4D current = Coord4D.get(this);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), current);
+        MekanismUtils.makeBoundingBlock(world, getPos().up(), Coord4D.get(this));
     }
 
     @Override
@@ -274,7 +278,7 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         world.setBlockToAir(getPos());
     }
 
-     */
+
 
     @Override
     public boolean isItemValidForSlot(int slotID, @Nonnull ItemStack stack) {
@@ -435,5 +439,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return super.getMaxEnergy() * tier.processes;
     }
 
+    @Nonnull
+    @Override
+    public BlockFaceShape getOffsetBlockFaceShape(@Nonnull EnumFacing face, @Nonnull Vec3i offset) {
+        return BlockFaceShape.SOLID;
+    }
 
 }

@@ -18,7 +18,9 @@ import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeCategoryRegistration;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -96,6 +98,10 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorItemStackRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorGasesRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorFluidStackRecipe(registry);
-        registry.addIngredientInfo(VoidMineralGeneratorUitls.getCanOre(), VanillaTypes.ITEM, LangUtils.localize("gui.canOre"));
+        List<ItemStack> stacks = VoidMineralGeneratorUitls.getCanOre();
+        if (!stacks.isEmpty()) {
+            registry.addIngredientInfo(stacks, VanillaTypes.ITEM, LangUtils.localize("gui.canOre"));
+        }
+
     }
 }

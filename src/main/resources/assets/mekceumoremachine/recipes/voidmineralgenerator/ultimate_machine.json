@@ -1,0 +1,38 @@
+{
+  "result": {
+    "nbt": {
+      "tier": 3
+    },
+    "item": "mekceumoremachine:voidmineralgenerator",
+    "type": "mekanism:item_nbt"
+  },
+  "pattern": [
+    "RCR",
+    "gOg",
+    "RCR"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "R": {
+      "ore": "alloyUltimate",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    },
+    "g": {
+      "nbt": {"tier": 3},
+      "item": "mekanism:basicblock2",
+      "data": 3,
+      "type": "mekanism:item_nbt"
+    },
+    "O": {
+      "nbt": {
+        "tier": 2
+      },
+      "item": "mekceumoremachine:voidmineralgenerator",
+      "type": "mekanism:item_nbt"
+    }
+  }
+}

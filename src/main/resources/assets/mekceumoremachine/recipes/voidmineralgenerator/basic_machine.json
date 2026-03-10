@@ -1,0 +1,43 @@
+{
+  "result": {
+    "nbt": {
+      "tier": 0
+    },
+    "item": "mekceumoremachine:voidmineralgenerator",
+    "type": "mekanism:item_nbt"
+  },
+  "pattern": [
+    "ABA",
+    "CDC",
+    "EFE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "A": {
+      "ore": "circuitBasic",
+      "type": "forge:ore_dict"
+    },
+    "B": {
+      "item": "mekanism:machineblock4",
+      "data": 10
+    },
+    "C": {
+      "item": "mekanism:robit"
+    },
+    "D": {
+      "item": "mekanism:machineblock",
+      "data": 4
+    },
+    "E": {
+      "nbt": {"tier": 0},
+      "item": "mekanism:basicblock2",
+      "data": 3,
+      "type": "mekanism:item_nbt"
+    },
+    "F": {
+      "item": "mekanism:machineblock2",
+      "data": 9
+    }
+
+  }
+}
