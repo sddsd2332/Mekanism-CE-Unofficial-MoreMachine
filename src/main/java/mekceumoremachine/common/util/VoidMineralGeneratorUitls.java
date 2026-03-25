@@ -1,7 +1,9 @@
 package mekceumoremachine.common.util;
 
 import mekceumoremachine.common.config.MoreMachineConfig;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.oredict.OreDictionary;
 
 import javax.annotation.Nonnull;
@@ -41,10 +43,7 @@ public final class VoidMineralGeneratorUitls {
                     if (blacklist == null || blacklist.length == 0) return false;
                     return Arrays.stream(blacklist).filter(Objects::nonNull).anyMatch(b -> b.equals(n));
                 })
-                .map(n -> {
-                    List<ItemStack> stacks = OreDictionary.getOres(n);
-                    return (stacks != null && !stacks.isEmpty()) ? stacks.get(0).copy() : null;
-                })
+                .map(VoidMineralGeneratorUitls::resolveOreStack)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -69,6 +68,43 @@ public final class VoidMineralGeneratorUitls {
     @Nonnull
     public static synchronized List<ItemStack> getCanOre() {
         return new ArrayList<>(canOre);
+    }
+
+    private static ItemStack resolveOreStack(String oreName) {
+        List<ItemStack> stacks = OreDictionary.getOres(oreName);
+        if (stacks == null || stacks.isEmpty()) {
+            return null;
+        }
+
+        // Prefer a concrete metadata stack when available.
+        return stacks.stream()
+                .filter(Objects::nonNull)
+                .filter(stack -> !stack.isEmpty())
+                .filter(stack -> stack.getMetadata() != OreDictionary.WILDCARD_VALUE)
+                .map(ItemStack::copy)
+                .findFirst()
+                .orElseGet(() -> stacks.stream()
+                        .filter(Objects::nonNull)
+                        .filter(stack -> !stack.isEmpty())
+                        .filter(stack -> stack.getMetadata() == OreDictionary.WILDCARD_VALUE)
+                        .map(stack -> {
+                            NonNullList<ItemStack> subItems = NonNullList.create();
+                            stack.getItem().getSubItems(CreativeTabs.SEARCH, subItems);
+                            return subItems.stream()
+                                    .filter(Objects::nonNull)
+                                    .filter(subItem -> !subItem.isEmpty())
+                                    .filter(subItem -> subItem.getItem() == stack.getItem())
+                                    .filter(subItem -> OreDictionary.itemMatches(stack, subItem, false))
+                                    .map(ItemStack::copy)
+                                    .findFirst()
+                                    .orElseGet(() -> {
+                                        ItemStack fallback = stack.copy();
+                                        fallback.setItemDamage(0);
+                                        return fallback;
+                                    });
+                        })
+                        .findFirst()
+                        .orElse(null));
     }
 
 }
