@@ -15,8 +15,13 @@ import mekanism.generators.common.tile.TileEntitySolarGenerator;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 
@@ -154,5 +159,16 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
     @Override
     public String getName() {
         return LangUtils.localize("tile." + fullName + "." + tier.getBaseTier().getSimpleName() + ".name");
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekanism.generators.client.model.ModelAdvancedSolarGenerator.class;
+    }
+
+    @Override
+    public boolean shouldApplyDefaultSelectionWireframeFacingRotation(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return true;
     }
 }

@@ -56,7 +56,7 @@ import java.util.Objects;
         @Optional.Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
 public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBlock implements IUpgradeTile, IRedstoneControl, ISecurityTile, IElectricMachine<GasInput, GasOutput, SolarNeutronRecipe>, IComputerIntegration, ISideConfiguration, IConfigCardAccess,
-        IMachineSlotTip, IBoundingBlock, IGasHandler, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier>, ILargeMachine {
+        IMachineSlotTip, IBoundingBlock, IGasHandler, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
 
 
     public static final int MAX_GAS = 10000;
@@ -607,6 +607,17 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     @Override
     public boolean shouldDumpRadiation(){
         return isUpgrade;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelTierSolarNeutronActivator.class;
+    }
+
+    @Override
+    public String[] getSelectionWireframeIgnoredRendererFieldNames() {
+        return new String[]{"laserBeamToggle"};
     }
 
 }

@@ -9,6 +9,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IComparatorSupport;
 import mekanism.common.base.IMachineSlotTip;
+import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.config.MekanismConfig;
@@ -34,13 +35,15 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Optional.Interface;
 import net.minecraftforge.fml.common.Optional.InterfaceList;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 
 @InterfaceList({
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
-public class TileEntityTierGasGenerator extends TileEntityGenerator implements IGasHandler, ISustainedData, IComparatorSupport, IMachineSlotTip, ITierMachine<MachineTier>, ILargeMachine {
+public class TileEntityTierGasGenerator extends TileEntityGenerator implements IGasHandler, ISustainedData, IComparatorSupport, IMachineSlotTip, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
 
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getGas", "getGasNeeded"};
     /**
@@ -458,6 +461,12 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     @Override
     public boolean shouldDumpRadiation() {
         return isUpgrade;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.generator.ModelTierGasGenerator.class;
     }
 
 

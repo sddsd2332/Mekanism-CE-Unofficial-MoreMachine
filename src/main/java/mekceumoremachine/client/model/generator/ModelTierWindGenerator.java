@@ -238,6 +238,20 @@ public class ModelTierWindGenerator extends ModelBase {
         return angle % 360;
     }
 
+    public void applySelectionBladeAngle(double angle) {
+        setRotation(blade1a, 0F, 0F, getRotation(getAbsoluteAngle(angle)));
+        setRotation(blade1b, 0F, 0F, 0.0349066F + getRotation(getAbsoluteAngle(angle)));
+
+        setRotation(blade2a, 0F, 0F, getRotation(getAbsoluteAngle(angle - 60)));
+        setRotation(blade2b, 0F, 0F, 0.0349066F + getRotation(getAbsoluteAngle(angle - 60)));
+
+        setRotation(blade3a, 0F, 0F, getRotation(getAbsoluteAngle(angle + 60)));
+        setRotation(blade3b, 0F, 0F, 0.0349066F + getRotation(getAbsoluteAngle(angle + 60)));
+
+        setRotation(bladeCap, 0F, 0F, getRotation(getAbsoluteAngle(angle)));
+        setRotation(bladeCenter, 0F, 0F, getRotation(getAbsoluteAngle(angle)));
+    }
+
     private void setRotation(ModelRenderer model, float x, float y, float z) {
         model.rotateAngleX = x;
         model.rotateAngleY = y;

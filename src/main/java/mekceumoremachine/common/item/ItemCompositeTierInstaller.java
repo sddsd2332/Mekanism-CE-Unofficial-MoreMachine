@@ -40,76 +40,104 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
         if (world.isRemote) {
             return EnumActionResult.PASS;
         }
-        TileEntity firstTile = world.getTileEntity(pos);
         ItemStack stack = player.getHeldItem(hand);
-
-        if (firstTile instanceof TileEntityBasicBlock basicBlock && !basicBlock.playersUsing.isEmpty()) {
-            return EnumActionResult.FAIL;
-        }
-        //如果机器是首次升级
-        //升级到基础
-        if (firstTile instanceof ITierFirstUpgrade && firstTile instanceof ITierUpgradeable upgradeable) {
-            if (upgradeable.CanInstalled()) {
-                upgradeable.upgrade(BaseTier.BASIC);
-            }
-        }
-        //重新获取该机器
         TileEntity tile = world.getTileEntity(pos);
 
-        if (tile instanceof TileEntityBasicBlock basicBlock && !basicBlock.playersUsing.isEmpty()) {
+        if (isBusy(tile)) {
             return EnumActionResult.FAIL;
         }
-        //如果该方块是工厂
-        if (tile instanceof INeedRepeatTierUpgrade<?> factory) {
-            //如果工厂已经是终极或者创造了
-            if (factory.getNowTier().getBaseTier() == BaseTier.ULTIMATE || factory.getNowTier().getBaseTier() == BaseTier.CREATIVE) {
-                return EnumActionResult.PASS;
-            }
-            for (BaseTier tier : BaseTier.values()) {
-                if (tier == BaseTier.BASIC) {
-                    continue;
-                }
-                //工厂需要重复获取
-                if (world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine) {
-                    if (machine.getNowTier().getBaseTier() == BaseTier.ULTIMATE || machine.getNowTier().getBaseTier() == BaseTier.CREATIVE) {
-                        break;
-                    }
-                    if (tier.ordinal() != machine.getNowTier().getBaseTier().ordinal() + 1) {
-                        continue;
-                    }
-                    machine.upgrade(tier);
-                }
-            }
-            //最后检查工厂是否是终极等级，如果是则清除
-            if (world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine) {
-                if (!player.capabilities.isCreativeMode && machine.getNowTier().getBaseTier() == BaseTier.ULTIMATE) {
-                    stack.shrink(1);
-                }
-            }
-            return EnumActionResult.SUCCESS;
+        installBaseTierIfNeeded(tile);
 
-        } else if (tile instanceof ITierMachine<?> upgradeable) {
-            if (upgradeable.CanInstalled()) {
-                for (BaseTier tier : BaseTier.values()) {
-                    //获取机器的等级
-                    BaseTier machineTier = upgradeable.getTier().getBaseTier();
-                    //如果机器的等级是终极或者创造，结束升级
-                    if (machineTier == BaseTier.ULTIMATE || machineTier == BaseTier.CREATIVE) {
-                        break;
-                    }
-                    if (tier.ordinal() != machineTier.ordinal() + 1) {
-                        continue;
-                    }
-                    upgradeable.upgrade(tier);
-                }
-                if (!player.capabilities.isCreativeMode && upgradeable.getTier().getBaseTier() == BaseTier.ULTIMATE) {
-                    stack.shrink(1);
-                }
-                return EnumActionResult.SUCCESS;
-            }
-            return EnumActionResult.PASS;
+        // Upgrade may replace the tile, so fetch again.
+        tile = world.getTileEntity(pos);
+        if (isBusy(tile)) {
+            return EnumActionResult.FAIL;
+        }
+
+        if (tile instanceof INeedRepeatTierUpgrade<?>) {
+            return upgradeFactory(player, world, pos, stack);
+        }
+        if (tile instanceof ITierMachine<?> machine) {
+            return upgradeMachine(player, machine, stack);
         }
         return EnumActionResult.PASS;
+    }
+
+    private static boolean isBusy(TileEntity tile) {
+        return tile instanceof TileEntityBasicBlock basicBlock && !basicBlock.playersUsing.isEmpty();
+    }
+
+    private static void installBaseTierIfNeeded(TileEntity tile) {
+        if (tile instanceof ITierFirstUpgrade && tile instanceof ITierUpgradeable upgradeable && upgradeable.CanInstalled()) {
+            upgradeable.upgrade(BaseTier.BASIC);
+        }
+    }
+
+    private static EnumActionResult upgradeFactory(EntityPlayer player, World world, BlockPos pos, ItemStack stack) {
+        TileEntity tile = world.getTileEntity(pos);
+        if (!(tile instanceof INeedRepeatTierUpgrade<?> factory)) {
+            return EnumActionResult.PASS;
+        }
+
+        BaseTier tier = factory.getNowTier().getBaseTier();
+        if (tier == BaseTier.ULTIMATE || tier == BaseTier.CREATIVE) {
+            return EnumActionResult.PASS;
+        }
+
+        BaseTier lastTier = null;
+        while (world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine) {
+            BaseTier current = machine.getNowTier().getBaseTier();
+            if (current == BaseTier.ULTIMATE || current == BaseTier.CREATIVE || current == lastTier) {
+                break;
+            }
+            BaseTier next = getNextTier(current);
+            if (next == null) {
+                break;
+            }
+            lastTier = current;
+            machine.upgrade(next);
+        }
+
+        if (!player.capabilities.isCreativeMode
+                && world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine
+                && machine.getNowTier().getBaseTier() == BaseTier.ULTIMATE) {
+            stack.shrink(1);
+        }
+        return EnumActionResult.SUCCESS;
+    }
+
+    private static EnumActionResult upgradeMachine(EntityPlayer player, ITierMachine<?> machine, ItemStack stack) {
+        if (machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
+            return EnumActionResult.PASS;
+        }
+        if (!machine.CanInstalled()) {
+            return EnumActionResult.PASS;
+        }
+
+        BaseTier lastTier = null;
+        while (true) {
+            BaseTier current = machine.getTier().getBaseTier();
+            if (current == BaseTier.ULTIMATE || current == BaseTier.CREATIVE || current == lastTier) {
+                break;
+            }
+            BaseTier next = getNextTier(current);
+            if (next == null) {
+                break;
+            }
+            lastTier = current;
+            machine.upgrade(next);
+        }
+
+        if (!player.capabilities.isCreativeMode && machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
+            stack.shrink(1);
+        }
+        return EnumActionResult.SUCCESS;
+    }
+
+    private static BaseTier getNextTier(BaseTier tier) {
+        int nextOrdinal = tier.ordinal() + 1;
+        BaseTier[] tiers = BaseTier.values();
+        return nextOrdinal >= 0 && nextOrdinal < tiers.length ? tiers[nextOrdinal] : null;
     }
 
 

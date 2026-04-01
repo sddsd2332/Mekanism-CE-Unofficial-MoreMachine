@@ -54,7 +54,7 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect, ISpecialSelectionWireframeTile {
 
 
     public MachineTier tier = MachineTier.BASIC;
@@ -277,8 +277,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                             }
                         }
                     }
-                    double distanceSquared = currentPos.distanceSq(tilePos);
-                    if (distanceSquared <= getRang() * getRang()) {
+                    if (isWithinSquareRange(currentPos, tilePos, getRang())) {
                         for (EnumFacing side : EnumFacing.VALUES) {
                             if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, side)) {
                                 rangMachine.add(new ConnectionConfig(tileEntity, side.getOpposite()));
@@ -619,7 +618,16 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        return INFINITE_EXTENT_AABB;
+        BlockPos pos = getPos();
+        int radius = getRang();
+        return new AxisAlignedBB(
+                pos.getX() - radius,
+                pos.getY() - radius,
+                pos.getZ() - radius,
+                pos.getX() + radius + 1,
+                pos.getY() + radius + 1,
+                pos.getZ() + radius + 1
+        );
     }
 
     @Override
@@ -716,8 +724,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 return ConnectStatus.CONNECT_FAIL;
             }
             BlockPos currentPos = getPos().up(2);
-            double distanceSquared = currentPos.distanceSq(tileEntity.getPos());
-            if (distanceSquared <= getRang() * getRang()) {
+            if (isWithinSquareRange(currentPos, tileEntity.getPos(), getRang())) {
                 //跳过黑名单匹配的机器
                 if (isBlacklistMachine(tileEntity)) {
                     if (!getWorldNN().isRemote) {
@@ -753,5 +760,16 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
     }
 
+    private static boolean isWithinSquareRange(BlockPos source, BlockPos target, int range) {
+        return Math.abs(source.getX() - target.getX()) <= range
+                && Math.abs(source.getY() - target.getY()) <= range
+                && Math.abs(source.getZ() - target.getZ()) <= range;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelWirelessChargingEnergy.class;
+    }
 
 }

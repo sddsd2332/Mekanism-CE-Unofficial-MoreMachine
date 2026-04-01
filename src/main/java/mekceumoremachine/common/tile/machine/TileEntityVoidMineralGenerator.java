@@ -11,6 +11,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IGuiProvider;
 import mekanism.common.base.ISideConfiguration;
+import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.item.ItemUpgrade;
@@ -46,7 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier>, IBoundingBlock {
+public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier>, IBoundingBlock, ISpecialSelectionWireframeTile {
 
     public TileComponentEjector ejectorComponent;
     public TileComponentConfig configComponent;
@@ -443,6 +444,12 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     @Override
     public BlockFaceShape getOffsetBlockFaceShape(@Nonnull EnumFacing face, @Nonnull Vec3i offset) {
         return BlockFaceShape.SOLID;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelVoidMineralGenerator.class;
     }
 
 }

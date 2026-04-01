@@ -7,6 +7,7 @@ import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.SideData;
 import mekanism.common.Upgrade;
 import mekanism.common.base.IGuiProvider;
+import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.base.ITankManager;
 import mekanism.common.capabilities.Capabilities;
@@ -27,11 +28,13 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
 
-public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGasInput, GasOutput, ReplicatorGasStackRecipe> implements IGasHandler, ISustainedData, ITankManager {
+public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGasInput, GasOutput, ReplicatorGasStackRecipe> implements IGasHandler, ISustainedData, ITankManager, ISpecialSelectionWireframeTile {
 
     public static final int MAX_GAS = 10000;
     public GasTank inputTank = new GasTank(MAX_GAS);
@@ -315,5 +318,11 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     @Override
     public boolean shouldDumpRadiation() {
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelReplicatorBase.class;
     }
 }

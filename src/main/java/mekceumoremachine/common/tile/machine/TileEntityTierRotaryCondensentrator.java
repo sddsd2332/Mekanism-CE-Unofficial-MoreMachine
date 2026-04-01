@@ -34,13 +34,15 @@ import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
 public class TileEntityTierRotaryCondensentrator extends TileEntityMachine implements ISustainedData, IFluidHandlerWrapper, IGasHandler, Upgrade.IUpgradeInfoHandler, ITankManager,
-        IComparatorSupport, ISideConfiguration, IConfigCardAccess.ISpecialConfigData, IMachineSlotTip, ITierMachine<MachineTier> {
+        IComparatorSupport, ISideConfiguration, IConfigCardAccess.ISpecialConfigData, IMachineSlotTip, ITierMachine<MachineTier>, ISpecialSelectionWireframeTile {
 
 
     public static final int MAX_FLUID = 10000;
@@ -499,6 +501,12 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     @Override
     public boolean shouldDumpRadiation(){
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekanism.client.model.ModelRotaryCondensentrator.class;
     }
 
 }

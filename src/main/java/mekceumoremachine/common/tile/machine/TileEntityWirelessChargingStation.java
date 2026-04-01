@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, IHasVisualization {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, IHasVisualization, ISpecialSelectionWireframeTile {
 
     private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> (entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit;
 
@@ -87,7 +87,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         super.onAsyncUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
-        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(getPos().getX() - getRang(), getPos().getY() + 2 - getRang(), getPos().getZ() - getRang(), getPos().getX() + getRang(), getPos().getY() + 2 + getRang(), getPos().getZ() + getRang()), CHARGE_PREDICATE);
+        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, getChargeBox(), CHARGE_PREDICATE);
         if (MekanismUtils.canFunction(this)) {
             List<EntityLivingBase> addeEtities = new ArrayList<>();
             //如果机器的安全选项不是公开的，只充能该机器对应的所有者
@@ -427,7 +427,15 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        return INFINITE_EXTENT_AABB;
+        int radius = getRang();
+        return new AxisAlignedBB(
+                getPos().getX() - radius,
+                getPos().getY() - radius,
+                getPos().getZ() - radius,
+                getPos().getX() + radius + 1,
+                getPos().getY() + radius + 1,
+                getPos().getZ() + radius + 1
+        );
     }
 
     @Override
@@ -447,5 +455,23 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     public void toggleClientRendering() {
         clientRendering = !clientRendering;
+    }
+
+    private AxisAlignedBB getChargeBox() {
+        int range = getRang();
+        return new AxisAlignedBB(
+                getPos().getX() - range,
+                getPos().getY() + 2 - range,
+                getPos().getZ() - range,
+                getPos().getX() + range,
+                getPos().getY() + 2 + range,
+                getPos().getZ() + range
+        );
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelWirelessChargingStation.class;
     }
 }

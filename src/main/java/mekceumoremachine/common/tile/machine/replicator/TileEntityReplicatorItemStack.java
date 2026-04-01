@@ -7,6 +7,7 @@ import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.SideData;
 import mekanism.common.Upgrade;
 import mekanism.common.base.IGuiProvider;
+import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.item.ItemUpgrade;
@@ -27,11 +28,13 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
 
-public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<NucleosynthesizerInput, ItemStackOutput, ReplicatorItemStackRecipe> implements IGasHandler, ISustainedData {
+public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<NucleosynthesizerInput, ItemStackOutput, ReplicatorItemStackRecipe> implements IGasHandler, ISustainedData, ISpecialSelectionWireframeTile {
 
     private static final String[] methods = new String[]{"getEnergy", "getProgress", "isActive", "facing", "canOperate", "getMaxEnergy", "getEnergyNeeded", "getGasStored"};
     public GasTank inputGasTank = new GasTank(10000);
@@ -285,5 +288,11 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
     @Override
     public boolean shouldDumpRadiation() {
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelReplicatorBase.class;
     }
 }

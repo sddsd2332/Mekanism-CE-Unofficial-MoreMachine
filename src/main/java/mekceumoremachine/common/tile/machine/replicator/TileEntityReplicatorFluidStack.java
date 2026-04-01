@@ -29,12 +29,14 @@ import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAndFluidInput, FluidOutput, ReplicatorFluidStackRecipe> implements IGasHandler, IFluidHandlerWrapper, ISustainedData, ITankManager {
+public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAndFluidInput, FluidOutput, ReplicatorFluidStackRecipe> implements IGasHandler, IFluidHandlerWrapper, ISustainedData, ITankManager, ISpecialSelectionWireframeTile {
 
     public static final int MAX_GAS_OR_FLUID = 10000;
     public FluidTank inputTank = new FluidTankSync(MAX_GAS_OR_FLUID);
@@ -321,5 +323,11 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
     @Override
     public boolean shouldDumpRadiation() {
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelReplicatorBase.class;
     }
 }

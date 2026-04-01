@@ -5,19 +5,25 @@ import mekanism.api.Coord4D;
 import mekanism.api.TileNetworkList;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IMachineSlotTip;
+import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.util.ChargeUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.NonNullListSynchronized;
 import mekanism.generators.common.tile.TileEntityGenerator;
+import net.minecraft.client.Minecraft;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 
-public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator implements IBoundingBlock, IMachineSlotTip {
+public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator implements IBoundingBlock, IMachineSlotTip, ISpecialSelectionWireframeTile {
 
     public static final float SPEED = 32F;
     public static final float SPEED_SCALED = 256F / SPEED;
@@ -223,5 +229,38 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     @Override
     public String getName() {
         return LangUtils.localize("tile." + fullName + ".name");
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.generator.ModelTierWindGenerator.class;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public int getSelectionWireframeAnimationCacheKey(IBlockState state, IBlockAccess world, BlockPos pos) {
+        if (!MekanismConfig.current().client.windGeneratorRotating.val()) {
+            return 0;
+        }
+        return Math.floorMod((int) Math.round(getSelectionWireframeAngle() * 2D), 720);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void applySelectionWireframeModelState(Object model, IBlockState state, IBlockAccess world, BlockPos pos) {
+        if (model instanceof mekceumoremachine.client.model.generator.ModelTierWindGenerator windModel) {
+            windModel.applySelectionBladeAngle(getSelectionWireframeAngle());
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private double getSelectionWireframeAngle() {
+        double currentAngle = getAngle();
+        if (getActive()) {
+            float partial = Minecraft.getMinecraft().getRenderPartialTicks();
+            currentAngle = (currentAngle + ((getPos().getY() + 4F) / SPEED_SCALED) * partial) % 360D;
+        }
+        return currentAngle < 0D ? currentAngle + 360D : currentAngle;
     }
 }

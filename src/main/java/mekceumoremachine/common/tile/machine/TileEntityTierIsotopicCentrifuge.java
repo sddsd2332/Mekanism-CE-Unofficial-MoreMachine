@@ -29,14 +29,28 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 
-public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<GasInput, GasOutput, IsotopicRecipe> implements ISustainedData, IBoundingBlock, IGasHandler, Upgrade.IUpgradeInfoHandler, ITankManager, ITierMachine<MachineTier> {
+public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<GasInput, GasOutput, IsotopicRecipe> implements ISustainedData, IBoundingBlock, IGasHandler, Upgrade.IUpgradeInfoHandler, ITankManager, ITierMachine<MachineTier>, ISpecialSelectionWireframeTile {
+    private static final ISpecialSelectionWireframeTile.SelectionTransform[] SELECTION_ROTATE_SOUTH = {
+            ISpecialSelectionWireframeTile.SelectionTransform.rotateY(180, 0.5D, 0.5D, 0.5D)
+    };
+    private static final ISpecialSelectionWireframeTile.SelectionTransform[] SELECTION_ROTATE_WEST = {
+            ISpecialSelectionWireframeTile.SelectionTransform.rotateY(90, 0.5D, 0.5D, 0.5D)
+    };
+    private static final ISpecialSelectionWireframeTile.SelectionTransform[] SELECTION_ROTATE_EAST = {
+            ISpecialSelectionWireframeTile.SelectionTransform.rotateY(270, 0.5D, 0.5D, 0.5D)
+    };
 
     public static final int MAX_GAS = 10000;
     public GasTank inputTank;
@@ -431,5 +445,27 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     @Override
     public boolean shouldDumpRadiation() {
         return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelTierIsotopicCentrifuge.class;
+    }
+
+    @Override
+    public boolean shouldApplyDefaultSelectionWireframeFacingRotation(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return false;
+    }
+
+    @Override
+    public ISpecialSelectionWireframeTile.SelectionTransform[] getSelectionWireframeTransforms(IBlockState state, IBlockAccess world, BlockPos pos) {
+        EnumFacing currentFacing = facing == null ? EnumFacing.NORTH : facing;
+        return switch (currentFacing) {
+            case SOUTH -> SELECTION_ROTATE_SOUTH;
+            case WEST -> SELECTION_ROTATE_WEST;
+            case EAST -> SELECTION_ROTATE_EAST;
+            default -> ISpecialSelectionWireframeTile.SelectionTransform.EMPTY;
+        };
     }
 }

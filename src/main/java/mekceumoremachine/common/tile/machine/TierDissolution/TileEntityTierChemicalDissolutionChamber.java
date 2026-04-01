@@ -38,6 +38,8 @@ import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
@@ -47,7 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine implements IGasHandler, ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting {
+public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine implements IGasHandler, ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting, ISpecialSelectionWireframeTile {
 
     public static final int MAX_GAS = 10000;
     public static final int BASE_INJECT_USAGE = 1;
@@ -814,6 +816,12 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     @Override
     public boolean shouldDumpRadiation() {
         return isUpgrade;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public Class<?> getSelectionWireframeModelClass() {
+        return mekceumoremachine.client.model.machine.ModelTierChemicalDissolutionChamber.class;
     }
 
     @Override

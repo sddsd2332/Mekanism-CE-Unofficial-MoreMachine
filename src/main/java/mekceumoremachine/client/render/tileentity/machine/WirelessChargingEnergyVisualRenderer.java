@@ -1,6 +1,7 @@
 package mekceumoremachine.client.render.tileentity.machine;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import mekanism.client.render.MekanismRenderer;
 import mekanism.client.render.MekanismRenderer.DisplayInteger;
 import mekanism.client.render.MekanismRenderer.Model3D;
@@ -12,17 +13,25 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.init.Blocks;
 import org.lwjgl.opengl.GL11;
 
-import java.util.Map;
+import java.util.Iterator;
+import java.lang.reflect.Method;
 
 public class WirelessChargingEnergyVisualRenderer {
 
-    private static final double offset = 0.01;
+    private static final int MAX_CACHED_VISUALS = 16;
     private static Minecraft mc = Minecraft.getMinecraft();
-    private static Map<MinerRenderData, DisplayInteger> cachedVisuals = new Object2ObjectOpenHashMap<>();
+    private static Int2ObjectOpenHashMap<DisplayInteger> cachedVisuals = new Int2ObjectOpenHashMap<>();
+    private static Int2ObjectOpenHashMap<Long> lastUseTick = new Int2ObjectOpenHashMap<>();
+    private static long usageTicker;
 
     public static void render(TileEntityWirelessChargingEnergy tile) {
+        render(tile, 1.0F);
+    }
+
+    public static void render(TileEntityWirelessChargingEnergy tile, float scale) {
         GlStateManager.pushMatrix();
         GlStateManager.translate((float) getX(tile.getPos().getX()), (float) getY(tile.getPos().getY()), (float) getZ(tile.getPos().getZ()));
+        GlStateManager.scale(scale, scale, scale);
         GlStateManager.shadeModel(GL11.GL_SMOOTH);
         GlStateManager.disableAlpha();
         GlStateManager.enableBlend();
@@ -31,7 +40,7 @@ public class WirelessChargingEnergyVisualRenderer {
         GlStateManager.enableCull();
         GlStateManager.color(1, 1, 1, 0.8F);
         mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-        getList(new MinerRenderData(tile)).render();
+        getList(tile.getRang()).render();
         MekanismRenderer.resetColor();
         GlStateManager.disableCull();
         MekanismRenderer.disableGlow(glowInfo);
@@ -40,19 +49,57 @@ public class WirelessChargingEnergyVisualRenderer {
         GlStateManager.popMatrix();
     }
 
-    private static DisplayInteger getList(MinerRenderData data) {
-        if (cachedVisuals.containsKey(data)) {
-            return cachedVisuals.get(data);
+    private static DisplayInteger getList(int radius) {
+        usageTicker++;
+        DisplayInteger cached = cachedVisuals.get(radius);
+        if (cached != null) {
+            lastUseTick.put(radius, Long.valueOf(usageTicker));
+            return cached;
         }
+        evictIfNeeded();
         DisplayInteger display = DisplayInteger.createAndStart();
-        cachedVisuals.put(data, display);
+        cachedVisuals.put(radius, display);
+        lastUseTick.put(radius, Long.valueOf(usageTicker));
         Model3D toReturn = new Model3D();
-        toReturn.setBlockBounds(-data.radius + 1.01, -data.radius - data.yCoord + 1.01, -data.radius + 1.01, data.radius + 1 - 1.01, data.radius - data.yCoord + 1 - 1.01, data.radius + 1 - 1.01);
+        toReturn.setBlockBounds(-radius + 1.01, -radius + 1.01, -radius + 1.01, radius + 1 - 1.01, radius + 1 - 1.01, radius + 1 - 1.01);
         toReturn.baseBlock = Blocks.WATER;
         toReturn.setTexture(MekanismRenderer.energyIcon);
         MekanismRenderer.renderObject(toReturn);
         DisplayInteger.endList();
         return display;
+    }
+
+    private static void evictIfNeeded() {
+        if (cachedVisuals.size() < MAX_CACHED_VISUALS) {
+            return;
+        }
+        int lruRadius = 0;
+        long lruTick = Long.MAX_VALUE;
+        for (Int2ObjectMap.Entry<Long> entry : lastUseTick.int2ObjectEntrySet()) {
+            long tick = entry.getValue();
+            if (tick < lruTick) {
+                lruTick = tick;
+                lruRadius = entry.getIntKey();
+            }
+        }
+        DisplayInteger removed = cachedVisuals.remove(lruRadius);
+        releaseDisplayList(removed);
+        lastUseTick.remove(lruRadius);
+    }
+
+    private static void releaseDisplayList(DisplayInteger display) {
+        if (display == null) {
+            return;
+        }
+        String[] methods = {"delete", "deleteList", "dispose", "release"};
+        for (String methodName : methods) {
+            try {
+                Method method = display.getClass().getMethod(methodName);
+                method.invoke(display);
+                return;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
     }
 
 
@@ -67,34 +114,4 @@ public class WirelessChargingEnergyVisualRenderer {
     private static double getZ(int z) {
         return z - TileEntityRendererDispatcher.staticPlayerZ;
     }
-
-    public static class MinerRenderData {
-
-        public int radius;
-        public int yCoord;
-
-        public MinerRenderData(int rad, int y) {
-            radius = rad;
-            yCoord = y;
-        }
-
-        public MinerRenderData(TileEntityWirelessChargingEnergy miner) {
-            this(miner.getRang(), miner.getPos().up(2).getY());
-        }
-
-        @Override
-        public boolean equals(Object data) {
-            return data instanceof MinerRenderData minerRenderData && minerRenderData.radius == radius && minerRenderData.yCoord == yCoord;
-
-        }
-
-        @Override
-        public int hashCode() {
-            int code = 1;
-            code = 31 * code + radius;
-            code = 31 * code + yCoord;
-            return code;
-        }
-    }
-
 }
