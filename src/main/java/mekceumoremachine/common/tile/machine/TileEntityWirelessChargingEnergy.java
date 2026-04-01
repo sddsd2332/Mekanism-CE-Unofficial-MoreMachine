@@ -101,8 +101,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
 
     @Override
-    public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+    public void onUpdateServer() {
+        super.onUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
         if (scanMachine) {
@@ -168,7 +168,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return;
         }
         double energyToSend = Math.min(getEnergy(), getMaxOutput());
-        for (ConnectionConfig machine : connections) {
+        for (ConnectionConfig machine : new ArrayList<>(connections)) {
             if (getEnergy() <= 0) {
                 break;
             }
@@ -194,7 +194,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 }
             } catch (Exception e) {
                 Mekanism.logger.error("Wireless power station error occurred");
-                Mekanism.logger.error("A machine that cannot be charged,pos: x {} y{} z {}", tile.getPos().getX(), tile.getPos().getY(), tile.getPos().getZ());
+                Mekanism.logger.error("A machine that cannot be charged,pos: x {} y{} z {}, tile name:{}", tile.getPos().getX(), tile.getPos().getY(), tile.getPos().getZ(), tile.getDisplayName());
                 Mekanism.logger.error("Will no longer charge this machine");
                 skipMachine.add(machine);
                 connections.remove(machine);
@@ -296,7 +296,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     //自动清除错误方块；
     public void autoClearErrorMachine() {
         if (MoreMachineConfig.current().config.enableAutoClearErrorMachine.val() && ticker % (MoreMachineConfig.current().config.AutoClearErrorMachineSecond.val() * 20) == 0) {
-            for (ConnectionConfig machine : skipMachine) {
+            for (ConnectionConfig machine : new ArrayList<>(skipMachine)) {
                 BlockPos pos = machine.getPos();
                 ChunkPos currentChunk = new ChunkPos(pos);
                 Chunk chunk = getWorld().getChunkProvider().getLoadedChunk(currentChunk.x, currentChunk.z);

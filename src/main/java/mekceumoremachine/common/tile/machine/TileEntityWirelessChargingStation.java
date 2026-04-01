@@ -47,7 +47,7 @@ import java.util.List;
 public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
         ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, IHasVisualization, ISpecialSelectionWireframeTile {
 
-    private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> (entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit;
+    private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> entity.isEntityAlive() && !entity.isDead && ((entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit);
 
     public MachineTier tier = MachineTier.BASIC;
 
@@ -83,8 +83,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     }
 
     @Override
-    public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+    public void onUpdateServer() {
+        super.onUpdateServer();
         ChargeUtils.charge(0, this);
         ChargeUtils.discharge(1, this);
         List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, getChargeBox(), CHARGE_PREDICATE);
