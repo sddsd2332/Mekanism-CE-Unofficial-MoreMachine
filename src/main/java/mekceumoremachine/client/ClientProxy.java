@@ -7,6 +7,7 @@ import mekanism.client.render.tileentity.RenderConfigurableMachine;
 import mekanism.common.base.ITierItem;
 import mekanism.generators.client.gui.GuiSolarGenerator;
 import mekceumoremachine.client.gui.*;
+import mekceumoremachine.client.render.ConnectorPreviewRenderingHandler;
 import mekceumoremachine.client.render.MEKCeuMoreMachineRenderer;
 import mekceumoremachine.client.render.item.generator.RenderTierAdvancedSolarGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierGasGeneratorItem;
@@ -83,11 +84,11 @@ public class ClientProxy extends CommonProxy {
 
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorItemStack.class, new RenderReplicatorItemStack());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorGases.class, new RenderReplicatorGases());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorFluidStack.class,new RenderReplicatorFluidStack());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityWirelessChargingEnergy.class,new RenderWirelessChargingEnergy());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorFluidStack.class, new RenderReplicatorFluidStack());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityWirelessChargingEnergy.class, new RenderWirelessChargingEnergy());
 
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierSolarGenerator.class,new RenderTierSolarGenerator());
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAdvancedSolarGenerator.class,new RenderTierAdvancedSolarGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierSolarGenerator.class, new RenderTierSolarGenerator());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierAdvancedSolarGenerator.class, new RenderTierAdvancedSolarGenerator());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityVoidMineralGenerator.class, new RenderVoidMineralGenerator());
     }
 
@@ -276,21 +277,26 @@ public class ClientProxy extends CommonProxy {
             case 0 -> new GuiWirelessCharging(player.inventory, (TileEntityWirelessChargingStation) tileEntity);
             case 1 -> new GuiTierElectricPump(player.inventory, (TileEntityTierElectricPump) tileEntity);
             case 2 -> new GuiTierIsotopicCentrifuge(player.inventory, (TileEntityTierIsotopicCentrifuge) tileEntity);
-            case 3 -> new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
-            case 4 -> new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
-            case 5 -> new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
+            case 3 ->
+                    new GuiTierRotaryCondensentrator(player.inventory, (TileEntityTierRotaryCondensentrator) tileEntity);
+            case 4 ->
+                    new GuiTierElectrolyticSeparator(player.inventory, (TileEntityTierElectrolyticSeparator) tileEntity);
+            case 5 ->
+                    new GuiTierSolarNeutronActivator(player.inventory, (TileEntityTierSolarNeutronActivator) tileEntity);
             case 6 -> new GuiTierChemicalInfuser(player.inventory, (TileEntityTierChemicalInfuser) tileEntity);
             case 7 -> new GuiTierAmbientAccumulator(player.inventory, (TileEntityTierAmbientAccumulator) tileEntity);
             case 8 -> new GuiTierChemicalWasher(player.inventory, (TileEntityTierChemicalWasher) tileEntity);
             case 9 -> new GuiBaseWindGenerator(player.inventory, (TileEntityBaseWindGenerator) tileEntity);
-            case 10 -> new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
-            case 11 -> new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
+            case 10 ->
+                    new GuiTierChemicalDissolutionChamber(player.inventory, (TileEntityTierChemicalDissolutionChamber) tileEntity);
+            case 11 ->
+                    new GuiTierNutritionalLiquifier(player.inventory, (TileEntityTierNutritionalLiquifier) tileEntity);
             case 12 -> new GuiTierChemicalOxidizer(player.inventory, (TileEntityTierChemicalOxidizer) tileEntity);
             case 13 -> new GuiTierGasGenerator(player.inventory, (TileEntityTierGasGenerator) tileEntity);
             case 14 -> new GuiReplicatorItemStack(player.inventory, (TileEntityReplicatorItemStack) tileEntity);
-            case 15 -> new GuiReplicatorGases(player.inventory,(TileEntityReplicatorGases) tileEntity);
-            case 16 -> new GuiReplicatorFluidStack(player.inventory,(TileEntityReplicatorFluidStack) tileEntity);
-            case 17 -> new GuiWirelessEnergy(player.inventory,(TileEntityWirelessChargingEnergy) tileEntity);
+            case 15 -> new GuiReplicatorGases(player.inventory, (TileEntityReplicatorGases) tileEntity);
+            case 16 -> new GuiReplicatorFluidStack(player.inventory, (TileEntityReplicatorFluidStack) tileEntity);
+            case 17 -> new GuiWirelessEnergy(player.inventory, (TileEntityWirelessChargingEnergy) tileEntity);
             case 18 -> new GuiSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
             case 19 -> new GuiSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             case 20 -> new GuiVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
@@ -301,5 +307,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init() {
         MinecraftForge.EVENT_BUS.register(new ClientTickHandler());
+        MinecraftForge.EVENT_BUS.register(new ConnectorPreviewRenderingHandler());
+        MinecraftForge.EVENT_BUS.register(new WirelessChargingRangeWorldRenderHandler());
     }
 }

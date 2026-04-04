@@ -28,6 +28,7 @@ import mekceumoremachine.common.capability.LinkTileEntity;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.INoWirelessChargingEnergy;
+import mekceumoremachine.common.tile.interfaces.IConnectorPreviewProvider;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import mekceumoremachine.common.tile.interfaces.ITileConnect;
 import mekceumoremachine.common.util.LinkUtils;
@@ -41,6 +42,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -54,7 +56,7 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect, ISpecialSelectionWireframeTile {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect, IConnectorPreviewProvider, ISpecialSelectionWireframeTile {
 
 
     public MachineTier tier = MachineTier.BASIC;
@@ -66,7 +68,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     public TileComponentEjector ejectorComponent;
     public TileComponentConfig configComponent;
     public TileComponentSecurity securityComponent;
-    private List<ConnectionConfig> skipMachine = new ArrayList<>();
+    public List<ConnectionConfig> skipMachine = new ArrayList<>();
     public List<ConnectionConfig> connections = new ArrayList<>();
 
     public boolean enableEmit;
@@ -168,6 +170,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return;
         }
         double energyToSend = Math.min(getEnergy(), getMaxOutput());
+        // iterate over a snapshot to avoid ConcurrentModificationException when removing entries
         for (ConnectionConfig machine : new ArrayList<>(connections)) {
             if (getEnergy() <= 0) {
                 break;
@@ -660,6 +663,17 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     public List<ConnectionConfig> getAllConnections() {
         return connections;
+    }
+
+    @Override
+    public List<ConnectionConfig> getPreviewConnections() {
+        return connections;
+    }
+
+    @Override
+    public Vec3d getPreviewOrigin() {
+        BlockPos pos = getPos();
+        return new Vec3d(pos.getX() + 0.5, pos.getY() + 2.8125, pos.getZ() + 0.5);
     }
 
 

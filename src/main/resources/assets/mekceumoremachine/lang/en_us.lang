@@ -112,6 +112,27 @@ gui.WirelessChargingEnergy.scan=Scan machines within range and connect automatic
 gui.WirelessChargingEnergy.quantity=Number of linked devices
 gui.WirelessChargingEnergy.MaxLinks=Reached the maximum number of linked devices
 
+item.connector.name=Wireless Connector
+tooltip.connector.detail=Linked coordinates
+tooltip.connector.dimension=Dimension ID
+tooltip.connector.pos=Position
+tooltip.connector.got=Block linked
+tooltip.connector.no_energy=Not enough energy
+tooltip.connector.no_got=Not linked
+tooltip.connector.across_dimension=Cannot link across dimensions
+tooltip.connector.self=Cannot link to itself
+tooltip.connector.fail_chunk=Target chunk is not loaded
+tooltip.connector.fail_machine=No block found, or the block no longer matches the linked target
+tooltip.connector.disconnect=Disconnected
+tooltip.connector.to=Linked
+tooltip.connector.maxlinks=Reached the maximum number of linked blocks
+tooltip.connector.fail=Unsupported machine
+tooltip.connector.fail_pos=Link target is too far
+tooltip.connector.cleared=Link data cleared
+tooltip.connector.preview_mode=Preview mode
+tooltip.connector.preview_nearest=Nearest
+tooltip.connector.preview_all=All
+
 item.CompositeTierInstaller.name=Composite Upgrade Installation Kit
 tooltip.CompositeTierInstaller=Installation component capable of directly upgrading the machine to its final level
 item.LargeMachineryUpgradeComponents.name=Large Machinery Upgrade Components

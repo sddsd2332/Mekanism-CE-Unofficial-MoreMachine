@@ -1,5 +1,6 @@
 package mekceumoremachine.common.config;
 
+import javax.annotation.Nullable;
 
 public class MoreMachineConfig {
 
@@ -14,5 +15,13 @@ public class MoreMachineConfig {
         return LOCAL;
     }
 
+    public static void setSyncedConfig(@Nullable MoreMachineConfig newConfig) {
+        if (newConfig != null) {
+            newConfig.client = LOCAL.client;
+        }
+        SERVER = newConfig;
+    }
+
     public MekCEUMoreMachineConfig config = new MekCEUMoreMachineConfig();
+    public MoreMachineClientConfig client = new MoreMachineClientConfig();
 }

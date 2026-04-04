@@ -35,53 +35,46 @@ public class RenderWirelessChargingStation extends TileEntitySpecialRenderer<Til
         bindTexture(MekanismUtils.getResource(MEKCeuMoreMachine.MODID, MekanismUtils.ResourceType.RENDER, "Wireless_Charging.png"));
         model.renderModel(0.0625F);
         GlStateManager.popMatrix();
-        float visualScale = getAnimatedScale(tileEntity, partialTick);
-        if (tileEntity.clientRendering && visualScale > 0) {
-            WirelessChargingStationVisualRenderer.render(tileEntity, visualScale);
-        }
         MekanismRenderer.machineRenderer().render(tileEntity, x, y, z, partialTick, destroyStage, alpha);
     }
 
-    private static float getAnimatedScale(TileEntityWirelessChargingStation tileEntity, float partialTick) {
+    public static float getAnimatedScale(TileEntityWirelessChargingStation tileEntity, float partialTick) {
         if (tileEntity.getWorld() == null) {
             return tileEntity.clientRendering ? 1.0F : 0.0F;
         }
         long worldTime = tileEntity.getWorld().getTotalWorldTime();
         long key = buildAnimKey(tileEntity);
-        ScaleAnimState state = SCALE_ANIM_STATES.computeIfAbsent(key, k -> new ScaleAnimState());
         float renderTime = worldTime + partialTick;
-
-        if (!tileEntity.clientRendering) {
-            state.enabled = false;
+        ScaleAnimState state = SCALE_ANIM_STATES.get(key);
+        if (state == null) {
+            if (!tileEntity.clientRendering) {
+                return 0.0F;
+            }
+            state = new ScaleAnimState();
             state.progress = 0.0F;
             state.lastRenderTime = renderTime;
             state.lastSeenWorldTime = worldTime;
-            if (SCALE_ANIM_STATES.size() > MAX_ANIM_STATES) {
-                pruneStates(worldTime);
-            }
-            return 0.0F;
+            SCALE_ANIM_STATES.put(key, state);
         }
 
-        if (!state.enabled) {
-            state.enabled = true;
-            state.progress = 0.0F;
-            state.lastRenderTime = renderTime;
-        } else {
-            float delta = renderTime - state.lastRenderTime;
-            if (delta < 0) {
-                delta = 0;
-            } else if (delta > 5) {
-                delta = 5;
-            }
-            state.progress = Math.min(1.0F, state.progress + delta * SCALE_ANIM_SPEED_PER_TICK);
-            state.lastRenderTime = renderTime;
+        float delta = renderTime - state.lastRenderTime;
+        if (delta < 0) {
+            delta = 0;
+        } else if (delta > 5) {
+            delta = 5;
         }
+        float direction = tileEntity.clientRendering ? 1.0F : -1.0F;
+        state.progress = Math.max(0.0F, Math.min(1.0F, state.progress + direction * delta * SCALE_ANIM_SPEED_PER_TICK));
+        state.lastRenderTime = renderTime;
 
         state.lastSeenWorldTime = worldTime;
         if (SCALE_ANIM_STATES.size() > MAX_ANIM_STATES) {
             pruneStates(worldTime);
         }
-        return easeOutCubic(state.progress);
+        if (state.progress <= 0.0F && !tileEntity.clientRendering) {
+            return 0.0F;
+        }
+        return tileEntity.clientRendering ? easeOutCubic(state.progress) : easeInCubic(state.progress);
     }
 
     private static void pruneStates(long worldTime) {
@@ -100,13 +93,17 @@ public class RenderWirelessChargingStation extends TileEntitySpecialRenderer<Til
         return 1.0F - inv * inv * inv;
     }
 
+    private static float easeInCubic(float progress) {
+        float clamped = Math.max(0.0F, Math.min(progress, 1.0F));
+        return clamped * clamped * clamped;
+    }
+
     private static long buildAnimKey(TileEntityWirelessChargingStation tileEntity) {
         int dimension = tileEntity.getWorld().provider.getDimension();
         return tileEntity.getPos().toLong() ^ ((long) dimension << 56);
     }
 
     private static class ScaleAnimState {
-        private boolean enabled;
         private float progress;
         private float lastRenderTime;
         private long lastSeenWorldTime;

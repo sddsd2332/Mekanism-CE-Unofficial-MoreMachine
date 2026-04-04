@@ -4,6 +4,7 @@ import mekanism.api.Coord4D;
 import mekanism.api.EnumColor;
 import mekanism.common.Mekanism;
 import mekanism.common.item.ItemEnergized;
+import mekanism.common.item.interfaces.IModeItem;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.WorldUtils;
@@ -20,6 +21,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -28,9 +30,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class ItemConnector extends ItemEnergized {
+public class ItemConnector extends ItemEnergized implements IModeItem {
 
     public final int ENERGY_PER_CONFIGURE = 400;
+    private static final String PREVIEW_MODE_TAG = "previewMode";
+    private static final int PREVIEW_MODE_NEAREST = 0;
+    private static final int PREVIEW_MODE_ALL = 1;
 
     public ItemConnector() {
         super(60000);
@@ -52,6 +57,7 @@ public class ItemConnector extends ItemEnergized {
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack itemstack, World world, List<String> list, ITooltipFlag flag) {
         super.addInformation(itemstack, world, list, flag);
+        list.add(EnumColor.DARK_AQUA + LangUtils.localize("tooltip.connector.preview_mode") + ": " + LangUtils.localize(getPreviewModeLocalizationKey(itemstack)));
         if (getEnergy(itemstack) >= ENERGY_PER_CONFIGURE) {
             Coord4D data = getDataType(itemstack);
             if (data != null) {
@@ -207,6 +213,35 @@ public class ItemConnector extends ItemEnergized {
             return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
         }
         return super.onItemRightClick(world, player, hand);
+    }
+
+    public boolean isPreviewShowAll(ItemStack itemstack) {
+        return ItemDataUtils.getInt(itemstack, PREVIEW_MODE_TAG) == PREVIEW_MODE_ALL;
+    }
+
+    private void setPreviewShowAll(ItemStack itemstack, boolean showAll) {
+        ItemDataUtils.setInt(itemstack, PREVIEW_MODE_TAG, showAll ? PREVIEW_MODE_ALL : PREVIEW_MODE_NEAREST);
+    }
+
+    private String getPreviewModeLocalizationKey(ItemStack itemstack) {
+        return isPreviewShowAll(itemstack) ? "tooltip.connector.preview_all" : "tooltip.connector.preview_nearest";
+    }
+
+    @Override
+    public void changeMode(EntityPlayer player, ItemStack stack, int shift, DisplayChange displayChange) {
+        if (Math.abs(shift) % 2 == 1) {
+            boolean showAll = !isPreviewShowAll(stack);
+            setPreviewShowAll(stack, showAll);
+            displayChange.sendMessage(player, () -> new TextComponentString(
+                    LangUtils.localize("tooltip.connector.preview_mode") + ": " + LangUtils.localize(getPreviewModeLocalizationKey(stack))
+            ));
+        }
+    }
+
+    @Nonnull
+    @Override
+    public ITextComponent getScrollTextComponent(@Nonnull ItemStack stack) {
+        return new TextComponentString(LangUtils.localize("tooltip.connector.preview_mode") + ": " + LangUtils.localize(getPreviewModeLocalizationKey(stack)));
     }
 
 

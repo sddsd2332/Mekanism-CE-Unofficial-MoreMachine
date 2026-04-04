@@ -135,6 +135,7 @@ tooltip.connector.to=已链接
 tooltip.connector.maxlinks=已到达链接方块上限
 tooltip.connector.fail=不支持的机器
 tooltip.connector.fail_pos=链接过远
+tooltip.connector.cleared=已清除连接数据
 
 tile.TierSolarGenerator.Basic.name=基础太阳能发电机
 tile.TierSolarGenerator.Advanced.name=高级太阳能发电机
@@ -154,3 +155,7 @@ tile.VoidMineralGenerator.Advanced.name=高级虚空矿物采掘机
 tile.VoidMineralGenerator.Elite.name=精英虚空矿物采掘机
 tile.VoidMineralGenerator.Ultimate.name=终极虚空矿物采掘机
 tooltip.VoidMineralGenerator=能够虚空中生成矿物的机器,可生成的矿物列表查看jei中的该机器的配方界面
+
+tooltip.connector.preview_mode=预览模式
+tooltip.connector.preview_nearest=最近
+tooltip.connector.preview_all=全部

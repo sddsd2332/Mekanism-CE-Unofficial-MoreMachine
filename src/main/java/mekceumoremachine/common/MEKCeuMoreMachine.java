@@ -176,6 +176,7 @@ public class MEKCeuMoreMachine implements IModule {
 
     public void loadConfiguration() {
         MoreMachineConfig.local().config.load(config);
+        MoreMachineConfig.local().client.load(config);
         if (config.hasChanged()) {
             config.save();
         }
