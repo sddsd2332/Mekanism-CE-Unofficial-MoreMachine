@@ -1,21 +1,23 @@
 package mekceumoremachine.common.tile.generator;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Action;
+import mekanism.api.AutomationType;
 import mekanism.api.Coord4D;
+import mekanism.api.IContentsListener;
 import mekanism.api.TileNetworkList;
 import mekanism.common.base.IBoundingBlock;
-import mekanism.common.base.IMachineSlotTip;
 import mekanism.common.base.ISpecialSelectionWireframeTile;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.config.MekanismConfig;
-import mekanism.common.util.ChargeUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
-import mekanism.common.util.NonNullListSynchronized;
 import mekanism.generators.common.tile.TileEntityGenerator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.relauncher.Side;
@@ -23,19 +25,27 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 
-public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator implements IBoundingBlock, IMachineSlotTip, ISpecialSelectionWireframeTile {
+public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator implements IBoundingBlock, ISpecialSelectionWireframeTile {
 
     public static final float SPEED = 32F;
     public static final float SPEED_SCALED = 256F / SPEED;
     static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getMultiplier"};
-    private static final int[] SLOTS = {0};
     private double angle;
     private float currentMultiplier;
     private boolean isBlacklistDimension = false;
+    private EnergyInventorySlot energySlot;
 
     public TileEntityBaseWindGenerator(String name) {
         super("wind", name, 0, 0);
-        inventory = NonNullListSynchronized.withSize(SLOTS.length, ItemStack.EMPTY);
+        initializeInventorySlots();
+    }
+
+    @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        energySlot = builder.addSlot(EnergyInventorySlot.drain(getMainEnergyContainer(listener), listener, 143, 35));
+        energySlot.setSlotOverlay(SlotOverlay.PLUS);
+        return builder.build();
     }
 
 
@@ -51,7 +61,7 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
-        ChargeUtils.charge(0, this);
+        energySlot.drainContainer();
         // If we're in a blacklisted dimension, there's nothing more to do
         if (isBlacklistDimension) {
             return;
@@ -61,9 +71,13 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
             currentMultiplier = getMultiplier();
             setActive(MekanismUtils.canFunction(this) && currentMultiplier > 0);
         }
-        if (getActive()) {
-            setEnergy(electricityStored.get() + (MekanismConfig.current().generators.windGenerationMin.val() * currentMultiplier) * processes());
+        if (currentMultiplier > 0 && MekanismUtils.canFunction(this) && getEnergyContainer().getNeeded() > 0) {
+            getEnergyContainer().insert(getEnergyAdd(), Action.EXECUTE, AutomationType.INTERNAL);
         }
+    }
+
+    public double getEnergyAdd() {
+        return (MekanismConfig.current().generators.windGenerationMin.val() * currentMultiplier) * processes();
     }
 
     @Override
@@ -106,10 +120,17 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
             float maxG = (float) MekanismConfig.current().generators.windGenerationMax.val();
             //Prevents the possibility of writing opposite values; https://github.com/Thorfusion/Mekanism-Community-Edition/issues/150
             int rangeY = maxY < minY ? minY - maxY : maxY - minY;
+            if (rangeY <= 0 || minG <= 0 || Float.isNaN(minG) || Float.isInfinite(minG) || Float.isNaN(maxG) || Float.isInfinite(maxG)) {
+                return 0;
+            }
             float rangG = maxG < minG ? minG - maxG : maxG - minG;
             float slope = rangG / rangeY;
             float toGen = minG + (slope * (clampedY - minY));
-            return toGen / minG;
+            float multiplier = toGen / minG;
+            if (Float.isNaN(multiplier) || Float.isInfinite(multiplier)) {
+                return 0;
+            }
+            return multiplier;
         }
         return 0;
     }
@@ -122,10 +143,10 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     @Override
     public Object[] invoke(int method, Object[] arguments) throws NoSuchMethodException {
         return switch (method) {
-            case 0 -> new Object[]{electricityStored};
+            case 0 -> new Object[]{getEnergy()};
             case 1 -> new Object[]{getMaxOutput()};
             case 2 -> new Object[]{getMaxEnergy()};
-            case 3 -> new Object[]{getMaxEnergy() - electricityStored.get()};
+            case 3 -> new Object[]{getNeedEnergy()};
             case 4 -> new Object[]{getMultiplier()};
             default -> throw new NoSuchMethodException();
         };
@@ -133,7 +154,7 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
 
     @Override
     public boolean canOperate() {
-        return electricityStored.get() < getMaxEnergy() && getMultiplier() > 0 && MekanismUtils.canFunction(this);
+        return getEnergyContainer().getNeeded() > 0 && getMultiplier() > 0 && MekanismUtils.canFunction(this);
     }
 
     @Override
@@ -193,32 +214,6 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
 
     public boolean isBlacklistDimension() {
         return isBlacklistDimension;
-    }
-
-    @Nonnull
-    @Override
-    public int[] getSlotsForFace(@Nonnull EnumFacing side) {
-        return SLOTS;
-    }
-
-    @Override
-    public boolean isItemValidForSlot(int slot, @Nonnull ItemStack stack) {
-        return ChargeUtils.canBeCharged(stack);
-    }
-
-    @Override
-    public boolean getEnergySlot() {
-        return inventory.get(0).isEmpty();
-    }
-
-    @Override
-    public boolean getInputSlot() {
-        return false;
-    }
-
-    @Override
-    public boolean getOuputSlot() {
-        return false;
     }
 
     public int processes() {

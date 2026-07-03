@@ -1,0 +1,35 @@
+{
+  "forge_marker": 1,
+  "defaults": {
+    "model": "mekceumoremachine:factory_crystallizer",
+    "textures": {
+      "led": "mekceumoremachine:blocks/factory/front_led/basic"
+    }
+  },
+  "variants": {
+    "facing": {
+      "north": {},
+      "south": {
+        "y": 180
+      },
+      "east": {
+        "y": 90
+      },
+      "west": {
+        "y": -90
+      }
+    },
+    "active": {
+      "true": {
+        "textures": {
+          "led": "mekceumoremachine:blocks/factory/front_led/active/basic",
+          "front": "mekceumoremachine:blocks/factory/crystallizer/front_active"
+        }
+      },
+      "false": {}
+    },
+    "inventory": [
+      {}
+    ]
+  }
+}

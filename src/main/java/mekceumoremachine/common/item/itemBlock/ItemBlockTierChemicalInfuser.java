@@ -16,7 +16,7 @@ public class ItemBlockTierChemicalInfuser extends ItemBlockMekceuMoreMachineTier
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierChemicalInfuser tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.leftTank.setMaxGas(tile.tier.processes * TileEntityTierChemicalInfuser.MAX_GAS);
             tile.rightTank.setMaxGas(tile.tier.processes * TileEntityTierChemicalInfuser.MAX_GAS);
             tile.centerTank.setMaxGas(tile.tier.processes * TileEntityTierChemicalInfuser.MAX_GAS);

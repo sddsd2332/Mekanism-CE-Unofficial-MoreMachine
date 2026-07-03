@@ -16,7 +16,7 @@ public class ItemBlockTierElectrolyticSeparator extends ItemBlockMekceuMoreMachi
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierElectrolyticSeparator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.fluidTank.setCapacity(tile.tier.processes * TileEntityTierElectrolyticSeparator.MAX_GAS * 10);
             tile.leftTank.setMaxGas(tile.tier.processes * TileEntityTierElectrolyticSeparator.MAX_GAS);
             tile.rightTank.setMaxGas(tile.tier.processes * TileEntityTierElectrolyticSeparator.MAX_GAS);

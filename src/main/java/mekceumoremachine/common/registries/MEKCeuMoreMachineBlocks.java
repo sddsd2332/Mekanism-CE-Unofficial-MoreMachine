@@ -2,6 +2,7 @@ package mekceumoremachine.common.registries;
 
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.block.*;
+import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer.TierChemicalCrystallizerMachineBlock;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalDissolutionChamber.TierChemicalDissolutionChamberMachineBlock;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer.TierChemicalOxidizerMachineBlock;
 import mekceumoremachine.common.block.states.BlockStateTierNutritionalLiquifier.TierNutritionalLiquifierMachineBlock;
@@ -29,6 +30,7 @@ public class MEKCeuMoreMachineBlocks {
     public static Block TierChemicalDissolutionChamber = BlockTierChemicalDissolutionChamber.getBlockMachine(TierChemicalDissolutionChamberMachineBlock.MACHINE_BLOCK);
     public static Block TierNutritionalLiquifier = BlockTierNutritionalLiquifier.getBlockMachine(TierNutritionalLiquifierMachineBlock.MACHINE_BLOCK);
     public static Block TierChemicalOxidizer = BlockTierChemicalOxidizer.getBlockMachine(TierChemicalOxidizerMachineBlock.MACHINE_BLOCK);
+    public static Block TierChemicalCrystallizer = BlockTierChemicalCrystallizer.getBlockMachine(TierChemicalCrystallizerMachineBlock.MACHINE_BLOCK);
     public static Block TierGasGenerator = new BlockTierGasGenerator();
 
     public static Block ReplicatorItemStack = new BlockReplicatorItemStack();
@@ -54,6 +56,7 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(init(TierChemicalDissolutionChamber, "TierChemicalDissolutionChamber"));
         registry.register(init(TierNutritionalLiquifier, "TierNutritionalLiquifier"));
         registry.register(init(TierChemicalOxidizer, "TierChemicalOxidizer"));
+        registry.register(init(TierChemicalCrystallizer, "TierChemicalCrystallizer"));
         registry.register(init(TierGasGenerator, "TierGasGenerator"));
         registry.register(init(ReplicatorItemStack, "ReplicatorItemStack"));
         registry.register(init(ReplicatorGases, "ReplicatorGases"));
@@ -79,6 +82,7 @@ public class MEKCeuMoreMachineBlocks {
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalDissolutionChamber(TierChemicalDissolutionChamber), "TierChemicalDissolutionChamber"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierNutritionalLiquifier(TierNutritionalLiquifier), "TierNutritionalLiquifier"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalOxidizer(TierChemicalOxidizer), "TierChemicalOxidizer"));
+        registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierChemicalCrystallizer(TierChemicalCrystallizer), "TierChemicalCrystallizer"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockTierGasGenerator(TierGasGenerator), "TierGasGenerator"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorItemStack(ReplicatorItemStack), "ReplicatorItemStack"));
         registry.register(MEKCeuMoreMachineItems.init(new ItemBlockReplicatorGases(ReplicatorGases), "ReplicatorGases"));

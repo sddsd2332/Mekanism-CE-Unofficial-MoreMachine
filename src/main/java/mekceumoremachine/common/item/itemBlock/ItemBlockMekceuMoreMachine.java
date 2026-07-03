@@ -1,19 +1,18 @@
 package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.api.EnumColor;
-import mekanism.api.energy.IEnergizedItem;
 import mekanism.client.MekKeyHandler;
 import mekanism.client.MekanismClient;
 import mekanism.client.MekanismKeyHandler;
 import mekanism.common.Upgrade;
 import mekanism.common.base.*;
-import mekanism.common.config.MekanismConfig;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.SecurityUtils;
+import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.interfaces.IItemTipName;
 import net.minecraft.block.Block;
@@ -45,9 +44,6 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
     @Override
     public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY,
                                 float hitZ, @Nonnull IBlockState state) {
-        if (stack.getCount() > 1 && MekanismConfig.current().mekce.StackingPlacementLimits.val()) {
-            return false;
-        }
         boolean place = true;
         Block block = world.getBlockState(pos).getBlock();
         if (!block.isReplaceable(world, pos)) {
@@ -59,6 +55,7 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
 
         if (place && super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
             if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
+                prepareTileForDataLoad(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
                 if (tileEntity instanceof IUpgradeTile upgradeTile) {
                     if (ItemDataUtils.hasData(stack, "upgrades")) {
                         upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
@@ -77,7 +74,7 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
                 }
                 if (tileEntity instanceof IRedstoneControl redstoneControl) {
                     if (ItemDataUtils.hasData(stack, "controlType")) {
-                        redstoneControl.setControlType(IRedstoneControl.RedstoneControl.values()[ItemDataUtils.getInt(stack, "controlType")]);
+                        redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"), IRedstoneControl.RedstoneControl.DISABLED));
                     }
                 }
                 addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
@@ -89,6 +86,10 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
 
 
     public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+    }
+
+    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
+          IBlockState state, TileEntityBasicBlock tileEntity) {
     }
 
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {
@@ -114,8 +115,11 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
                     }
                 }
             }
-            if (itemstack.getItem() instanceof IEnergizedItem energizedItem && itemstack.getCount() <= 1) {
-                list.add(EnumColor.BRIGHT_GREEN + LangUtils.localize("tooltip.storedEnergy") + ": " + EnumColor.GREY + MekanismUtils.getEnergyDisplay(energizedItem.getEnergy(itemstack), energizedItem.getMaxEnergy(itemstack)));
+            if (itemstack.getCount() <= 1) {
+                double maxEnergy = StorageUtils.getMaxEnergy(itemstack);
+                if (maxEnergy > 0) {
+                    list.add(EnumColor.BRIGHT_GREEN + LangUtils.localize("tooltip.storedEnergy") + ": " + EnumColor.GREY + MekanismUtils.getEnergyDisplay(StorageUtils.getStoredEnergy(itemstack), maxEnergy));
+                }
             }
             if (itemstack.getItem() instanceof ISustainedTank tank && itemstack.getCount() <= 1) {
                 FluidStack fluidStack = tank.getFluidStack(itemstack);

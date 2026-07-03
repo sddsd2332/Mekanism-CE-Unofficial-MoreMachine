@@ -23,7 +23,7 @@ public class ItemBlockTierIsotopicCentrifuge extends ItemBlockMekceuMoreMachineT
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierIsotopicCentrifuge tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.inputTank.setMaxGas(tile.tier.processes * TileEntityTierIsotopicCentrifuge.MAX_GAS);
             tile.outputTank.setMaxGas(tile.tier.processes * TileEntityTierIsotopicCentrifuge.MAX_GAS);
         }

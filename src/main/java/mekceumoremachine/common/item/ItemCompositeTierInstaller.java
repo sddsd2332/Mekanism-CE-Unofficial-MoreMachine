@@ -1,15 +1,18 @@
 package mekceumoremachine.common.item;
 
-import mekanism.common.base.ITierUpgradeable;
+import mekanism.common.base.IUpgradeableTile;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.item.ItemMekanism;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
+import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.util.LangUtils;
+import mekanism.common.util.UpgradeUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
 import mekceumoremachine.common.tile.interfaces.ITierFirstUpgrade;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -68,8 +71,8 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
     }
 
     private static void installBaseTierIfNeeded(TileEntity tile) {
-        if (tile instanceof ITierFirstUpgrade && tile instanceof ITierUpgradeable upgradeable && upgradeable.CanInstalled()) {
-            upgradeable.upgrade(BaseTier.BASIC);
+        if (tile instanceof ITierFirstUpgrade) {
+            installUpgrade(tile, BaseTier.BASIC);
         }
     }
 
@@ -95,7 +98,7 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
                 break;
             }
             lastTier = current;
-            machine.upgrade(next);
+            installUpgrade((TileEntity) machine, next);
         }
 
         if (!player.capabilities.isCreativeMode
@@ -110,10 +113,6 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
         if (machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
             return EnumActionResult.PASS;
         }
-        if (!machine.CanInstalled()) {
-            return EnumActionResult.PASS;
-        }
-
         BaseTier lastTier = null;
         while (true) {
             BaseTier current = machine.getTier().getBaseTier();
@@ -125,7 +124,7 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
                 break;
             }
             lastTier = current;
-            machine.upgrade(next);
+            installUpgrade((TileEntity) machine, next);
         }
 
         if (!player.capabilities.isCreativeMode && machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
@@ -135,9 +134,23 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
     }
 
     private static BaseTier getNextTier(BaseTier tier) {
-        int nextOrdinal = tier.ordinal() + 1;
-        BaseTier[] tiers = BaseTier.values();
-        return nextOrdinal >= 0 && nextOrdinal < tiers.length ? tiers[nextOrdinal] : null;
+        if (tier == BaseTier.BASIC) {
+            return BaseTier.ADVANCED;
+        } else if (tier == BaseTier.ADVANCED) {
+            return BaseTier.ELITE;
+        } else if (tier == BaseTier.ELITE) {
+            return BaseTier.ULTIMATE;
+        }
+        return null;
+    }
+
+    private static boolean installUpgrade(TileEntity tile, BaseTier tier) {
+        if (tile instanceof IUpgradeableTile upgradeable) {
+            IUpgradeData upgradeData = upgradeable.getUpgradeData(tier);
+            IBlockState upgradeResult = upgradeable.getUpgradeResult(tier);
+            return upgradeData != null && (upgradeResult == null ? upgradeable.parseUpgradeData(upgradeData) : UpgradeUtils.replaceTileForUpgrade(tile, upgradeResult, upgradeData));
+        }
+        return false;
     }
 
 

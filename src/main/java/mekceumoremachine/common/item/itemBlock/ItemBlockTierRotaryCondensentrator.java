@@ -16,7 +16,7 @@ public class ItemBlockTierRotaryCondensentrator extends ItemBlockMekceuMoreMachi
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierRotaryCondensentrator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.fluidTank.setCapacity(tile.tier.processes * TileEntityTierRotaryCondensentrator.MAX_FLUID);
             tile.gasTank.setMaxGas(tile.tier.processes * TileEntityTierRotaryCondensentrator.MAX_FLUID);
         }

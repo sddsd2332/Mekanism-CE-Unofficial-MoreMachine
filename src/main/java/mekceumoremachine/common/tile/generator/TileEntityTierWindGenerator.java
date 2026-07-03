@@ -7,6 +7,8 @@ import mekanism.common.Mekanism;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.tier.BaseTier;
+import mekanism.common.upgrade.IUpgradeData;
+import mekanism.common.upgrade.TierUpgradeData;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
@@ -14,7 +16,11 @@ import mekanism.multiblockmachine.common.tile.generator.TileEntityLargeWindGener
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ILargeMachine;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import mekceumoremachine.common.upgrade.FirstWindGeneratorUpgradeData;
+import mekceumoremachine.common.upgrade.LargeMachineUpgradeDataApplier;
+import mekceumoremachine.common.upgrade.LargeWindGeneratorUpgradeData;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -45,7 +51,7 @@ public class TileEntityTierWindGenerator extends TileEntityBaseWindGenerator imp
         super.handlePacketData(dataStream);
         if (isRemote()) {
             MachineTier prevTier = tier;
-            tier = MachineTier.values()[dataStream.readInt()];
+            tier = MachineTier.byIndex(dataStream.readInt());
             if (prevTier != tier) {
                 MekanismUtils.updateBlock(world, getPos());
             }
@@ -67,7 +73,7 @@ public class TileEntityTierWindGenerator extends TileEntityBaseWindGenerator imp
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
-        tier = MachineTier.values()[nbtTags.getInteger("tier")];
+        tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
     }
 
     @Override
@@ -77,14 +83,11 @@ public class TileEntityTierWindGenerator extends TileEntityBaseWindGenerator imp
     }
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+    public boolean applyTierUpgrade(BaseTier upgradeTier) {
+        if (!tier.canUpgradeTo(upgradeTier)) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
-            return false;
-        }
-        tier = MachineTier.values()[upgradeTier.ordinal()];
+        tier = MachineTier.get(upgradeTier);
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();
         return true;
@@ -102,8 +105,36 @@ public class TileEntityTierWindGenerator extends TileEntityBaseWindGenerator imp
     }
 
     @Override
+    public IUpgradeData getUpgradeData(BaseTier upgradeTier) {
+        if (upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return new LargeWindGeneratorUpgradeData(upgradeTier, this);
+        }
+        return ITierMachine.super.getUpgradeData(upgradeTier);
+    }
+
+    @Override
+    public IBlockState getUpgradeResult(BaseTier upgradeTier) {
+        return upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE ? MultiblockMachineBlocks.LargeWindGenerator.getDefaultState() : null;
+    }
+
+    @Override
+    public boolean parseUpgradeData(IUpgradeData upgradeData) {
+        if (upgradeData instanceof FirstWindGeneratorUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
+            onPlace();
+            LargeMachineUpgradeDataApplier.applyCommon(this, data, null, securityComponent);
+            setAngle(data.angle);
+            LargeMachineUpgradeDataApplier.finish(this, null);
+            return true;
+        }
+        if (upgradeData instanceof TierUpgradeData data && data.getUpgradeTier() == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return applyLargeMachineUpgrade();
+        }
+        return ITierMachine.super.parseUpgradeData(upgradeData);
+    }
+
+    @Override
     @Method(modid = "mekanismmultiblockmachine")
-    public boolean largeMachineUpgrade(EntityPlayer player) {
+    public boolean canLargeMachineUpgrade(EntityPlayer player) {
         if (tier != MachineTier.ULTIMATE) {
             return false;
         }
@@ -196,40 +227,12 @@ public class TileEntityTierWindGenerator extends TileEntityBaseWindGenerator imp
         if (isCanPlace) {
             return false;
         }
+        return true;
+    }
 
-        if (world.getTileEntity(getPos()) instanceof IBoundingBlock block) {
-            block.onBreak();
-        } else {
-            world.setBlockToAir(getPos());
-        }
-        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeWindGenerator.getDefaultState());
-        if (world.getTileEntity(getPos()) instanceof TileEntityLargeWindGenerator tile) {
-            tile.onPlace();
-            //Basic
-            tile.facing = facing;
-            tile.clientFacing = clientFacing;
-            tile.ticker = ticker;
-            tile.redstone = redstone;
-            tile.redstoneLastTick = redstoneLastTick;
-            tile.doAutoSync = doAutoSync;
-
-            //Electric
-            tile.electricityStored.set(electricityStored.get());
-            tile.setAngle(getAngle());
-            //Machine
-            tile.setActive(isActive);
-            tile.setControlType(getControlType());
-
-            tile.securityComponent.readFrom(securityComponent);
-
-            for (int i = 0; i < inventory.size(); i++) {
-                tile.inventory.set(i, inventory.get(i));
-            }
-            tile.markNoUpdateSync();
-            Mekanism.packetHandler.sendUpdatePacket(tile);
-            markNoUpdateSync();
-            return true;
-        }
-        return false;
+    @Override
+    @Method(modid = "mekanismmultiblockmachine")
+    public boolean applyLargeMachineUpgrade() {
+        return ILargeMachine.super.applyLargeMachineUpgrade();
     }
 }

@@ -23,10 +23,13 @@ import mekceumoremachine.common.CommonProxy;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer.tierChemicalOxidizerBlockStateMapper;
+import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer;
+import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer.tierChemicalCrystallizerBlockStateMapper;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.generator.*;
+import mekceumoremachine.common.tile.machine.TierCrystallizer.TileEntityTierChemicalCrystallizer;
 import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemicalDissolutionChamber;
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
 import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemicalOxidizer;
@@ -64,7 +67,9 @@ import java.util.Map;
 public class ClientProxy extends CommonProxy {
 
     private static final IStateMapper tierChemicalOxidizerMapper = new tierChemicalOxidizerBlockStateMapper();
+    private static final IStateMapper tierChemicalCrystallizerMapper = new tierChemicalCrystallizerBlockStateMapper();
     public static Map<String, ModelResourceLocation> tierChemicalOxidizerResources = new Object2ObjectOpenHashMap<>();
+    public static Map<String, ModelResourceLocation> tierChemicalCrystallizerResources = new Object2ObjectOpenHashMap<>();
 
     @Override
     public void registerTESRs() {
@@ -80,6 +85,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalDissolutionChamber.class, RenderTierChemicalDissolutionChamber.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierNutritionalLiquifier.class, RenderTierNutritionalLiquifier.INSTANCE);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalOxidizer.class, new RenderConfigurableMachine<>());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierChemicalCrystallizer.class, new RenderConfigurableMachine<>());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTierGasGenerator.class, new RenderTierGasGenerator());
 
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReplicatorItemStack.class, new RenderReplicatorItemStack());
@@ -138,6 +144,7 @@ public class ClientProxy extends CommonProxy {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierNutritionalLiquifier), i, getInventoryMRL("TierNutritionalLiquifier"));
         }
         registerTierChemicalOxidizerRenders();
+        registerTierChemicalCrystallizerRenders();
 
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorItemStack), 0, getInventoryMRL("ReplicatorItemStack"));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorGases), 0, getInventoryMRL("ReplicatorGases"));
@@ -187,6 +194,42 @@ public class ClientProxy extends CommonProxy {
         ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalOxidizer), machineMesher);
     }
 
+    private void registerTierChemicalCrystallizerRenders() {
+        ModelLoader.setCustomStateMapper(MEKCeuMoreMachineBlocks.TierChemicalCrystallizer, tierChemicalCrystallizerMapper);
+        for (BlockStateTierChemicalCrystallizer.MachineType type : BlockStateTierChemicalCrystallizer.MachineType.values()) {
+            if (!type.isValidMachine()) {
+                continue;
+            }
+            List<ModelResourceLocation> modelsToAdd = new ArrayList<>();
+            String resource = MEKCeuMoreMachine.MODID + ":" + type.getName();
+            if (tierChemicalCrystallizerResources.get(resource) == null) {
+                List<String> entries = new ArrayList<>();
+                if (type.hasActiveTexture()) {
+                    entries.add("active=false");
+                }
+                if (type.hasRotations()) {
+                    entries.add("facing=north");
+                }
+
+                String properties = getProperties(entries);
+                ModelResourceLocation model = new ModelResourceLocation(resource, properties);
+                tierChemicalCrystallizerResources.put(resource, model);
+                modelsToAdd.add(model);
+            }
+            ModelLoader.registerItemVariants(Item.getItemFromBlock(type.typeBlock.getBlock()), modelsToAdd.toArray(new ModelResourceLocation[]{}));
+        }
+
+        ItemMeshDefinition machineMesher = stack -> {
+            BlockStateTierChemicalCrystallizer.MachineType type = BlockStateTierChemicalCrystallizer.MachineType.get(stack);
+            if (type != null) {
+                String resource = MEKCeuMoreMachine.MODID + ":" + type.getName();
+                return tierChemicalCrystallizerResources.get(resource);
+            }
+            return null;
+        };
+        ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierChemicalCrystallizer), machineMesher);
+    }
+
 
     private String getProperties(List<String> entries) {
         StringBuilder properties = new StringBuilder();
@@ -202,7 +245,7 @@ public class ClientProxy extends CommonProxy {
 
     public void addModel(Block block, String type) {
         ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(block), stack -> {
-            MachineTier tier = MachineTier.values()[((ITierItem) stack.getItem()).getBaseTier(stack).ordinal()];
+            MachineTier tier = MachineTier.get(((ITierItem) stack.getItem()).getBaseTier(stack));
             ResourceLocation baseLocation = new ResourceLocation(MEKCeuMoreMachine.MODID, type);
             return new ModelResourceLocation(baseLocation, "facing=north,tier=" + tier);
         });
@@ -300,13 +343,13 @@ public class ClientProxy extends CommonProxy {
             case 18 -> new GuiSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
             case 19 -> new GuiSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             case 20 -> new GuiVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
+            case 21 -> new GuiTierChemicalCrystallizer(player.inventory, (TileEntityTierChemicalCrystallizer) tileEntity);
             default -> null;
         };
     }
 
     @Override
     public void init() {
-        MinecraftForge.EVENT_BUS.register(new ClientTickHandler());
         MinecraftForge.EVENT_BUS.register(new ConnectorPreviewRenderingHandler());
         MinecraftForge.EVENT_BUS.register(new WirelessChargingRangeWorldRenderHandler());
     }

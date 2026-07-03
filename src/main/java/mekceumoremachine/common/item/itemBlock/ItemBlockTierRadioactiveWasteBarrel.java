@@ -15,7 +15,7 @@ public class ItemBlockTierRadioactiveWasteBarrel extends ItemBlockTierMachine {
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierRadioactiveWasteBarrel tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.gasTank.setMaxGas(tile.tier.processes * TileEntityTierRadioactiveWasteBarrel.MAX_GAS);
         }
     }

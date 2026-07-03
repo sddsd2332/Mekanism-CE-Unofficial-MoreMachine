@@ -25,7 +25,7 @@ public class ItemBlockWirelessCharging extends ItemBlockMekceuMoreMachineTier {
     @Override
     void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityWirelessChargingStation tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
         }
     }
 
@@ -59,7 +59,16 @@ public class ItemBlockWirelessCharging extends ItemBlockMekceuMoreMachineTier {
     }
 
     @Override
+    public double getMachineStorage(ItemStack stack) {
+        return getWirelessStorage(stack);
+    }
+
+    @Override
     public double getMaxEnergy(ItemStack itemStack) {
+        return getEnergyCapacity(itemStack);
+    }
+
+    private double getWirelessStorage(ItemStack itemStack) {
         if (itemStack.getCount() > 1) {
             return 0;
         }

@@ -89,6 +89,11 @@ tile.TierChemicalOxidizer.Advanced.name=Advanced Chemical Oxidizer
 tile.TierChemicalOxidizer.Elite.name=Elite Chemical Oxidizer
 tile.TierChemicalOxidizer.Ultimate.name=Ultimate Chemical Oxidizer
 tooltip.TierChemicalOxidizer=A machine capable of oxidizing solid materials into gas phase.
+tile.TierChemicalCrystallizer.Basic.name=Basic Chemical Crystallizer
+tile.TierChemicalCrystallizer.Advanced.name=Advanced Chemical Crystallizer
+tile.TierChemicalCrystallizer.Elite.name=Elite Chemical Crystallizer
+tile.TierChemicalCrystallizer.Ultimate.name=Ultimate Chemical Crystallizer
+tooltip.TierChemicalCrystallizer=A machine capable of crystallizing gases into solid materials.
 
 tile.TierGasGenerator.Basic.name=Basic Gas-Burning Generator
 tile.TierGasGenerator.Advanced.name=Advanced Gas-Burning Generator

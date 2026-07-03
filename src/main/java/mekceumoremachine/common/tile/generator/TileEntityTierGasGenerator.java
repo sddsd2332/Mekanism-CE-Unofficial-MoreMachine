@@ -1,37 +1,50 @@
 package mekceumoremachine.common.tile.generator;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Action;
+import mekanism.api.AutomationType;
 import mekanism.api.EnumColor;
+import mekanism.api.IContentsListener;
+import mekanism.api.RelativeSide;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.*;
 import mekanism.common.Mekanism;
-import mekanism.common.Upgrade;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IComparatorSupport;
-import mekanism.common.base.IMachineSlotTip;
 import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.base.ISustainedData;
-import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.gas.GasTankHelper;
+import mekanism.common.capabilities.holder.gas.IGasTankHolder;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.config.MekanismConfig;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
+import mekanism.common.inventory.slot.gas.GasInventorySlot;
 import mekanism.common.recipe.GasStackFuelToEnergyRecipe;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.inputs.GasInput;
 import mekanism.common.tier.BaseTier;
+import mekanism.common.upgrade.IUpgradeData;
+import mekanism.common.upgrade.TierUpgradeData;
 import mekanism.common.util.*;
 import mekanism.generators.common.tile.TileEntityGenerator;
 import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
-import mekanism.multiblockmachine.common.tile.generator.TileEntityLargeGasGenerator;
+import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ILargeMachine;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import mekceumoremachine.common.upgrade.FirstGasGeneratorUpgradeData;
+import mekceumoremachine.common.upgrade.LargeMachineUpgradeDataApplier;
+import mekceumoremachine.common.upgrade.LargeGasGeneratorUpgradeData;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Optional.Interface;
 import net.minecraftforge.fml.common.Optional.InterfaceList;
@@ -43,7 +56,7 @@ import javax.annotation.Nonnull;
 @InterfaceList({
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
-public class TileEntityTierGasGenerator extends TileEntityGenerator implements IGasHandler, ISustainedData, IComparatorSupport, IMachineSlotTip, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
+public class TileEntityTierGasGenerator extends TileEntityGenerator implements ISustainedData, IComparatorSupport, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
 
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getGas", "getGasNeeded"};
     /**
@@ -53,47 +66,60 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     /**
      * The tank this block is storing fuel in.
      */
-    public GasTank fuelTank;
+    public ResizableGasTank fuelTank;
     public int burnTicks = 0;
     public int maxBurnTicks;
     public double generationRate = 0;
     public double clientUsed;
     private int currentRedstoneLevel;
     public GasStackFuelToEnergyRecipe cachedRecipe;
+    private int cachedRecipeVersion = -1;
+    private GasInventorySlot fuelSlot;
+    private EnergyInventorySlot energySlot;
 
     public MachineTier tier = MachineTier.BASIC;
 
     public TileEntityTierGasGenerator() {
         super("gas", "TierGasGenerator", 0, 0);
-        inventory = NonNullListSynchronized.withSize(2, ItemStack.EMPTY);
-        fuelTank = new GasTank(MAX_GAS * tier.processes);
+        initializeInventorySlots();
+    }
+
+    @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        fuelSlot = builder.addSlot(GasInventorySlot.fill(fuelTank, listener, 17, 35),
+              RelativeSide.LEFT, RelativeSide.BACK, RelativeSide.TOP, RelativeSide.BOTTOM);
+        fuelSlot.setSlotOverlay(SlotOverlay.MINUS);
+        energySlot = builder.addSlot(EnergyInventorySlot.drain(getMainEnergyContainer(listener), listener, 143, 35), RelativeSide.RIGHT);
+        energySlot.setSlotOverlay(SlotOverlay.PLUS);
+        return builder.build();
+    }
+
+    @Override
+    protected IGasTankHolder getInitialGasTanks(IContentsListener listener) {
+        GasTankHelper builder = createGasTankHelper();
+        builder.addTank(getOrCreateFuelTank(listener), RelativeSide.LEFT, RelativeSide.BACK, RelativeSide.TOP, RelativeSide.BOTTOM);
+        return builder.build();
+    }
+
+    private ResizableGasTank getOrCreateFuelTank(IContentsListener listener) {
+        if (fuelTank == null) {
+            fuelTank = new FuelTank(listener);
+        }
+        return fuelTank;
     }
 
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
-        ChargeUtils.charge(1, this);
-        if (!inventory.get(0).isEmpty() && fuelTank.getStored() < fuelTank.getMaxGas()) {
-            Gas gasType = null;
-            if (fuelTank.getGas() != null) {
-                gasType = fuelTank.getGas().getGas();
-            } else if (!inventory.get(0).isEmpty() && inventory.get(0).getItem() instanceof IGasItem gasItem) {
-                if (gasItem.getGas(inventory.get(0)) != null) {
-                    gasType = gasItem.getGas(inventory.get(0)).getGas();
-                }
-            }
-            if (gasType != null && RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.containsRecipe(gasType)) {
-                GasStack removed = GasUtils.removeGas(inventory.get(0), gasType, fuelTank.getNeeded());
-                fuelTank.receive(removed, true);
-            }
-        }
-
-        boolean operate = canOperate();
+        energySlot.drainContainer();
+        fuelSlot.fillTank();
         GasStackFuelToEnergyRecipe recipe = getRecipe();
-        if (operate && getEnergy() + generationRate < getMaxEnergy()) {
+        boolean operate = recipe != null && canOperate();
+        if (operate && getEnergyContainer().insert(generationRate, Action.SIMULATE, AutomationType.INTERNAL) == 0) {
             setActive(true);
-            if (fuelTank.getStored() != 0) {
-                maxBurnTicks = recipe.getInput().ingredient.amount;
+            if (!fuelTank.isEmpty()) {
+                maxBurnTicks = Math.max(1, recipe.getInput().ingredient.amount);
                 generationRate = recipe.getOutput().energyOutput;
             }
 
@@ -101,10 +127,10 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
 
             int total = burnTicks + fuelTank.getStored() * maxBurnTicks;
             total -= toUse;
-            setEnergy(getEnergy() + generationRate * toUse);
+            getEnergyContainer().insert(generationRate * toUse, Action.EXECUTE, AutomationType.INTERNAL);
 
-            if (fuelTank.getStored() > 0) {
-                fuelTank.setGas(new GasStack(fuelTank.getGasType(), total / maxBurnTicks));
+            if (!fuelTank.isEmpty()) {
+                fuelTank.setStackSize(total / maxBurnTicks, Action.EXECUTE);
             }
             burnTicks = total % maxBurnTicks;
             clientUsed = toUse / (double) maxBurnTicks;
@@ -126,6 +152,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         burnTicks = 0;
         maxBurnTicks = 0;
         generationRate = 0;
+        output = MekanismConfig.current().general.FROM_H2.val() * 2 * tier.processes;
     }
 
     public int getToUse() {
@@ -142,33 +169,16 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     @Override
     public boolean canExtractItem(int slotID, @Nonnull ItemStack itemstack, @Nonnull EnumFacing side) {
         if (slotID == 1) {
-            return ChargeUtils.canBeOutputted(itemstack, true);
+            return EnergyInventorySlot.drainExtractCheck(getMainEnergyContainer(), itemstack);
         } else if (slotID == 0) {
-            return itemstack.getItem() instanceof IGasItem gasItem && gasItem.getGas(itemstack) == null;
+            return GasInventorySlot.fillExtractCheck(fuelTank, itemstack);
         }
         return false;
     }
 
     @Override
-    public boolean isItemValidForSlot(int slotID, @Nonnull ItemStack itemstack) {
-        if (slotID == 0) {
-            return itemstack.getItem() instanceof IGasItem gasItem && gasItem.getGas(itemstack) != null &&
-                    RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.containsRecipe(gasItem.getGas(itemstack).getGas());
-        } else if (slotID == 1) {
-            return ChargeUtils.canBeCharged(itemstack);
-        }
-        return true;
-    }
-
-    @Nonnull
-    @Override
-    public int[] getSlotsForFace(@Nonnull EnumFacing side) {
-        return side == MekanismUtils.getRight(facing) ? new int[]{1} : new int[]{0};
-    }
-
-    @Override
     public boolean canOperate() {
-        return (fuelTank.getStored() > 0 || burnTicks > 0) && MekanismUtils.canFunction(this);
+        return (fuelTank.getStored() > 0 || burnTicks > 0) && getRecipe() != null && MekanismUtils.canFunction(this);
     }
 
     @Override
@@ -194,7 +204,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         super.handlePacketData(dataStream);
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             MachineTier prevTier = tier;
-            tier = MachineTier.values()[dataStream.readInt()];
+            tier = MachineTier.byIndex(dataStream.readInt());
             fuelTank.setMaxGas(tier.processes * MAX_GAS);
 
             generationRate = dataStream.readDouble();
@@ -219,27 +229,13 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     }
 
     @Override
-    public int receiveGas(EnumFacing side, GasStack stack, boolean doTransfer) {
-        boolean isTankEmpty = fuelTank.getGas() == null;
-        if (canReceiveGas(side, stack.getGas()) && (isTankEmpty || fuelTank.getGas().isGasEqual(stack))) {
-            return fuelTank.receive(stack, doTransfer);
-        }
-        return 0;
-    }
-
-
-    @Nonnull
-    @Override
-    public GasTankInfo[] getTankInfo() {
-        return new GasTankInfo[]{fuelTank};
-    }
-
-
-    @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
-        tier = MachineTier.values()[nbtTags.getInteger("tier")];
+        tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
+        fuelTank.setMaxGas(tier.processes * MAX_GAS);
         fuelTank.read(nbtTags.getCompoundTag("fuelTank"));
+        sanitizeFuelTank();
+        updateOutputForStoredFuel();
     }
 
     @Override
@@ -247,47 +243,6 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         super.writeCustomNBT(nbtTags);
         nbtTags.setInteger("tier", tier.ordinal());
         nbtTags.setTag("fuelTank", fuelTank.write(new NBTTagCompound()));
-    }
-
-    @Override
-    public boolean canReceiveGas(EnumFacing side, Gas type) {
-        return RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.containsRecipe(type) && side != facing;
-    }
-
-    @Override
-    public GasStack drawGas(EnumFacing side, int amount, boolean doTransfer) {
-        return null;
-    }
-
-    @Override
-    public boolean canDrawGas(EnumFacing side, Gas type) {
-        return false;
-    }
-
-    @Override
-    public boolean hasCapability(@Nonnull Capability<?> capability, EnumFacing side) {
-        if (isCapabilityDisabled(capability, side)) {
-            return false;
-        }
-        return capability == Capabilities.GAS_HANDLER_CAPABILITY || super.hasCapability(capability, side);
-    }
-
-    @Override
-    public <T> T getCapability(@Nonnull Capability<T> capability, EnumFacing side) {
-        if (isCapabilityDisabled(capability, side)) {
-            return null;
-        } else if (capability == Capabilities.GAS_HANDLER_CAPABILITY) {
-            return Capabilities.GAS_HANDLER_CAPABILITY.cast(this);
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public boolean isCapabilityDisabled(@Nonnull Capability<?> capability, EnumFacing side) {
-        if (capability == Capabilities.GAS_HANDLER_CAPABILITY) {
-            return side == facing;
-        }
-        return super.isCapabilityDisabled(capability, side);
     }
 
     @Override
@@ -301,6 +256,25 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     public void readSustainedData(ItemStack itemStack) {
         if (ItemDataUtils.hasData(itemStack, "fuelTank")) {
             fuelTank.read(ItemDataUtils.getCompound(itemStack, "fuelTank"));
+            sanitizeFuelTank();
+            updateOutputForStoredFuel();
+        }
+    }
+
+    private void sanitizeFuelTank() {
+        GasStack stored = fuelTank.getGas();
+        if (stored != null && (stored.amount <= 0 || stored.getGas() == null)) {
+            fuelTank.setEmpty();
+        } else if (stored != null) {
+            fuelTank.setStackSize(stored.amount, Action.EXECUTE);
+        }
+    }
+
+    private void updateOutputForStoredFuel() {
+        GasStackFuelToEnergyRecipe recipe = RecipeHandler.getGasStackFuelToEnergyRecipe(fuelTank.getGas());
+        if (recipe != null) {
+            generationRate = recipe.getOutput().energyOutput;
+            output = generationRate * 2 * tier.processes;
         }
     }
 
@@ -309,22 +283,12 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         return MekanismUtils.redstoneLevelFromContents(fuelTank.getStored(), fuelTank.getMaxGas());
     }
 
-    @Override
-    public boolean getEnergySlot() {
-        return inventory.get(1).isEmpty();
-    }
-
-    @Override
-    public boolean getInputSlot() {
-        return false;
-    }
-
-    @Override
-    public boolean getOuputSlot() {
-        return false;
-    }
-
     public GasStackFuelToEnergyRecipe getRecipe() {
+        int recipeVersion = RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getRecipeVersion();
+        if (cachedRecipeVersion != recipeVersion) {
+            cachedRecipe = null;
+            cachedRecipeVersion = recipeVersion;
+        }
         GasInput input = getInput();
         if (cachedRecipe == null || !input.testEquality(cachedRecipe.getInput())) {
             cachedRecipe = RecipeHandler.getGasStackFuelToEnergyRecipe(getInput());
@@ -351,15 +315,13 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     }
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+    public boolean applyTierUpgrade(BaseTier upgradeTier) {
+        if (!tier.canUpgradeTo(upgradeTier)) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE) {
-            return false;
-        }
-        tier = MachineTier.values()[upgradeTier.ordinal()];
+        tier = MachineTier.get(upgradeTier);
         fuelTank.setMaxGas(tier.processes * MAX_GAS);
+        updateOutputForStoredFuel();
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();
         return true;
@@ -381,10 +343,79 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         return MekanismConfig.current().general.FROM_H2.val() * 1000 * tier.processes * 2;
     }
 
+    private class FuelTank extends ResizableGasTank {
+
+        private FuelTank(IContentsListener listener) {
+            super(MAX_GAS * tier.processes, NOT_EXTERNAL, ALWAYS_TRUE_BI,
+                  stack -> stack != null && stack.getGas() != null && RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.containsRecipe(stack.getGas()), listener);
+        }
+
+        @Override
+        public void setStack(GasStack stack) {
+            boolean wasEmpty = isEmpty();
+            super.setStack(stack);
+            recheckOutput(stack, wasEmpty);
+        }
+
+        @Override
+        public void setStackUnchecked(GasStack stack) {
+            boolean wasEmpty = isEmpty();
+            super.setStackUnchecked(stack);
+            recheckOutput(stack, wasEmpty);
+        }
+
+        private void recheckOutput(GasStack stack, boolean wasEmpty) {
+            if (wasEmpty && stack != null && stack.amount > 0) {
+                GasStackFuelToEnergyRecipe recipe = RecipeHandler.getGasStackFuelToEnergyRecipe(stack);
+                if (recipe != null) {
+                    generationRate = recipe.getOutput().energyOutput;
+                    output = generationRate * 2 * tier.processes;
+                }
+            }
+        }
+    }
+
     public boolean isUpgrade = true;
 
     @Override
-    public boolean largeMachineUpgrade(EntityPlayer player) {
+    public IUpgradeData getUpgradeData(BaseTier upgradeTier) {
+        if (upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return new LargeGasGeneratorUpgradeData(upgradeTier, this);
+        }
+        return ITierMachine.super.getUpgradeData(upgradeTier);
+    }
+
+    @Override
+    public IBlockState getUpgradeResult(BaseTier upgradeTier) {
+        return upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE ? MultiblockMachineBlocks.LargeGasGenerator.getDefaultState() : null;
+    }
+
+    @Override
+    public void prepareForUpgrade() {
+        isUpgrade = false;
+    }
+
+    @Override
+    public boolean parseUpgradeData(IUpgradeData upgradeData) {
+        if (upgradeData instanceof FirstGasGeneratorUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
+            LargeMachineUpgradeDataApplier.applyCommon(this, data, null, securityComponent);
+            burnTicks = data.burnTicks;
+            maxBurnTicks = data.maxBurnTicks;
+            generationRate = data.generationRate;
+            clientUsed = data.clientUsed;
+            fuelTank.setGas(data.fuel == null ? null : data.fuel.copy());
+            isUpgrade = true;
+            LargeMachineUpgradeDataApplier.finish(this, null);
+            return true;
+        }
+        if (upgradeData instanceof TierUpgradeData data && data.getUpgradeTier() == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return applyLargeMachineUpgrade();
+        }
+        return ITierMachine.super.parseUpgradeData(upgradeData);
+    }
+
+    @Override
+    public boolean canLargeMachineUpgrade(EntityPlayer player) {
         if (tier != MachineTier.ULTIMATE) {
             return false;
         }
@@ -410,48 +441,12 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         if (isCanPlace) {
             return false;
         }
-        isUpgrade = false;
-        if (world.getTileEntity(getPos()) instanceof IBoundingBlock block) {
-            block.onBreak();
-        } else {
-            world.setBlockToAir(getPos());
-        }
+        return true;
+    }
 
-        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeGasGenerator.getDefaultState(), 3);
-        if (world.getTileEntity(getPos()) instanceof TileEntityLargeGasGenerator tile) {
-            tile.onPlace();
-            //Basic
-            tile.facing = facing;
-            tile.clientFacing = clientFacing;
-            tile.ticker = ticker;
-            tile.redstone = redstone;
-            tile.redstoneLastTick = redstoneLastTick;
-            tile.doAutoSync = doAutoSync;
-
-            //Electric
-            tile.electricityStored.set(electricityStored.get());
-            tile.clientUsed = clientUsed;
-            tile.maxBurnTicks = maxBurnTicks;
-            tile.generationRate = generationRate;
-
-            //Machine
-            tile.setActive(isActive);
-            tile.setControlType(getControlType());
-            tile.upgradeComponent.setUpgradeSlot(2);
-            tile.upgradeComponent.setSupported(Upgrade.ENERGY);
-            tile.upgradeComponent.setSupported(Upgrade.THREAD);//升级完后需要添加支持线程升级
-            tile.securityComponent.readFrom(securityComponent);
-            for (int i = 0; i < inventory.size(); i++) {
-                tile.inventory.set(i, inventory.get(i));
-            }
-            tile.fuelTank.setGas(fuelTank.getGas());
-            tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
-            tile.markNoUpdateSync();
-            Mekanism.packetHandler.sendUpdatePacket(tile);
-            markNoUpdateSync();
-            return true;
-        }
-        return false;
+    @Override
+    public boolean applyLargeMachineUpgrade() {
+        return ILargeMachine.super.applyLargeMachineUpgrade();
     }
 
     /**

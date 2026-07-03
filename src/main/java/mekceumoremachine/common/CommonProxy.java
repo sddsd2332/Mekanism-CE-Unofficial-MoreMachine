@@ -3,6 +3,7 @@ package mekceumoremachine.common;
 import mekanism.common.base.IGuiProvider;
 import mekanism.generators.common.inventory.container.ContainerSolarGenerator;
 import mekceumoremachine.common.inventory.container.*;
+import mekceumoremachine.common.tile.machine.TierCrystallizer.*;
 import mekceumoremachine.common.tile.generator.*;
 import mekceumoremachine.common.tile.machine.TierDissolution.*;
 import mekceumoremachine.common.tile.machine.TierNutritional.*;
@@ -50,6 +51,10 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityTierChemicalOxidizerAdvanced.class, "tier_chemical_oxidizer_advanced");
         registerTileEntity(TileEntityTierChemicalOxidizerElite.class, "tier_chemical_oxidizer_elite");
         registerTileEntity(TileEntityTierChemicalOxidizerUltimate.class, "tier_chemical_oxidizer_ultimate");
+        registerTileEntity(TileEntityTierChemicalCrystallizerBasic.class, "tier_chemical_crystallizer_basic");
+        registerTileEntity(TileEntityTierChemicalCrystallizerAdvanced.class, "tier_chemical_crystallizer_advanced");
+        registerTileEntity(TileEntityTierChemicalCrystallizerElite.class, "tier_chemical_crystallizer_elite");
+        registerTileEntity(TileEntityTierChemicalCrystallizerUltimate.class, "tier_chemical_crystallizer_ultimate");
         registerTileEntity(TileEntityTierGasGenerator.class,"tier_gas_generator");
         registerTileEntity(TileEntityReplicatorItemStack.class,"replicator_itemstack");
         registerTileEntity(TileEntityReplicatorGases.class,"replicator_gases");
@@ -109,6 +114,7 @@ public class CommonProxy implements IGuiProvider {
             case 18 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierSolarGenerator) tileEntity);
             case 19 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             case 20 -> new ContainerVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
+            case 21 -> new ContainerTierChemicalCrystallizer(player.inventory, (TileEntityTierChemicalCrystallizer) tileEntity);
             default -> null;
         };
     }

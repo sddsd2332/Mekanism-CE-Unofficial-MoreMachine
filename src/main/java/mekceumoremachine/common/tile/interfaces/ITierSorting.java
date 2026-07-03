@@ -4,6 +4,4 @@ public interface ITierSorting {
 
     boolean getsorting();
 
-    boolean getoldSorting();
-
 }

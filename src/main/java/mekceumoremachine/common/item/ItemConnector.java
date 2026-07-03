@@ -1,5 +1,6 @@
 package mekceumoremachine.common.item;
 
+import mekanism.api.Action;
 import mekanism.api.Coord4D;
 import mekanism.api.EnumColor;
 import mekanism.common.Mekanism;
@@ -7,6 +8,7 @@ import mekanism.common.item.ItemEnergized;
 import mekanism.common.item.interfaces.IModeItem;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
+import mekanism.common.util.StorageUtils;
 import mekanism.common.util.WorldUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.interfaces.ITileConnect;
@@ -58,7 +60,7 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
     public void addInformation(ItemStack itemstack, World world, List<String> list, ITooltipFlag flag) {
         super.addInformation(itemstack, world, list, flag);
         list.add(EnumColor.DARK_AQUA + LangUtils.localize("tooltip.connector.preview_mode") + ": " + LangUtils.localize(getPreviewModeLocalizationKey(itemstack)));
-        if (getEnergy(itemstack) >= ENERGY_PER_CONFIGURE) {
+        if (StorageUtils.getStoredEnergy(itemstack) >= ENERGY_PER_CONFIGURE) {
             Coord4D data = getDataType(itemstack);
             if (data != null) {
                 list.add(EnumColor.ORANGE + LangUtils.localize("tooltip.connector.detail"));
@@ -83,7 +85,7 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
             if (!(tile instanceof ITileConnect)) {
                 return EnumActionResult.PASS;
             }
-            if (getEnergy(stack) >= ENERGY_PER_CONFIGURE) {
+            if (StorageUtils.getStoredEnergy(stack) >= ENERGY_PER_CONFIGURE) {
                 if (!world.isRemote) {
                     NBTTagCompound data = getBaseData(tile);
                     if (!data.isEmpty()) {
@@ -110,7 +112,7 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
                 return EnumActionResult.PASS;
             }
             //绑定的方块相同
-            if (pos == data.getPos()) {
+            if (pos.equals(data.getPos())) {
                 sendServerMessage(world, player, EnumColor.RED, "tooltip.connector.self");
                 return EnumActionResult.PASS;
             }
@@ -118,7 +120,7 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
             // 获取保存位置的方块实体
             if (WorldUtils.getTileEntity(world, data.getPos()) instanceof ITileConnect linkTile) {
                 if (world.isBlockLoaded(linkTile.getPosition().getPos())) {
-                    if (getEnergy(stack) >= ENERGY_PER_CONFIGURE) {
+                    if (StorageUtils.getStoredEnergy(stack) >= ENERGY_PER_CONFIGURE) {
                         //如果是客户端直接返回成功，等服务端处理完后会同步数据到客户端，客户端再刷新显示数据
                         //主要是是防止IC2的获取机器报错
                         if (world.isRemote) {
@@ -162,7 +164,7 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
     // Helper to consume configuration energy if player is not in creative mode
     private void consumeConfigureEnergy(ItemStack stack, EntityPlayer player) {
         if (!player.isCreative()) {
-            setEnergy(stack, getEnergy(stack) - ENERGY_PER_CONFIGURE);
+            StorageUtils.extractEnergy(stack, ENERGY_PER_CONFIGURE, Action.EXECUTE);
         }
     }
 

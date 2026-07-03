@@ -3,8 +3,10 @@ package mekceumoremachine.common.item.itemBlock;
 import cofh.redstoneflux.api.IEnergyContainerItem;
 import ic2.api.item.IElectricItemManager;
 import ic2.api.item.ISpecialElectricItem;
-import mekanism.api.energy.IEnergizedItem;
+import mekanism.api.Action;
+import mekanism.api.functions.ConstantPredicates;
 import mekanism.common.capabilities.ItemCapabilityWrapper;
+import mekanism.common.capabilities.energy.item.RateLimitEnergyHandler;
 import mekanism.common.integration.MekanismHooks;
 import mekanism.common.integration.forgeenergy.ForgeEnergyItemWrapper;
 import mekanism.common.integration.ic2.IC2ItemManager;
@@ -13,6 +15,7 @@ import mekanism.common.integration.tesla.TeslaItemWrapper;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.StorageUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -31,7 +34,7 @@ import net.minecraftforge.fml.common.Optional.InterfaceList;
         @Interface(iface = "cofh.redstoneflux.api.IEnergyContainerItem", modid = MekanismHooks.REDSTONEFLUX_MOD_ID),
         @Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = MekanismHooks.IC2_MOD_ID)
 })
-public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMoreMachineInventory implements IEnergizedItem, ISpecialElectricItem, IEnergyContainerItem {
+public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMoreMachineInventory implements ISpecialElectricItem, IEnergyContainerItem {
 
     public ItemBlockMekceuMoreMachineEnergy(Block block, String tierName) {
         super(block, tierName);
@@ -41,39 +44,30 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
     public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state , TileEntity tileEntity) {
         super.addOtherMachine(stack,player,world,pos,side,hitX,hitY,hitZ,state,tileEntity);
         if (tileEntity instanceof TileEntityElectricBlock tile) {
-            tile.electricityStored.set(getEnergy(stack));
+            tile.setEnergy(StorageUtils.getStoredEnergyFromItemData(stack));
         }
     }
 
-    @Override
     public double getEnergy(ItemStack itemStack) {
-        if (itemStack.getCount() > 1) {
-            return 0;
-        }
-        if (!itemStack.hasTagCompound()) {
-            return 0;
-        }
-        return ItemDataUtils.getDouble(itemStack, "energyStored");
+        return StorageUtils.getStoredEnergy(itemStack);
     }
 
-    @Override
     public void setEnergy(ItemStack itemStack, double amount) {
+        setStoredEnergy(itemStack, amount);
+    }
+
+    public void setStoredEnergy(ItemStack itemStack, double amount) {
         if (itemStack.getCount() > 1) {
             return;
         }
-        if (amount == 0) {
-            NBTTagCompound dataMap = ItemDataUtils.getDataMap(itemStack);
-            dataMap.removeTag("energyStored");
-            if (dataMap.isEmpty() && itemStack.getTagCompound() != null) {
-                itemStack.getTagCompound().removeTag(ItemDataUtils.DATA_ID);
-            }
-        } else {
-            ItemDataUtils.setDouble(itemStack, "energyStored", Math.max(Math.min(amount, getMaxEnergy(itemStack)), 0));
-        }
+        StorageUtils.setStoredEnergy(itemStack, amount, getEnergyCapacity(itemStack));
     }
 
-    @Override
     public double getMaxEnergy(ItemStack itemStack) {
+        return getEnergyCapacity(itemStack);
+    }
+
+    public double getEnergyCapacity(ItemStack itemStack) {
         if (itemStack.getCount() > 1) {
             return 0;
         }
@@ -84,21 +78,30 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
     abstract double getMachineStorage(ItemStack stack);
 
 
-    @Override
     public double getMaxTransfer(ItemStack itemStack) {
+        return getEnergyTransfer(itemStack);
+    }
+
+    public double getEnergyTransfer(ItemStack itemStack) {
         if (itemStack.getCount() > 1) {
             return 0;
         }
-        return getMaxEnergy(itemStack) * 0.005;
+        return getEnergyCapacity(itemStack) * 0.005;
     }
 
-    @Override
     public boolean canReceive(ItemStack itemStack) {
+        return canReceiveEnergy(itemStack);
+    }
+
+    public boolean canReceiveEnergy(ItemStack itemStack) {
         return itemStack.getCount() <= 1;
     }
 
-    @Override
     public boolean canSend(ItemStack itemStack) {
+        return canSendEnergy(itemStack);
+    }
+
+    public boolean canSendEnergy(ItemStack itemStack) {
         return false;
     }
 
@@ -108,13 +111,10 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
         if (theItem.getCount() > 1) {
             return 0;
         }
-        if (canReceive(theItem)) {
-            double energyNeeded = getMaxEnergy(theItem) - getEnergy(theItem);
-            double toReceive = Math.min(RFIntegration.fromRF(energy), energyNeeded);
-            if (!simulate) {
-                setEnergy(theItem, getEnergy(theItem) + toReceive);
-            }
-            return RFIntegration.toRF(toReceive);
+        if (canReceiveEnergy(theItem)) {
+            double amount = RFIntegration.fromRF(energy);
+            double remainder = StorageUtils.insertEnergy(theItem, amount, Action.get(!simulate));
+            return RFIntegration.toRF(amount - remainder);
         }
         return 0;
     }
@@ -125,13 +125,8 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
         if (theItem.getCount() > 1) {
             return 0;
         }
-        if (canSend(theItem)) {
-            double energyRemaining = getEnergy(theItem);
-            double toSend = Math.min(RFIntegration.fromRF(energy), energyRemaining);
-            if (!simulate) {
-                setEnergy(theItem, getEnergy(theItem) - toSend);
-            }
-            return RFIntegration.toRF(toSend);
+        if (canSendEnergy(theItem)) {
+            return RFIntegration.toRF(StorageUtils.extractEnergy(theItem, RFIntegration.fromRF(energy), Action.get(!simulate)));
         }
         return 0;
     }
@@ -142,7 +137,7 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
         if (theItem.getCount() > 1) {
             return 0;
         }
-        return RFIntegration.toRF(getEnergy(theItem));
+        return RFIntegration.toRF(StorageUtils.getStoredEnergy(theItem));
     }
 
     @Override
@@ -151,28 +146,30 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
         if (theItem.getCount() > 1) {
             return 0;
         }
-        return RFIntegration.toRF(getMaxEnergy(theItem));
+        return RFIntegration.toRF(getEnergyCapacity(theItem));
     }
 
     @Override
     public boolean showDurabilityBar(ItemStack stack) {
-        return getEnergy(stack) > 0;
+        return stack.getCount() == 1 && StorageUtils.getStoredEnergy(stack) > 0;
     }
 
 
     @Override
     public double getDurabilityForDisplay(ItemStack stack) {
-        return 1D - (getEnergy(stack) / getMaxEnergy(stack));
+        double capacity = getEnergyCapacity(stack);
+        return capacity <= 0 ? 1D : 1D - (StorageUtils.getStoredEnergy(stack) / capacity);
     }
 
     @Override
     @Method(modid = MekanismHooks.IC2_MOD_ID)
     public IElectricItemManager getManager(ItemStack itemStack) {
-        return IC2ItemManager.getManager(this);
+        return IC2ItemManager.getManager();
     }
 
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
-        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper());
+        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper(),
+              RateLimitEnergyHandler.create(() -> getEnergyTransfer(stack), () -> getEnergyCapacity(stack), ConstantPredicates.alwaysFalse(), ConstantPredicates.alwaysTrue()));
     }
 }

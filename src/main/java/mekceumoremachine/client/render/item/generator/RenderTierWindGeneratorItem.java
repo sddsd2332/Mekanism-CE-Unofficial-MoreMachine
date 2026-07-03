@@ -31,7 +31,7 @@ public class RenderTierWindGeneratorItem extends MekanismItemStackRenderer {
 
     @Override
     protected void renderBlockSpecific(@Nonnull ItemStack stack, ItemCameraTransforms.TransformType transformType) {
-        MachineTier tier = MachineTier.values()[((ITierItem) stack.getItem()).getBaseTier(stack).ordinal()];
+        MachineTier tier = MachineTier.get(((ITierItem) stack.getItem()).getBaseTier(stack));
         GlStateManager.pushMatrix();
         GlStateManager.rotate(180, 0, 0, 1);
         if (transformType == ItemCameraTransforms.TransformType.THIRD_PERSON_RIGHT_HAND || transformType == ItemCameraTransforms.TransformType.THIRD_PERSON_LEFT_HAND) {

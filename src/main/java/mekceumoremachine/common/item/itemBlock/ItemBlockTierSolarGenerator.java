@@ -16,7 +16,7 @@ public class ItemBlockTierSolarGenerator extends ItemBlockMekceuMoreMachineTier 
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierSolarGenerator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
         }
     }
 

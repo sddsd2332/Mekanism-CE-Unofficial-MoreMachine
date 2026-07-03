@@ -25,7 +25,7 @@ public class RenderWirelessChargingStationItem extends MekanismItemStackRenderer
 
     @Override
     protected void renderBlockSpecific(@Nonnull ItemStack stack, ItemCameraTransforms.TransformType transformType) {
-        MachineTier tier = MachineTier.values()[((ITierItem) stack.getItem()).getBaseTier(stack).ordinal()];
+        MachineTier tier = MachineTier.get(((ITierItem) stack.getItem()).getBaseTier(stack));
         GlStateManager.pushMatrix();
         GlStateManager.rotate(180, 0, 0, 1);
         GlStateManager.translate(0, -0.125F, 0);

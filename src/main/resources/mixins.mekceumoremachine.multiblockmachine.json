@@ -1,0 +1,17 @@
+{
+  "package": "mekceumoremachine.mixin.multiblockmachine",
+  "refmap": "mixins.mekceumoremachine.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinTileEntityLargeChemicalInfuser",
+    "MixinTileEntityLargeChemicalWasher",
+    "MixinTileEntityLargeElectrolyticSeparator",
+    "MixinTileEntityLargeGasGenerator",
+    "MixinTileEntityLargeSolarNeutronActivator",
+    "MixinTileEntityLargeWindGenerator"
+  ],
+  "server": [],
+  "client": []
+}

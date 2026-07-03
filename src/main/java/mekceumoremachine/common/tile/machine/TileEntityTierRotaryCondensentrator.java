@@ -1,27 +1,57 @@
 package mekceumoremachine.common.tile.machine;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.AutomationType;
 import mekanism.api.IConfigCardAccess;
+import mekanism.api.IContentsListener;
+import mekanism.api.RelativeSide;
 import mekanism.api.TileNetworkList;
+import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.gas.*;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
-import mekanism.common.SideData;
 import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.fluid.FluidTankHelper;
+import mekanism.common.capabilities.holder.fluid.IFluidTankHolder;
+import mekanism.common.capabilities.holder.gas.GasTankHelper;
+import mekanism.common.capabilities.holder.gas.IGasTankHolder;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.config.MekanismConfig;
+import mekanism.common.inventory.container.MekanismContainer;
+import mekanism.common.inventory.container.slot.ContainerSlotType;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
+import mekanism.common.inventory.slot.FluidInventorySlot;
+import mekanism.common.inventory.slot.OutputInventorySlot;
+import mekanism.common.inventory.slot.gas.GasInventorySlot;
 import mekanism.common.network.PacketTileEntity;
+import mekanism.common.recipe.RecipeHandler;
+import mekanism.common.recipe.cache.CachedRecipe;
+import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
+import mekanism.common.recipe.cache.IRecipeLookupHandler;
+import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
+import mekanism.common.recipe.cache.RotaryCachedRecipe;
+import mekanism.common.recipe.cache.inputs.InputHelper;
+import mekanism.common.recipe.cache.outputs.OutputHelper;
+import mekanism.common.recipe.machines.RotaryRecipe;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.component.TileComponentConfig;
 import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityMachine;
+import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.util.*;
+import mekceumoremachine.common.capability.ResizableFluidTank;
+import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import mekceumoremachine.common.upgrade.FirstRotaryCondensentratorUpgradeData;
+import mekceumoremachine.common.upgrade.LargeMachineUpgradeDataApplier;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -30,24 +60,37 @@ import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.fluids.FluidTankInfo;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
-public class TileEntityTierRotaryCondensentrator extends TileEntityMachine implements ISustainedData, IFluidHandlerWrapper, IGasHandler, Upgrade.IUpgradeInfoHandler, ITankManager,
-        IComparatorSupport, ISideConfiguration, IConfigCardAccess.ISpecialConfigData, IMachineSlotTip, ITierMachine<MachineTier>, ISpecialSelectionWireframeTile {
+public class TileEntityTierRotaryCondensentrator extends TileEntityMachine implements ISustainedData, Upgrade.IUpgradeInfoHandler, ITankManager,
+        IComparatorSupport, ISideConfiguration, IConfigCardAccess.ISpecialConfigData, ITierMachine<MachineTier>, ISpecialSelectionWireframeTile,
+        IRecipeLookupHandler<RotaryRecipe> {
 
 
     public static final int MAX_FLUID = 10000;
-    public GasTank gasTank;
-    public FluidTank fluidTank;
+    public static final RecipeError NOT_ENOUGH_FLUID_INPUT_ERROR = RecipeError.create();
+    public static final RecipeError NOT_ENOUGH_GAS_INPUT_ERROR = RecipeError.create();
+    public static final RecipeError NOT_ENOUGH_SPACE_GAS_OUTPUT_ERROR = RecipeError.create();
+    public static final RecipeError NOT_ENOUGH_SPACE_FLUID_OUTPUT_ERROR = RecipeError.create();
+    private static final List<RecipeError> TRACKED_ERROR_TYPES = Arrays.asList(
+          RecipeError.NOT_ENOUGH_ENERGY,
+          RecipeError.NOT_ENOUGH_ENERGY_REDUCED_RATE,
+          NOT_ENOUGH_FLUID_INPUT_ERROR,
+          NOT_ENOUGH_GAS_INPUT_ERROR,
+          NOT_ENOUGH_SPACE_GAS_OUTPUT_ERROR,
+          NOT_ENOUGH_SPACE_FLUID_OUTPUT_ERROR,
+          RecipeError.INPUT_DOESNT_PRODUCE_OUTPUT
+    );
+    public ResizableGasTank gasTank;
+    public ResizableFluidTank fluidTank;
 
     /**
      * true: gas -> fluid; false: fluid -> gas
@@ -60,88 +103,121 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
 
     public TileComponentConfig configComponent;
 
+    private final RecipeCacheLookupMonitor<RotaryRecipe> recipeCacheLookupMonitor = new RecipeCacheLookupMonitor<>(this);
+    private final boolean[] trackedErrors = new boolean[TRACKED_ERROR_TYPES.size()];
     private int currentRedstoneLevel;
+    private RotaryRecipe cachedRecipe;
+    private int cachedRecipeVersion = -1;
 
     public MachineTier tier = MachineTier.BASIC;
+    private GasInventorySlot gasOutputSlot;
+    private GasInventorySlot gasInputSlot;
+    private FluidInventorySlot fluidSlot;
+    private OutputInventorySlot fluidContainerOutputSlot;
+    private EnergyInventorySlot energySlot;
 
     public TileEntityTierRotaryCondensentrator() {
         super("machine.rotarycondensentrator", "TierRotaryCondensentrator", 0, MachineType.ROTARY_CONDENSENTRATOR.getUsage(), 5);
-        gasTank = new GasTank(MAX_FLUID * tier.processes);
-        fluidTank = new FluidTankSync(MAX_FLUID * tier.processes);
 
         configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.ENERGY, TransmissionType.GAS, TransmissionType.FLUID);
 
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.ENERGY, new int[]{4}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.FLUID, new int[]{2, 3}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.GAS, new int[]{0, 1}));
-        configComponent.setConfig(TransmissionType.ITEM, new byte[]{2, 1, 2, 2, 3, 2});
-
-        configComponent.addOutput(TransmissionType.FLUID, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.FLUID, new SideData(DataType.FLUID, new int[]{0}));
-        configComponent.setConfig(TransmissionType.FLUID, new byte[]{0, 0, 0, 0, 0, 1});
-
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.GAS, new int[]{1}));
-        configComponent.setConfig(TransmissionType.GAS, new byte[]{0, 0, 0, 0, 1, 0});
+        initializeInventorySlots();
+        configComponent.setupItemIOConfig(Arrays.asList(gasInputSlot, fluidSlot), Arrays.asList(gasOutputSlot, fluidContainerOutputSlot), energySlot, true);
+        configComponent.setConfig(TransmissionType.ITEM, DataType.INPUT, DataType.ENERGY, DataType.INPUT, DataType.INPUT, DataType.OUTPUT, DataType.OUTPUT);
+        configComponent.setupIOConfig(TransmissionType.GAS, gasTank, RelativeSide.LEFT, true).setEjecting(true);
+        configComponent.setupFluidIOConfig(fluidTank, RelativeSide.RIGHT, true).setEjecting(true);
 
         configComponent.setInputConfig(TransmissionType.ENERGY);
 
-        inventory = NonNullListSynchronized.withSize(6, ItemStack.EMPTY);
-
         ejectorComponent = new TileComponentEjector(this);
+        ejectorComponent.setOutputData(configComponent, TransmissionType.GAS, TransmissionType.FLUID)
+              .setCanEject(transmissionType -> {
+                  if (transmissionType == TransmissionType.GAS) {
+                      return !mode;
+                  } else if (transmissionType == TransmissionType.FLUID) {
+                      return mode;
+                  }
+                  return true;
+              });
+    }
 
-        ejectorComponent.setOutputData(TransmissionType.GAS, configComponent.getOutputs(TransmissionType.GAS).get(1));
-        ejectorComponent.setOutputData(TransmissionType.FLUID, configComponent.getOutputs(TransmissionType.FLUID).get(1));
+    @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        BooleanSupplier modeSupplier = () -> !mode;
+        gasOutputSlot = builder.addSlot(GasInventorySlot.rotaryDrain(gasTank, modeSupplier, listener, 5, 25));
+        gasOutputSlot.setSlotType(ContainerSlotType.INPUT);
+        gasOutputSlot.setSlotOverlay(SlotOverlay.PLUS);
+        gasInputSlot = builder.addSlot(GasInventorySlot.rotaryFill(gasTank, modeSupplier, listener, 5, 56));
+        gasInputSlot.setSlotType(ContainerSlotType.OUTPUT);
+        gasInputSlot.setSlotOverlay(SlotOverlay.MINUS);
+        fluidSlot = builder.addSlot(FluidInventorySlot.rotary(fluidTank, modeSupplier, listener, 155, 25));
+        fluidSlot.setSlotType(ContainerSlotType.INPUT);
+        fluidContainerOutputSlot = builder.addSlot(OutputInventorySlot.at(listener, 155, 56));
+        energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 155, 5));
+        return builder.build();
+    }
+
+    @Override
+    protected IGasTankHolder getInitialGasTanks(IContentsListener listener) {
+        GasTankHelper builder = createGasTankHelper();
+        builder.addTank(getOrCreateGasTank(listener));
+        return builder.build();
+    }
+
+    @Override
+    protected IFluidTankHolder getInitialFluidTanks(IContentsListener listener) {
+        FluidTankHelper builder = createFluidTankHelper();
+        builder.addTank(getOrCreateFluidTank(listener));
+        return builder.build();
+    }
+
+    private IContentsListener getRecipeCacheChangeListener(@Nullable IContentsListener listener) {
+        return () -> {
+            if (listener != null) {
+                listener.onContentsChanged();
+            }
+            recipeCacheLookupMonitor.onChange();
+        };
+    }
+
+    private ResizableGasTank getOrCreateGasTank(IContentsListener listener) {
+        if (gasTank == null) {
+            gasTank = new ResizableGasTank(MAX_FLUID * tier.processes,
+                  (stack, automationType) -> automationType == AutomationType.MANUAL || automationType == AutomationType.INTERNAL || !mode,
+                  (stack, automationType) -> automationType == AutomationType.INTERNAL || mode,
+                  stack -> stack != null && isValidGas(stack), getRecipeCacheChangeListener(listener));
+        }
+        return gasTank;
+    }
+
+    private ResizableFluidTank getOrCreateFluidTank(IContentsListener listener) {
+        if (fluidTank == null) {
+            fluidTank = new ResizableFluidTank(MAX_FLUID * tier.processes,
+                  (fluid, automationType) -> automationType == AutomationType.MANUAL || automationType == AutomationType.INTERNAL || mode,
+                  (fluid, automationType) -> automationType == AutomationType.INTERNAL || !mode,
+                  this::isValidFluid, getRecipeCacheChangeListener(listener));
+        }
+        return fluidTank;
     }
 
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
-        ChargeUtils.discharge(4, this);
-        if (!MekanismConfig.current().mekce.RotaryCondensentratorAuto.val()) {
-            Autoeject(); //Used to deal with the problem that gas/fluid will automatically return to the tank when the ejection mode is on.
-        }
+        energySlot.fillContainerOrConvert();
         if (mode) {
-            TileUtils.receiveGasItem(inventory.get(1), gasTank);
-            if (FluidContainerUtils.isFluidContainer(inventory.get(2))) {
-                FluidContainerUtils.handleContainerItemFill(this, fluidTank, 2, 3);
-                if (fluidTank.getFluid() != null && fluidTank.getFluidAmount() == 0) {
-                    fluidTank.setFluid(null);
-                }
-            }
-            if (getEnergy() >= energyPerTick && MekanismUtils.canFunction(this) && isValidGas(gasTank.getGas()) &&
-                    (fluidTank.getFluid() == null || (fluidTank.getFluidAmount() < fluidTank.getCapacity() && gasEquals(gasTank.getGas(), fluidTank.getFluid())))) {
-                int operations = getUpgradedUsage();
-                double prev = getEnergy();
-
-                setActive(true);
-                fluidTank.fill(new FluidStack(gasTank.stored.getGas().getFluid(), operations), true);
-                gasTank.draw(operations, true);
-                setEnergy(getEnergy() - energyPerTick * operations);
-                clientEnergyUsed = prev - getEnergy();
-            } else if (prevEnergy >= getEnergy()) {
-                setActive(false);
+            gasInputSlot.fillTank();
+            fluidSlot.drainTank(fluidContainerOutputSlot);
+            if (fluidTank.getFluid() != null && fluidTank.getFluidAmount() == 0) {
+                fluidTank.setEmpty();
             }
         } else {
-            TileUtils.drawGas(inventory.get(0), gasTank);
-            if (FluidContainerUtils.isFluidContainer(inventory.get(2)) && fluidTank.getFluidAmount() != fluidTank.getCapacity()) {
-                FluidContainerUtils.handleContainerItemEmpty(this, fluidTank, 2, 3);
-            }
-
-            if (getEnergy() >= energyPerTick && MekanismUtils.canFunction(this) && isValidFluid(fluidTank.getFluid()) &&
-                    (gasTank.getGas() == null || (gasTank.getStored() < gasTank.getMaxGas() && gasEquals(gasTank.getGas(), fluidTank.getFluid())))) {
-                int operations = getUpgradedUsage();
-                double prev = getEnergy();
-
-                setActive(true);
-                gasTank.receive(new GasStack(GasRegistry.getGas(fluidTank.getFluid().getFluid()), operations), true);
-                fluidTank.drain(operations, true);
-                setEnergy(getEnergy() - energyPerTick * operations);
-                clientEnergyUsed = prev - getEnergy();
-            } else if (prevEnergy >= getEnergy()) {
-                setActive(false);
-            }
+            gasOutputSlot.drainTank();
+            fluidSlot.fillTank(fluidContainerOutputSlot);
+        }
+        clientEnergyUsed = recipeCacheLookupMonitor.updateAndProcess(getMainEnergyContainer());
+        if (recipeCacheLookupMonitor.getCachedRecipe(0) == null && prevEnergy >= getEnergy()) {
+            setActive(false);
         }
         prevEnergy = getEnergy();
         int newRedstoneLevel = getRedstoneLevel();
@@ -152,43 +228,102 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         }
     }
 
-    public void Autoeject() {
-        if (mode) {
-            configComponent.setEjecting(TransmissionType.GAS, false);
-            configComponent.setEjecting(TransmissionType.FLUID, true);
-        } else {
-            configComponent.setEjecting(TransmissionType.GAS, true);
-            configComponent.setEjecting(TransmissionType.FLUID, false);
-        }
-    }
-
     public int getUpgradedUsage() {
         int possibleProcess = Math.min((int) Math.pow(2, upgradeComponent.getUpgrades(Upgrade.SPEED)), MekanismConfig.current().mekce.MAXspeedmachines.val());
-        possibleProcess *= tier.processes;
-        if (mode) { //Gas to fluid
-            possibleProcess = Math.min(Math.min(gasTank.getStored(), fluidTank.getCapacity() - fluidTank.getFluidAmount()), possibleProcess);
-        } else { //Fluid to gas
-            possibleProcess = Math.min(Math.min(fluidTank.getFluidAmount(), gasTank.getNeeded()), possibleProcess);
-        }
-        possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
-        possibleProcess = Math.max(possibleProcess, 1);
-        return Math.min(mode ? gasTank.getStored() : fluidTank.getFluidAmount(), possibleProcess);
+        return Math.max(possibleProcess, 1) * tier.processes;
     }
 
     public boolean isValidGas(GasStack g) {
-        return g != null && g.getGas().hasFluid();
-    }
-
-    public boolean gasEquals(GasStack gas, FluidStack fluid) {
-        return fluid != null && gas != null && gas.getGas().hasFluid() && gas.getGas().getFluid() == fluid.getFluid();
+        return RecipeHandler.isRotaryGasValid(g);
     }
 
     public boolean isValidFluid(@Nonnull Fluid f) {
-        return GasRegistry.getGas(f) != null;
+        return RecipeHandler.isRotaryFluidValid(new FluidStack(f, 1));
     }
 
     public boolean isValidFluid(FluidStack f) {
-        return f != null && isValidFluid(f.getFluid());
+        return RecipeHandler.isRotaryFluidValid(f);
+    }
+
+    public RotaryRecipe getRecipe() {
+        int recipeVersion = RecipeHandler.Recipe.ROTARY_CONDENSENTRATOR.getRecipeVersion();
+        if (cachedRecipeVersion != recipeVersion) {
+            cachedRecipe = null;
+            cachedRecipeVersion = recipeVersion;
+        }
+        if (mode) {
+            GasStack input = gasTank.getGas();
+            if (cachedRecipe == null || !cachedRecipe.test(input)) {
+                cachedRecipe = RecipeHandler.getRotaryRecipe(input);
+            }
+        } else {
+            FluidStack input = fluidTank.getFluid();
+            if (cachedRecipe == null || !cachedRecipe.test(input)) {
+                cachedRecipe = RecipeHandler.getRotaryRecipe(input);
+            }
+        }
+        return cachedRecipe;
+    }
+
+    @Override
+    public RotaryRecipe getRecipe(int cacheIndex) {
+        return getRecipe();
+    }
+
+    @Override
+    public CachedRecipe<RotaryRecipe> createNewCachedRecipe(RotaryRecipe recipe, int cacheIndex) {
+        return new RotaryCachedRecipe(recipe, () -> false,
+              InputHelper.getFluidInputHandler(fluidTank, NOT_ENOUGH_FLUID_INPUT_ERROR),
+              InputHelper.getGasInputHandler(gasTank, NOT_ENOUGH_GAS_INPUT_ERROR),
+              OutputHelper.getGasOutputHandler(gasTank, NOT_ENOUGH_SPACE_GAS_OUTPUT_ERROR),
+              OutputHelper.getOutputHandler(fluidTank, NOT_ENOUGH_SPACE_FLUID_OUTPUT_ERROR),
+              () -> !mode)
+              .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
+              .setActive(active -> {
+                  if (active || prevEnergy >= getEnergy()) {
+                      setActive(active);
+                  }
+              })
+              .setEnergyRequirements(() -> energyPerTick, getMainEnergyContainer())
+              .setBaselineMaxOperations(this::getUpgradedUsage)
+              .setErrorsChanged(errors -> {
+                  for (int i = 0; i < trackedErrors.length; i++) {
+                      trackedErrors[i] = errors.contains(TRACKED_ERROR_TYPES.get(i));
+                  }
+              })
+              .setOnFinish(this::markNoUpdateSync);
+    }
+
+    @Override
+    public void clearRecipeErrors(int cacheIndex) {
+        Arrays.fill(trackedErrors, false);
+    }
+
+    @Override
+    public void onCachedRecipeChanged(CachedRecipe<RotaryRecipe> recipeCache, int cacheIndex) {
+        cachedRecipe = recipeCache == null ? null : recipeCache.getRecipe();
+    }
+
+    @Override
+    public void onRecipeCacheInvalidated(int cacheIndex) {
+        cachedRecipe = null;
+        cachedRecipeVersion = RecipeHandler.Recipe.ROTARY_CONDENSENTRATOR.getRecipeVersion();
+    }
+
+    @Override
+    public void addContainerTrackers(MekanismContainer container) {
+        super.addContainerTrackers(container);
+        container.trackArray(trackedErrors);
+    }
+
+    public java.util.function.BooleanSupplier getWarningCheck(RecipeError error) {
+        int errorIndex = TRACKED_ERROR_TYPES.indexOf(error);
+        return errorIndex == -1 ? () -> false : () -> trackedErrors[errorIndex];
+    }
+
+    private void updateTankCapacities() {
+        fluidTank.setCapacity(MAX_FLUID * tier.processes);
+        gasTank.setMaxGas(MAX_FLUID * tier.processes);
     }
 
     @Override
@@ -197,6 +332,8 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
             int type = dataStream.readInt();
             if (type == 0) {
                 mode = !mode;
+                cachedRecipe = null;
+                recipeCacheLookupMonitor.onChange();
             }
             playersUsing.forEach(player -> Mekanism.packetHandler.sendTo(new PacketTileEntity.TileEntityMessage(this), (EntityPlayerMP) player));
             return;
@@ -205,9 +342,8 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         super.handlePacketData(dataStream);
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             MachineTier prevTier = tier;
-            tier = MachineTier.values()[dataStream.readInt()];
-            fluidTank.setCapacity(MAX_FLUID * tier.processes);
-            gasTank.setMaxGas(MAX_FLUID * tier.processes);
+            tier = MachineTier.byIndex(dataStream.readInt());
+            updateTankCapacities();
             mode = dataStream.readBoolean();
             clientEnergyUsed = dataStream.readDouble();
             TileUtils.readTankData(dataStream, fluidTank);
@@ -233,7 +369,8 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
-        tier = MachineTier.values()[nbtTags.getInteger("tier")];
+        tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
+        updateTankCapacities();
         mode = nbtTags.getBoolean("mode");
         gasTank.read(nbtTags.getCompoundTag("gasTank"));
         if (nbtTags.hasKey("fluidTank")) {
@@ -252,53 +389,17 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     }
 
     @Override
-    public int receiveGas(EnumFacing side, GasStack stack, boolean doTransfer) {
-        if (canReceiveGas(side, stack.getGas())) {
-            return gasTank.receive(stack, doTransfer);
-        }
-        return 0;
-    }
-
-    @Override
-    public GasStack drawGas(EnumFacing side, int amount, boolean doTransfer) {
-        if (canDrawGas(side, null)) {
-            return gasTank.draw(amount, doTransfer);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean canDrawGas(EnumFacing side, Gas type) {
-        return !mode && configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(1) && gasTank.canDraw(type);
-    }
-
-    @Override
-    public boolean canReceiveGas(EnumFacing side, Gas type) {
-        return mode && configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(1) && gasTank.canReceive(type);
-    }
-
-    @Nonnull
-    @Override
-    public GasTankInfo[] getTankInfo() {
-        return new GasTankInfo[]{gasTank};
-    }
-
-    @Override
     public boolean hasCapability(@Nonnull Capability<?> capability, EnumFacing side) {
         if (isCapabilityDisabled(capability, side)) {
             return false;
         }
-        return capability == Capabilities.GAS_HANDLER_CAPABILITY || capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || capability == Capabilities.CONFIG_CARD_CAPABILITY || capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY || super.hasCapability(capability, side);
+        return capability == Capabilities.CONFIG_CARD_CAPABILITY || capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY || super.hasCapability(capability, side);
     }
 
     @Override
     public <T> T getCapability(@Nonnull Capability<T> capability, EnumFacing side) {
         if (isCapabilityDisabled(capability, side)) {
             return null;
-        } else if (capability == Capabilities.GAS_HANDLER_CAPABILITY) {
-            return Capabilities.GAS_HANDLER_CAPABILITY.cast(this);
-        } else if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
-            return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(new FluidHandlerWrapper(this, side));
         } else if (capability == Capabilities.CONFIG_CARD_CAPABILITY) {
             return Capabilities.CONFIG_CARD_CAPABILITY.cast(this);
         } else if (capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY) {
@@ -329,68 +430,14 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     }
 
     @Override
-    public int fill(EnumFacing from, @Nonnull FluidStack resource, boolean doFill) {
-        return fluidTank.fill(resource, doFill);
-    }
-
-    @Override
-    @Nullable
-    public FluidStack drain(EnumFacing from, int maxDrain, boolean doDrain) {
-        return fluidTank.drain(maxDrain, doDrain);
-    }
-
-    @Override
-    public boolean canFill(EnumFacing from, @Nonnull FluidStack fluid) {
-        return !mode && configComponent.getOutput(TransmissionType.FLUID, from, facing).hasSlot(0) && FluidContainerUtils.canFill(fluidTank.getFluid(), fluid);
-    }
-
-    @Override
-    public boolean canDrain(EnumFacing from, @Nullable FluidStack fluid) {
-        return mode && configComponent.getOutput(TransmissionType.FLUID, from, facing).hasSlot(0) && FluidContainerUtils.canDrain(fluidTank.getFluid(), fluid);
-    }
-
-    @Override
-    public FluidTankInfo[] getTankInfo(EnumFacing from) {
-
-        SideData data = configComponent.getOutput(TransmissionType.FLUID, from, facing);
-        return data.getFluidTankInfo(this);
-    }
-
-    @Override
-    public FluidTankInfo[] getAllTanks() {
-        return new FluidTankInfo[]{fluidTank.getInfo()};
-    }
-
-    @Override
     public List<String> getInfo(Upgrade upgrade) {
         return upgrade == Upgrade.SPEED ? upgrade.getExpScaledInfo(this) : upgrade.getMultScaledInfo(this);
     }
 
     @Override
-    public Object[] getTanks() {
+    public Object[] getManagedTanks() {
         return new Object[]{fluidTank, gasTank};
     }
-
-    @Nonnull
-    @Override
-    public int[] getSlotsForFace(@Nonnull EnumFacing side) {
-        return configComponent.getOutput(TransmissionType.ITEM, side, facing).availableSlots;
-    }
-
-    @Override
-    public boolean isItemValidForSlot(int slot, @Nonnull ItemStack stack) {
-        if (slot == 0) {
-            //Gas
-            return stack.getItem() instanceof IGasItem;
-        } else if (slot == 2) {
-            //Fluid
-            return FluidContainerUtils.isFluidContainer(stack);
-        } else if (slot == 4) {
-            return ChargeUtils.canBeDischarged(stack);
-        }
-        return false;
-    }
-
 
     @Override
     public int getRedstoneLevel() {
@@ -416,21 +463,6 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     }
 
     @Override
-    public boolean getEnergySlot() {
-        return inventory.get(4).isEmpty();
-    }
-
-    @Override
-    public boolean getInputSlot() {
-        return false;
-    }
-
-    @Override
-    public boolean getOuputSlot() {
-        return false;
-    }
-
-    @Override
     public int getBlockGuiID(Block block, int metadata) {
         return 3;
     }
@@ -449,24 +481,51 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
 
     @Override
     public void setConfigurationData(NBTTagCompound nbtTags) {
-        mode = nbtTags.getBoolean("mode");
+        boolean newMode = nbtTags.getBoolean("mode");
+        if (mode != newMode) {
+            mode = newMode;
+            cachedRecipe = null;
+            recipeCacheLookupMonitor.onChange();
+        }
     }
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+    public boolean applyTierUpgrade(BaseTier upgradeTier) {
+        if (!tier.canUpgradeTo(upgradeTier)) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
-            return false;
-        }
-        tier = MachineTier.values()[upgradeTier.ordinal()];
-        gasTank.setMaxGas(tier.processes * MAX_FLUID);
-        fluidTank.setCapacity(tier.processes * MAX_FLUID);
+        tier = MachineTier.get(upgradeTier);
+        updateTankCapacities();
         upgradeComponent.getSupportedTypes().forEach(this::recalculateUpgradables);
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();
         return true;
+    }
+
+    @Override
+    public boolean parseUpgradeData(IUpgradeData upgradeData) {
+        if (upgradeData instanceof FirstRotaryCondensentratorUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
+            LargeMachineUpgradeDataApplier.applyCommon(this, data, upgradeComponent, securityComponent);
+            clientEnergyUsed = data.clientEnergyUsed;
+            prevEnergy = data.prevEnergy;
+            mode = data.mode;
+            configComponent.read(data.configComponentData.copy());
+            ejectorComponent.read(data.ejectorComponentData.copy());
+            ejectorComponent.setOutputData(configComponent, TransmissionType.GAS, TransmissionType.FLUID)
+                  .setCanEject(transmissionType -> {
+                      if (transmissionType == TransmissionType.GAS) {
+                          return !mode;
+                      } else if (transmissionType == TransmissionType.FLUID) {
+                          return mode;
+                      }
+                      return true;
+                  });
+            gasTank.setGas(data.gas == null ? null : data.gas.copy());
+            fluidTank.setFluid(data.fluid == null ? null : data.fluid.copy());
+            LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);
+            return true;
+        }
+        return ITierMachine.super.parseUpgradeData(upgradeData);
     }
 
 

@@ -1,7 +1,6 @@
 package mekceumoremachine.common.util;
 
 import mekanism.api.IMekWrench;
-import mekanism.api.energy.IEnergizedItem;
 import mekanism.api.energy.IStrictEnergyStorage;
 import mekanism.common.base.*;
 import mekanism.common.integration.wrenches.Wrenches;
@@ -12,6 +11,7 @@ import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.SecurityUtils;
+import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
@@ -21,6 +21,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
@@ -79,8 +80,9 @@ public class MEKCeuMoreMachineUtils {
         list.add(addItem);
         if (charged) {
             ItemStack addChargedItem = new ItemStack(block);
-            if (addChargedItem.getItem() instanceof IEnergizedItem item) {
-                item.setEnergy(addChargedItem, item.getMaxEnergy(addChargedItem));
+            double maxEnergy = StorageUtils.getMaxEnergy(addChargedItem);
+            if (maxEnergy > 0) {
+                StorageUtils.setStoredEnergy(addChargedItem, maxEnergy, maxEnergy);
             }
             list.add(addChargedItem);
         }
@@ -98,8 +100,9 @@ public class MEKCeuMoreMachineUtils {
                 if (addChargedItem.getItem() instanceof ITierItem item) {
                     item.setBaseTier(addChargedItem, tier.getBaseTier());
                 }
-                if (addChargedItem.getItem() instanceof IEnergizedItem item) {
-                    item.setEnergy(addChargedItem, item.getMaxEnergy(addChargedItem));
+                double maxEnergy = StorageUtils.getMaxEnergy(addChargedItem);
+                if (maxEnergy > 0) {
+                    StorageUtils.setStoredEnergy(addChargedItem, maxEnergy, maxEnergy);
                 }
                 list.add(addChargedItem);
             }
@@ -178,9 +181,12 @@ public class MEKCeuMoreMachineUtils {
             if (tileEntity instanceof IRedstoneControl control) {
                 ItemDataUtils.setInt(itemStack, "controlType", control.getControlType().ordinal());
             }
-            if (tileEntity instanceof TileEntityContainerBlock containerBlock && !containerBlock.inventory.isEmpty()) {
+            if (tileEntity instanceof TileEntityContainerBlock containerBlock) {
                 if (itemStack.getItem() instanceof ISustainedInventory inventory) {
-                    inventory.setInventory(containerBlock.getInventory(), itemStack);
+                    NBTTagList storedInventory = containerBlock.getInventory();
+                    if (storedInventory.tagCount() != 0) {
+                        inventory.setInventory(storedInventory, itemStack);
+                    }
                 }
             }
             if (tileEntity instanceof ISustainedTank tank) {
@@ -191,9 +197,7 @@ public class MEKCeuMoreMachineUtils {
                 }
             }
             if (tileEntity instanceof IStrictEnergyStorage storage) {
-                if (itemStack.getItem() instanceof IEnergizedItem energizedItem) {
-                    energizedItem.setEnergy(itemStack, storage.getEnergy());
-                }
+                StorageUtils.setStoredEnergy(itemStack, storage.getEnergy(), storage.getMaxEnergy());
             }
         }
         return itemStack;

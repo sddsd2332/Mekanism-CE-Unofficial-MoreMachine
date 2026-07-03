@@ -1,11 +1,16 @@
 package mekceumoremachine.common.item;
 
+import mekanism.common.base.IUpgradeableTile;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.item.ItemMekanism;
+import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
+import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.util.LangUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tile.interfaces.ILargeMachine;
+import mekceumoremachine.common.util.MEKCeuMoreMachineUpgradeUtils;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -38,11 +43,17 @@ public class ItemLargeMachineryUpgradeComponents extends ItemMekanism {
         }
         TileEntity tile = world.getTileEntity(pos);
         ItemStack stack = player.getHeldItem(hand);
-        if (tile instanceof ILargeMachine upgradeable) {
+        if (tile instanceof ILargeMachine largeMachine && tile instanceof IUpgradeableTile upgradeable) {
             if (tile instanceof TileEntityBasicBlock basicBlock && !basicBlock.playersUsing.isEmpty()) {
                 return EnumActionResult.FAIL;
             }
-            if (upgradeable.largeMachineUpgrade(player)) {
+            if (!largeMachine.canLargeMachineUpgrade(player)) {
+                return EnumActionResult.PASS;
+            }
+            IUpgradeData upgradeData = upgradeable.getUpgradeData(BaseTier.ULTIMATE);
+            IBlockState upgradeResult = upgradeable.getUpgradeResult(BaseTier.ULTIMATE);
+            boolean upgraded = upgradeData != null && (upgradeResult == null ? upgradeable.parseUpgradeData(upgradeData) : MEKCeuMoreMachineUpgradeUtils.replaceTileForUpgrade(tile, upgradeResult, upgradeData));
+            if (upgraded) {
                 if (!player.capabilities.isCreativeMode) {
                     stack.shrink(1);
                 }

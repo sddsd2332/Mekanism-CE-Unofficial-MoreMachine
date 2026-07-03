@@ -3,39 +3,59 @@ package mekceumoremachine.common.tile.machine;
 import io.netty.buffer.ByteBuf;
 import mekanism.api.EnumColor;
 import mekanism.api.IConfigCardAccess;
+import mekanism.api.IContentsListener;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.*;
 import mekanism.api.math.MathUtils;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
-import mekanism.common.MekanismFluids;
-import mekanism.common.SideData;
 import mekanism.common.Upgrade;
 import mekanism.common.Upgrade.IUpgradeInfoHandler;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.fluid.FluidTankHelper;
+import mekanism.common.capabilities.holder.fluid.IFluidTankHolder;
+import mekanism.common.capabilities.holder.gas.GasTankHelper;
+import mekanism.common.capabilities.holder.gas.IGasTankHolder;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.config.MekanismConfig;
+import mekanism.common.inventory.container.slot.ContainerSlotType;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
+import mekanism.common.inventory.slot.FluidInventorySlot;
+import mekanism.common.inventory.slot.gas.GasInventorySlot;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.RecipeHandler.Recipe;
+import mekanism.common.recipe.cache.CachedRecipe;
+import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
+import mekanism.common.recipe.cache.OneInputCachedRecipe;
+import mekanism.common.recipe.cache.inputs.InputHelper;
+import mekanism.common.recipe.cache.outputs.OutputHelper;
 import mekanism.common.recipe.inputs.FluidInput;
 import mekanism.common.recipe.machines.SeparatorRecipe;
 import mekanism.common.recipe.outputs.ChemicalPairOutput;
 import mekanism.common.tier.BaseTier;
-import mekanism.common.tier.GasTankTier;
+import mekanism.common.upgrade.IUpgradeData;
+import mekanism.common.upgrade.TierUpgradeData;
 import mekanism.common.tile.TileEntityGasTank.GasMode;
 import mekanism.common.tile.component.TileComponentConfig;
 import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
+import mekceumoremachine.common.capability.ResizableFluidTank;
+import mekceumoremachine.common.capability.ResizableGasTank;
 import mekanism.multiblockmachine.common.registries.MultiblockMachineBlocks;
-import mekanism.multiblockmachine.common.tile.machine.TileEntityLargeElectrolyticSeparator;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ILargeMachine;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
+import mekceumoremachine.common.upgrade.FirstElectrolyticSeparatorUpgradeData;
+import mekceumoremachine.common.upgrade.LargeElectrolyticSeparatorUpgradeData;
+import mekceumoremachine.common.upgrade.LargeMachineUpgradeDataApplier;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -44,10 +64,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.fluids.FluidTankInfo;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Optional.Interface;
 import net.minecraftforge.fml.common.Optional.InterfaceList;
@@ -63,20 +79,21 @@ import java.util.Set;
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
 public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<FluidInput, ChemicalPairOutput, SeparatorRecipe>
-        implements IFluidHandlerWrapper, ISustainedData, IGasHandler, IUpgradeInfoHandler, ITankManager, IConfigCardAccess.ISpecialConfigData, ITierMachine<MachineTier>, ILargeMachine {
+        implements ISustainedData, IUpgradeInfoHandler, ITankManager, IConfigCardAccess.ISpecialConfigData, ITierMachine<MachineTier>, ILargeMachine {
 
 
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getWater", "getWaterNeeded", "getHydrogen", "getHydrogenNeeded", "getOxygen", "getOxygenNeeded"};
+    private static final GasMode[] GAS_MODES = GasMode.values();
     private final EjectSpeedController gasSpeedController = new EjectSpeedController();
 
 
-    public FluidTank fluidTank;
+    public ResizableFluidTank fluidTank;
 
     public static int MAX_GAS = 2400;
 
-    public GasTank leftTank;
+    public ResizableGasTank leftTank;
 
-    public GasTank rightTank;
+    public ResizableGasTank rightTank;
 
     public MachineTier tier = MachineTier.BASIC;
 
@@ -85,54 +102,97 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     public SeparatorRecipe cachedRecipe;
     public double clientEnergyUsed;
     private int currentRedstoneLevel;
+    private FluidInventorySlot inputSlot;
+    private GasInventorySlot leftSlot;
+    private GasInventorySlot rightSlot;
+    private EnergyInventorySlot energySlot;
 
     public TileEntityTierElectrolyticSeparator() {
         super("electrolyticseparator", "TierElectrolyticSeparator", 0, MachineType.ELECTROLYTIC_SEPARATOR.getUsage(), 4, 1);
-        fluidTank = new FluidTankSync(MAX_GAS * 10 * tier.processes);
-        leftTank = new GasTank(MAX_GAS * tier.processes);
-        rightTank = new GasTank(MAX_GAS * tier.processes);
         configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.ENERGY, TransmissionType.GAS, TransmissionType.FLUID);
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.INPUT, new int[]{0}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.OUTPUT_1, new int[]{1}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.OUTPUT_2, new int[]{2}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.ENERGY, new int[]{3}));
-        configComponent.setConfig(TransmissionType.ITEM, new byte[]{0, 0, 1, 4, 2, 3});
+        initializeInventorySlots();
+        configComponent.setupItemInputDualOutputConfig(inputSlot, leftSlot, rightSlot, energySlot);
+        configComponent.setConfig(TransmissionType.ITEM, DataType.NONE, DataType.NONE, DataType.INPUT, DataType.ENERGY, DataType.OUTPUT_1, DataType.OUTPUT_2);
         configComponent.setCanEject(TransmissionType.ITEM, false);
 
-        configComponent.setInputConfig(TransmissionType.FLUID);
+        configComponent.setupFluidInputConfig(fluidTank);
 
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.OUTPUT_1, new int[]{1}));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.OUTPUT_2, new int[]{2}));
-        configComponent.setConfig(TransmissionType.GAS, new byte[]{0, 0, 0, 0, 1, 2});
+        configComponent.setupGasDualOutputConfig(leftTank, rightTank);
+        configComponent.setConfig(TransmissionType.GAS, DataType.NONE, DataType.NONE, DataType.NONE, DataType.NONE, DataType.OUTPUT_1, DataType.OUTPUT_2);
 
         configComponent.setInputConfig(TransmissionType.ENERGY);
         ejectorComponent = new TileComponentEjector(this);
-        inventory = NonNullListSynchronized.withSize(5, ItemStack.EMPTY);
+        ejectorComponent.setOutputData(configComponent, TransmissionType.ITEM, TransmissionType.GAS)
+              .setCanTankEject(tank -> {
+                  if (tank == leftTank) {
+                      return dumpLeft != GasMode.DUMPING;
+                  } else if (tank == rightTank) {
+                      return dumpRight != GasMode.DUMPING;
+                  }
+                  return true;
+              });
+    }
 
+    @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        inputSlot = builder.addSlot(FluidInventorySlot.fill(fluidTank, listener, 26, 35));
+        leftSlot = builder.addSlot(GasInventorySlot.drain(leftTank, listener, 59, 52));
+        rightSlot = builder.addSlot(GasInventorySlot.drain(rightTank, listener, 101, 52));
+        energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 143, 35));
+        inputSlot.setSlotType(ContainerSlotType.INPUT);
+        leftSlot.setSlotType(ContainerSlotType.OUTPUT);
+        rightSlot.setSlotType(ContainerSlotType.OUTPUT);
+        return builder.build();
+    }
+
+    @Override
+    protected IFluidTankHolder getInitialFluidTanks(IContentsListener listener) {
+        FluidTankHelper builder = createFluidTankHelper();
+        builder.addTank(getOrCreateFluidTank(listener));
+        return builder.build();
+    }
+
+    @Override
+    protected IGasTankHolder getInitialGasTanks(IContentsListener listener) {
+        GasTankHelper builder = createGasTankHelper();
+        builder.addTank(getOrCreateLeftTank(listener));
+        builder.addTank(getOrCreateRightTank(listener));
+        return builder.build();
+    }
+
+    private ResizableFluidTank getOrCreateFluidTank(IContentsListener listener) {
+        if (fluidTank == null) {
+            fluidTank = ResizableFluidTank.input(MAX_GAS * 10 * tier.processes,
+                  fluid -> fluid != null && Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(fluid.getFluid()), listener);
+        }
+        return fluidTank;
+    }
+
+    private ResizableGasTank getOrCreateLeftTank(IContentsListener listener) {
+        if (leftTank == null) {
+            leftTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+        }
+        return leftTank;
+    }
+
+    private ResizableGasTank getOrCreateRightTank(IContentsListener listener) {
+        if (rightTank == null) {
+            rightTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+        }
+        return rightTank;
     }
 
 
     @Override
-    public void setupVariableValues() {
-        if (getRecipe() == null) {
-            return;
-        }
-        boolean update = BASE_ENERGY_PER_TICK != getRecipe().energyUsage;
-        BASE_ENERGY_PER_TICK = getRecipe().energyUsage;
+    public void onCachedRecipeChanged(CachedRecipe<SeparatorRecipe> cachedRecipe, int cacheIndex) {
+        super.onCachedRecipeChanged(cachedRecipe, cacheIndex);
+        double energyUsage = cachedRecipe == null ? MachineType.ELECTROLYTIC_SEPARATOR.getUsage() : cachedRecipe.getRecipe().energyUsage;
+        boolean update = BASE_ENERGY_PER_TICK != energyUsage;
+        BASE_ENERGY_PER_TICK = energyUsage;
         if (update) {
             recalculateUpgradables(Upgrade.ENERGY);
         }
-    }
-
-    @Override
-    public void setUpOtherActions() {
-        double prev = getEnergy();
-        if (getRecipe() != null) {
-            setEnergy(getEnergy() - energyPerTick * getUpgradedUsage(getRecipe()));
-        }
-        clientEnergyUsed = prev - getEnergy();
     }
 
     public int dumpAmount;
@@ -140,24 +200,11 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
-        ChargeUtils.discharge(3, this);
-        if (!inventory.get(0).isEmpty()) {
-            if (Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(inventory.get(0))) {
-                if (FluidContainerUtils.isFluidContainer(inventory.get(0))) {
-                    fluidTank.fill(FluidContainerUtils.extractFluid(fluidTank, this, 0), true);
-                }
-            }
-        }
-        if (!inventory.get(1).isEmpty() && leftTank.getStored() > 0) {
-            leftTank.draw(GasUtils.addGas(inventory.get(1), leftTank.getGas()), true);
-            MekanismUtils.saveChunk(this);
-        }
-        if (!inventory.get(2).isEmpty() && rightTank.getStored() > 0) {
-            rightTank.draw(GasUtils.addGas(inventory.get(2), rightTank.getGas()), true);
-            MekanismUtils.saveChunk(this);
-        }
-        SeparatorRecipe recipe = getRecipe();
-        getProcess(recipe, true, energyPerTick, true, false);
+        energySlot.fillContainerOrConvert();
+        inputSlot.fillTank();
+        leftSlot.drainTank();
+        rightSlot.drainTank();
+        clientEnergyUsed = processRecipe(getMainEnergyContainer());
         prevEnergy = getEnergy();
         dumpAmount = 8 * Math.min((int) Math.pow(2, upgradeComponent.getUpgrades(Upgrade.SPEED)), MekanismConfig.current().mekce.MAXspeedmachines.val());
         dumpAmount *= tier.processes;
@@ -166,8 +213,8 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     @Override
     public void addTileSyncTask() {
         this.gasSpeedController.ensureSize(2, () -> Arrays.asList(new TankProvider.Gas(leftTank), new TankProvider.Gas(rightTank)));
-        handleTank(leftTank, dumpLeft, configComponent.getSidesForData(TransmissionType.GAS, facing, 1), dumpAmount, 0);
-        handleTank(rightTank, dumpRight, configComponent.getSidesForData(TransmissionType.GAS, facing, 2), dumpAmount, 1);
+        handleTank(leftTank, dumpLeft, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_1), dumpAmount, 0);
+        handleTank(rightTank, dumpRight, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_2), dumpAmount, 1);
         int newRedstoneLevel = getRedstoneLevel();
         if (newRedstoneLevel != currentRedstoneLevel) {
             updateComparatorOutputLevelSync();
@@ -188,7 +235,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
                 int target = getDumpingExcessTarget(tank);
                 int stored = tank.getStored();
                 if (target < stored) {
-                    tank.draw(Math.min(stored - target, GasTankTier.values()[tier.ordinal()].getBaseOutput()), true);
+                    tank.draw(Math.min(stored - target, tier.getGasTankTier().getBaseOutput()), true);
                 }
             }
         }
@@ -231,11 +278,23 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     public SeparatorRecipe getRecipe() {
+        refreshRecipeLookupCache();
         FluidInput input = getInput();
         if (cachedRecipe == null || !input.testEquality(cachedRecipe.getInput())) {
             cachedRecipe = RecipeHandler.getElectrolyticSeparatorRecipe(getInput());
         }
         return cachedRecipe;
+    }
+
+    @Override
+    protected void clearRecipeLookupCache() {
+        super.clearRecipeLookupCache();
+        cachedRecipe = null;
+    }
+
+    @Override
+    public SeparatorRecipe getRecipe(int cacheIndex) {
+        return getRecipe();
     }
 
     public FluidInput getInput() {
@@ -247,8 +306,25 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public void operate(SeparatorRecipe recipe) {
-        recipe.operate(fluidTank, leftTank, rightTank, getUpgradedUsage(recipe));
+    public CachedRecipe<SeparatorRecipe> createNewCachedRecipe(SeparatorRecipe recipe, int cacheIndex) {
+        return new OneInputCachedRecipe<>(recipe, this::shouldRecheckAllRecipeErrors,
+              InputHelper.getFluidInputHandler(fluidTank, RecipeError.NOT_ENOUGH_INPUT),
+              OutputHelper.getChemicalPairOutputHandler(leftTank, rightTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
+              () -> recipe.getInput().ingredient,
+              input -> input != null && input.isFluidEqual(recipe.getInput().ingredient),
+              input -> recipe.getOutput().copy(), input -> input == null || input.amount <= 0, output -> output == null || !output.isValid())
+              .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
+              .setActive(active -> {
+                  if (active || prevEnergy >= getEnergy()) {
+                      setActive(active);
+                  }
+              })
+              .setEnergyRequirements(() -> energyPerTick, getMainEnergyContainer())
+              .setRequiredTicks(() -> ticksRequired)
+              .setBaselineMaxOperations(() -> getUpgradedUsage(recipe))
+              .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
+              .setErrorsChanged(this::onRecipeErrorsChanged)
+              .setOnFinish(this::onCachedRecipeFinish);
     }
 
     @Override
@@ -257,42 +333,13 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public boolean canExtractItem(int slotID, @Nonnull ItemStack itemstack, @Nonnull EnumFacing side) {
-        if (slotID == 3) {
-            return ChargeUtils.canBeOutputted(itemstack, false);
-        } else if (slotID == 0) {
-            return FluidUtil.getFluidContained(itemstack) == null;
-        } else if (slotID == 1 || slotID == 2) {
-            return itemstack.getItem() instanceof IGasItem gasItem && gasItem.getGas(itemstack) != null
-                    && gasItem.getGas(itemstack).amount == gasItem.getMaxGas(itemstack);
-        }
-        return false;
-    }
-
-    @Override
-    public boolean isItemValidForSlot(int slotID, @Nonnull ItemStack itemstack) {
-        if (slotID == 0) {
-            return Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(itemstack);
-        } else if (slotID == 1) {
-            return itemstack.getItem() instanceof IGasItem gasItem &&
-                    (gasItem.getGas(itemstack) == null || gasItem.getGas(itemstack).getGas() == MekanismFluids.Hydrogen);
-        } else if (slotID == 2) {
-            return itemstack.getItem() instanceof IGasItem gasItem &&
-                    (gasItem.getGas(itemstack) == null || gasItem.getGas(itemstack).getGas() == MekanismFluids.Oxygen);
-        } else if (slotID == 3) {
-            return ChargeUtils.canBeDischarged(itemstack);
-        }
-        return true;
-    }
-
-    @Override
     public void handlePacketData(ByteBuf dataStream) {
         if (FMLCommonHandler.instance().getEffectiveSide().isServer()) {
             byte type = dataStream.readByte();
             if (type == 0) {
-                dumpLeft = GasMode.values()[dumpLeft.ordinal() == GasMode.values().length - 1 ? 0 : dumpLeft.ordinal() + 1];
+                dumpLeft = nextGasMode(dumpLeft);
             } else if (type == 1) {
-                dumpRight = GasMode.values()[dumpRight.ordinal() == GasMode.values().length - 1 ? 0 : dumpRight.ordinal() + 1];
+                dumpRight = nextGasMode(dumpRight);
             }
             return;
         }
@@ -301,15 +348,15 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
 
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             MachineTier prevTier = tier;
-            tier = MachineTier.values()[dataStream.readInt()];
+            tier = MachineTier.byIndex(dataStream.readInt());
             fluidTank.setCapacity(MAX_GAS * 10 * tier.processes);
             leftTank.setMaxGas(MAX_GAS * tier.processes);
             rightTank.setMaxGas(MAX_GAS * tier.processes);
             TileUtils.readTankData(dataStream, fluidTank);
             TileUtils.readTankData(dataStream, leftTank);
             TileUtils.readTankData(dataStream, rightTank);
-            dumpLeft = GasMode.values()[dataStream.readInt()];
-            dumpRight = GasMode.values()[dataStream.readInt()];
+            dumpLeft = getGasMode(dataStream.readInt(), dumpLeft);
+            dumpRight = getGasMode(dataStream.readInt(), dumpRight);
             clientEnergyUsed = dataStream.readDouble();
             if (prevTier != tier) {
                 MekanismUtils.updateBlock(world, getPos());
@@ -333,12 +380,15 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
-        tier = MachineTier.values()[nbtTags.getInteger("tier")];
+        tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
+        fluidTank.setCapacity(MAX_GAS * 10 * tier.processes);
+        leftTank.setMaxGas(MAX_GAS * tier.processes);
+        rightTank.setMaxGas(MAX_GAS * tier.processes);
         fluidTank.readFromNBT(nbtTags.getCompoundTag("fluidTank"));
         leftTank.read(nbtTags.getCompoundTag("leftTank"));
         rightTank.read(nbtTags.getCompoundTag("rightTank"));
-        dumpLeft = GasMode.values()[nbtTags.getInteger("dumpLeft")];
-        dumpRight = GasMode.values()[nbtTags.getInteger("dumpRight")];
+        dumpLeft = getGasMode(nbtTags.getInteger("dumpLeft"), dumpLeft);
+        dumpRight = getGasMode(nbtTags.getInteger("dumpRight"), dumpRight);
     }
 
 
@@ -362,7 +412,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     public Object[] invoke(int method, Object[] arguments) throws NoSuchMethodException {
         return switch (method) {
             case 0 -> new Object[]{electricityStored};
-            case 1 -> new Object[]{GasTankTier.values()[tier.ordinal()].getBaseOutput()};
+            case 1 -> new Object[]{tier.getGasTankTier().getBaseOutput()};
             case 2 -> new Object[]{BASE_MAX_ENERGY};
             case 3 -> new Object[]{BASE_MAX_ENERGY - electricityStored.get()};
             case 4 -> new Object[]{fluidTank.getFluid() != null ? fluidTank.getFluid().amount : 0};
@@ -398,83 +448,17 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public boolean canFill(EnumFacing from, @Nonnull FluidStack fluid) {
-        if (configComponent.getOutput(TransmissionType.FLUID, from, facing).ioState == SideData.IOState.INPUT) {
-            return FluidContainerUtils.canFill(fluidTank.getFluid(), fluid) && Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(fluid.getFluid());
-        }
-        return false;
-    }
-
-    @Override
-    public int fill(EnumFacing from, @Nonnull FluidStack resource, boolean doFill) {
-        return fluidTank.fill(resource, doFill);
-    }
-
-    @Override
-    public FluidTankInfo[] getTankInfo(EnumFacing from) {
-        if (configComponent.getOutput(TransmissionType.FLUID, from, facing).ioState != SideData.IOState.OFF) {
-            return new FluidTankInfo[]{fluidTank.getInfo()};
-        }
-        return PipeUtils.EMPTY;
-    }
-
-    @Override
-    public FluidTankInfo[] getAllTanks() {
-        return getTankInfo(null);
-    }
-
-    @Override
-    public int receiveGas(EnumFacing side, GasStack stack, boolean doTransfer) {
-        return 0;
-    }
-
-    @Override
-    public GasStack drawGas(EnumFacing side, int amount, boolean doTransfer) {
-        if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(1)) {
-            return leftTank.draw(amount, doTransfer);
-        } else if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(2)) {
-            return rightTank.draw(amount, doTransfer);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean canReceiveGas(EnumFacing side, Gas type) {
-        return false;
-    }
-
-    @Override
-    public boolean canDrawGas(EnumFacing side, Gas type) {
-        if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(1)) {
-            return leftTank.getGas() != null && leftTank.getGas().getGas() == type;
-        } else if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(2)) {
-            return rightTank.getGas() != null && rightTank.getGas().getGas() == type;
-        }
-        return false;
-    }
-
-    @Nonnull
-    @Override
-    public GasTankInfo[] getTankInfo() {
-        return new GasTankInfo[]{leftTank, rightTank};
-    }
-
-    @Override
     public boolean hasCapability(@Nonnull Capability<?> capability, EnumFacing side) {
         if (isCapabilityDisabled(capability, side)) {
             return false;
         }
-        return capability == Capabilities.GAS_HANDLER_CAPABILITY || capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY || super.hasCapability(capability, side);
+        return capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY || super.hasCapability(capability, side);
     }
 
     @Override
     public <T> T getCapability(@Nonnull Capability<T> capability, EnumFacing side) {
         if (isCapabilityDisabled(capability, side)) {
             return null;
-        } else if (capability == Capabilities.GAS_HANDLER_CAPABILITY) {
-            return Capabilities.GAS_HANDLER_CAPABILITY.cast(this);
-        } else if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
-            return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(new FluidHandlerWrapper(this, side));
         } else if (capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY) {
             return Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY.cast(this);
         }
@@ -487,7 +471,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public Object[] getTanks() {
+    public Object[] getManagedTanks() {
         return new Object[]{fluidTank, leftTank, rightTank};
     }
 
@@ -517,21 +501,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public boolean getEnergySlot() {
-        return inventory.get(3).isEmpty();
-    }
-
-    @Override
-    public boolean getInputSlot() {
-        return inventory.get(0).isEmpty();
-    }
-
-    @Override
-    public boolean getOuputSlot() {
-        return false;
-    }
-
-    @Override
     public int getBlockGuiID(Block block, int metadata) {
         return 4;
     }
@@ -543,14 +512,11 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
 
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+    public boolean applyTierUpgrade(BaseTier upgradeTier) {
+        if (!tier.canUpgradeTo(upgradeTier)) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE){
-            return false;
-        }
-        tier = MachineTier.values()[upgradeTier.ordinal()];
+        tier = MachineTier.get(upgradeTier);
         fluidTank.setCapacity(tier.processes * 10 * MAX_GAS);
         leftTank.setMaxGas(tier.processes * MAX_GAS);
         rightTank.setMaxGas(tier.processes * MAX_GAS);
@@ -580,8 +546,8 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
 
     @Override
     public void setConfigurationData(NBTTagCompound nbtTags) {
-        dumpLeft = GasMode.values()[nbtTags.getInteger("dumpLeft")];
-        dumpRight = GasMode.values()[nbtTags.getInteger("dumpRight")];
+        dumpLeft = getGasMode(nbtTags.getInteger("dumpLeft"), dumpLeft);
+        dumpRight = getGasMode(nbtTags.getInteger("dumpRight"), dumpRight);
     }
 
     @Override
@@ -589,11 +555,61 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         return getName();
     }
 
+    private static GasMode nextGasMode(GasMode mode) {
+        return GAS_MODES[(mode.ordinal() + 1) % GAS_MODES.length];
+    }
+
+    private static GasMode getGasMode(int index, GasMode fallback) {
+        return index >= 0 && index < GAS_MODES.length ? GAS_MODES[index] : fallback;
+    }
+
     public boolean isUpgrade = true;
 
     @Override
+    public IUpgradeData getUpgradeData(BaseTier upgradeTier) {
+        if (upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return new LargeElectrolyticSeparatorUpgradeData(upgradeTier, this);
+        }
+        return ITierMachine.super.getUpgradeData(upgradeTier);
+    }
+
+    @Override
+    public IBlockState getUpgradeResult(BaseTier upgradeTier) {
+        return upgradeTier == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE ? MultiblockMachineBlocks.LargeElectrolyticSeparator.getDefaultState() : null;
+    }
+
+    @Override
+    public void prepareForUpgrade() {
+        isUpgrade = false;
+    }
+
+    @Override
+    public boolean parseUpgradeData(IUpgradeData upgradeData) {
+        if (upgradeData instanceof FirstElectrolyticSeparatorUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
+            LargeMachineUpgradeDataApplier.applyCommon(this, data, upgradeComponent, securityComponent);
+            clientEnergyUsed = data.clientEnergyUsed;
+            prevEnergy = data.prevEnergy;
+            configComponent.read(data.configComponentData.copy());
+            ejectorComponent.read(data.ejectorComponentData.copy());
+            ejectorComponent.setOutputData(configComponent, TransmissionType.ITEM, TransmissionType.GAS);
+            fluidTank.setFluid(data.fluid == null ? null : data.fluid.copy());
+            leftTank.setGas(data.leftGas == null ? null : data.leftGas.copy());
+            rightTank.setGas(data.rightGas == null ? null : data.rightGas.copy());
+            dumpLeft = data.dumpLeft;
+            dumpRight = data.dumpRight;
+            isUpgrade = true;
+            LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);
+            return true;
+        }
+        if (upgradeData instanceof TierUpgradeData data && data.getUpgradeTier() == BaseTier.ULTIMATE && tier == MachineTier.ULTIMATE) {
+            return applyLargeMachineUpgrade();
+        }
+        return ITierMachine.super.parseUpgradeData(upgradeData);
+    }
+
+    @Override
     @Method(modid = "mekanismmultiblockmachine")
-    public boolean largeMachineUpgrade(EntityPlayer player) {
+    public boolean canLargeMachineUpgrade(EntityPlayer player) {
         if (tier != MachineTier.ULTIMATE) {
             return false;
         }
@@ -615,54 +631,13 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
                 }
             }
         }
+        return true;
+    }
 
-        isUpgrade = false;
-        if (world.getTileEntity(getPos()) instanceof IBoundingBlock block) {
-            block.onBreak();
-        } else {
-            world.setBlockToAir(getPos());
-        }
-
-        world.setBlockState(getPos(), MultiblockMachineBlocks.LargeElectrolyticSeparator.getDefaultState(), 3);
-        if (world.getTileEntity(getPos()) instanceof TileEntityLargeElectrolyticSeparator tile) {
-            tile.onPlace();
-            //Basic
-            tile.facing = facing;
-            tile.clientFacing = clientFacing;
-            tile.ticker = ticker;
-            tile.redstone = redstone;
-            tile.redstoneLastTick = redstoneLastTick;
-            tile.doAutoSync = doAutoSync;
-
-            //Electric
-            tile.electricityStored.set(electricityStored.get());
-            tile.clientEnergyUsed = clientEnergyUsed;
-
-            //Machine
-            tile.setActive(isActive);
-            tile.setControlType(getControlType());
-            tile.prevEnergy = prevEnergy;
-            tile.upgradeComponent.readFrom(upgradeComponent);
-            tile.upgradeComponent.setUpgradeSlot(upgradeComponent.getUpgradeSlot());
-            tile.upgradeComponent.setSupported(Upgrade.THREAD);//升级完后需要添加支持线程升级
-            tile.securityComponent.readFrom(securityComponent);
-
-            for (int i = 0; i < inventory.size(); i++) {
-                tile.inventory.set(i, inventory.get(i));
-            }
-            tile.leftTank.setGas(leftTank.getGas());
-            tile.rightTank.setGas(rightTank.getGas());
-            tile.fluidTank.setFluid(fluidTank.getFluid());
-            tile.dumpLeft = dumpLeft;
-            tile.dumpRight = dumpRight;
-            tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
-
-            tile.markNoUpdateSync();
-            Mekanism.packetHandler.sendUpdatePacket(tile);
-            markNoUpdateSync();
-            return true;
-        }
-        return false;
+    @Override
+    @Method(modid = "mekanismmultiblockmachine")
+    public boolean applyLargeMachineUpgrade() {
+        return ILargeMachine.super.applyLargeMachineUpgrade();
     }
 
     /**

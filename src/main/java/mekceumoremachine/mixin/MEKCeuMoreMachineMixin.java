@@ -18,7 +18,7 @@ public class MEKCeuMoreMachineMixin  implements ILateMixinLoader {
     static {
         addModdedMixinCFG("mixins.mekceumoremachine.json","mekanism");
         addModdedMixinCFG("mixins.mekceumoremachine.generators.json","mekanismgenerators");
-        addModdedMixinCFG("mixins.mekceumoremachine.ae2.json","appliedenergistics2");
+        addModdedMixinCFG("mixins.mekceumoremachine.multiblockmachine.json","mekanismmultiblockmachine");
     }
 
     @Override

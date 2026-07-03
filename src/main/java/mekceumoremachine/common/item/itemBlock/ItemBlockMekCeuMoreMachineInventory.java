@@ -5,6 +5,7 @@ import mekanism.common.config.MekanismConfig;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.util.ItemDataUtils;
+import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.item.interfaces.IItemTipName;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -65,7 +66,11 @@ public abstract class ItemBlockMekCeuMoreMachineInventory extends ItemBlockMekce
     @Override
     public UUID getOwnerUUID(ItemStack stack) {
         if (ItemDataUtils.hasData(stack, "ownerUUID")) {
-            return UUID.fromString(ItemDataUtils.getString(stack, "ownerUUID"));
+            try {
+                return UUID.fromString(ItemDataUtils.getString(stack, "ownerUUID"));
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
         }
         return null;
     }
@@ -84,7 +89,7 @@ public abstract class ItemBlockMekCeuMoreMachineInventory extends ItemBlockMekce
         if (!MekanismConfig.current().general.allowProtection.val()) {
             return ISecurityTile.SecurityMode.PUBLIC;
         }
-        return ISecurityTile.SecurityMode.values()[ItemDataUtils.getInt(stack, "security")];
+        return MekanismUtils.getByIndex(ISecurityTile.SecurityMode.values(), ItemDataUtils.getInt(stack, "security"), ISecurityTile.SecurityMode.PUBLIC);
     }
 
     @Override

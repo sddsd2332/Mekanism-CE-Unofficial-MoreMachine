@@ -16,7 +16,7 @@ public class ItemBlockTierAmbientAccumulator extends ItemBlockMekceuMoreMachineT
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierAmbientAccumulator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.outputTank.setMaxGas(tile.tier.processes * TileEntityTierAmbientAccumulator.MAX_GAS);
         }
     }

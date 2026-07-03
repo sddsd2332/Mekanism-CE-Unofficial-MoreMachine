@@ -10,6 +10,8 @@ import net.minecraft.util.math.BlockPos;
 
 public class ConnectionConfig {
 
+    private static final int FACING_COUNT = 6;
+
     public Coord4D pos;
     public EnumFacing facing;
 
@@ -36,7 +38,7 @@ public class ConnectionConfig {
     public NBTTagCompound toNBT() {
         NBTTagCompound tag = new NBTTagCompound();
         pos.write(tag);
-        tag.setInteger("facing", facing.ordinal());
+        tag.setInteger("facing", facing.getIndex());
         return tag;
     }
 
@@ -45,20 +47,23 @@ public class ConnectionConfig {
      */
     public static ConnectionConfig fromNBT(NBTTagCompound tag) {
         Coord4D pos = Coord4D.read(tag);
-        EnumFacing facing = EnumFacing.values()[tag.getInteger("facing")];
+        EnumFacing facing = getFacing(tag.getInteger("facing"));
         return new ConnectionConfig(pos, facing);
     }
 
     public  void write(TileNetworkList data) {
         pos.write(data);
-        data.add(facing.ordinal());
+        data.add(facing.getIndex());
     }
 
     public static ConnectionConfig read(ByteBuf data) {
         Coord4D pos = Coord4D.read(data);
-        EnumFacing facing = EnumFacing.values()[data.readInt()];
+        EnumFacing facing = getFacing(data.readInt());
         return new ConnectionConfig(pos, facing);
     }
 
+    private static EnumFacing getFacing(int index) {
+        return index >= 0 && index < FACING_COUNT ? EnumFacing.byIndex(index) : EnumFacing.NORTH;
+    }
 
 }

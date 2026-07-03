@@ -28,7 +28,7 @@ public class RenderTierGasGeneratorItem extends MekanismItemStackRenderer {
 
     @Override
     protected void renderBlockSpecific(@Nonnull ItemStack stack, TransformType transformType) {
-        MachineTier tier = MachineTier.values()[((ITierItem) stack.getItem()).getBaseTier(stack).ordinal()];
+        MachineTier tier = MachineTier.get(((ITierItem) stack.getItem()).getBaseTier(stack));
         GlStateManager.pushMatrix();
         GlStateManager.rotate(180, 0, 1, 1);
         GlStateManager.rotate(90, -1, 0, 0);

@@ -1,0 +1,30 @@
+{
+  "result": {
+    "item": "mekceumoremachine:tierchemicalcrystallizer",
+    "data": 3
+  },
+  "pattern": [
+    "ECE",
+    "oOo",
+    "ECE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "C": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    },
+    "E": {
+      "ore": "alloyUltimate",
+      "type": "forge:ore_dict"
+    },
+    "o": {
+      "ore": "ingotRefinedGlowstone",
+      "type": "forge:ore_dict"
+    },
+    "O": {
+      "item": "mekceumoremachine:tierchemicalcrystallizer",
+      "data": 2
+    }
+  }
+}

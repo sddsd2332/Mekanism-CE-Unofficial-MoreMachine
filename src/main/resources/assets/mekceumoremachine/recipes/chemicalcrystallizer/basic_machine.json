@@ -1,0 +1,30 @@
+{
+  "result": {
+    "item": "mekceumoremachine:tierchemicalcrystallizer",
+    "data": 0
+  },
+  "pattern": [
+    "RCR",
+    "iOi",
+    "RCR"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "R": {
+      "ore": "alloyBasic",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "ore": "circuitBasic",
+      "type": "forge:ore_dict"
+    },
+    "i": {
+      "ore": "ingotIron",
+      "type": "forge:ore_dict"
+    },
+    "O": {
+      "item": "mekanism:machineblock2",
+      "data": 8
+    }
+  }
+}

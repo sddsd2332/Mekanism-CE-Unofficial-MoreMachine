@@ -43,22 +43,6 @@ public class MEKCeuMoreMachineRecipes {
 
     public static void removeRecipes() {
 
-        /**
-         * @author sddsd2332
-         * @reason 移除化学清洗机对应的工厂配方
-         */
-        removeMekFactoryRecipes(23);
-        /**
-         * @author sddsd2332
-         * @reason 移除化学溶解室对应的工厂配方
-         */
-        removeMekFactoryRecipes(19);
-        /**
-         * @author sddsd2332
-         * @reason 移除化学氧化机对应的工厂配方
-         */
-        removeMekFactoryRecipes(21);
-
         removeMekMultiBlockRecipes("largeelectrolyticseparator");
         removeMekMultiBlockRecipes("largechemicalwasher");
         removeMekMultiBlockRecipes("largechemicalinfuser");
@@ -68,12 +52,6 @@ public class MEKCeuMoreMachineRecipes {
 
     }
 
-    public static void removeMekFactoryRecipes(int id) {
-        removeMekRecipes("machineblock_5_" + id);
-        removeMekRecipes("machineblock_6_" + id);
-        removeMekRecipes("machineblock_7_" + id);
-        removeMekRecipes("machineblock3_7_" + id);
-    }
 
     public static void removeMekRecipes(String recipeName) {
         removeRecipes(Mekanism.MODID, recipeName);

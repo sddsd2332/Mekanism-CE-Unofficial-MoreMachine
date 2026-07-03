@@ -22,7 +22,7 @@ public class ItemBlockTierSolarNeutronActivator extends ItemBlockTierMachine {
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierSolarNeutronActivator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.inputTank.setMaxGas(tile.tier.processes * TileEntityTierSolarNeutronActivator.MAX_GAS);
             tile.outputTank.setMaxGas(tile.tier.processes * TileEntityTierSolarNeutronActivator.MAX_GAS);
         }

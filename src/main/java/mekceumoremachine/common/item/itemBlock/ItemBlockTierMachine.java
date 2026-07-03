@@ -8,8 +8,10 @@ import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
+import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.interfaces.IItemTipName;
+import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -52,9 +54,6 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
     @Override
     public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY,
                                 float hitZ, @Nonnull IBlockState state) {
-        if (stack.getCount() > 1 && MekanismConfig.current().mekce.StackingPlacementLimits.val()) {
-            return false;
-        }
         boolean place = true;
         Block block = world.getBlockState(pos).getBlock();
         if (!block.isReplaceable(world, pos)) {
@@ -96,7 +95,7 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
                 }
                 if (tileEntity instanceof IRedstoneControl redstoneControl) {
                     if (ItemDataUtils.hasData(stack, "controlType")) {
-                        redstoneControl.setControlType(IRedstoneControl.RedstoneControl.values()[ItemDataUtils.getInt(stack, "controlType")]);
+                        redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"), IRedstoneControl.RedstoneControl.DISABLED));
                     }
                 }
                 if (tileEntity instanceof ISustainedInventory inventory) {
@@ -111,6 +110,13 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
 
     abstract void setTierMachine(TileEntity tileEntity, ItemStack stack);
 
+    @Override
+    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
+          IBlockState state, TileEntityBasicBlock tileEntity) {
+        if (tileEntity instanceof ITierMachine<?>) {
+            setTierMachine(tileEntity, stack);
+        }
+    }
 
     public void addOtherMachine(TileEntity tileEntity, ItemStack stack, World world) {
     }
@@ -124,7 +130,7 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
         if (!itemstack.hasTagCompound()) {
             return BaseTier.BASIC;
         }
-        return BaseTier.values()[itemstack.getTagCompound().getInteger("tier")];
+        return MachineTier.getBaseTierByIndex(itemstack.getTagCompound().getInteger("tier"));
     }
 
     @Override
@@ -132,7 +138,7 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
         if (!itemstack.hasTagCompound()) {
             itemstack.setTagCompound(new NBTTagCompound());
         }
-        itemstack.getTagCompound().setInteger("tier", tier.ordinal());
+        itemstack.getTagCompound().setInteger("tier", MachineTier.getIndex(tier));
     }
 
     @Override
@@ -154,7 +160,11 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
     @Override
     public UUID getOwnerUUID(ItemStack stack) {
         if (ItemDataUtils.hasData(stack, "ownerUUID")) {
-            return UUID.fromString(ItemDataUtils.getString(stack, "ownerUUID"));
+            try {
+                return UUID.fromString(ItemDataUtils.getString(stack, "ownerUUID"));
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
         }
         return null;
     }
@@ -173,7 +183,7 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
         if (!MekanismConfig.current().general.allowProtection.val()) {
             return ISecurityTile.SecurityMode.PUBLIC;
         }
-        return ISecurityTile.SecurityMode.values()[ItemDataUtils.getInt(stack, "security")];
+        return MekanismUtils.getByIndex(ISecurityTile.SecurityMode.values(), ItemDataUtils.getInt(stack, "security"), ISecurityTile.SecurityMode.PUBLIC);
     }
 
     @Override

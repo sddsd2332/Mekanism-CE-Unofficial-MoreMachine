@@ -1,15 +1,20 @@
 package mekceumoremachine.client.integration.jei.machine.other;
 
 import mekanism.api.gas.GasStack;
-import mekanism.client.gui.element.GuiProgress;
 import mekanism.client.gui.element.gauge.GuiFluidGauge;
 import mekanism.client.gui.element.gauge.GuiGasGauge;
 import mekanism.client.gui.element.gauge.GuiGauge;
+import mekanism.client.gui.element.gauge.GaugeType;
 import mekanism.client.gui.element.gauge.GuiNumberGauge;
-import mekanism.client.gui.element.slot.GuiEnergySlot;
+import mekanism.client.gui.element.progress.GuiProgress;
+import mekanism.client.gui.element.progress.IProgressInfoHandler;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.slot.GuiSlot;
+import mekanism.client.gui.element.slot.SlotType;
 import mekanism.client.jei.BaseRecipeCategory;
 import mekanism.client.jei.MekanismJEI;
 import mekanism.client.render.MekanismRenderer;
+import mekanism.common.inventory.container.slot.SlotOverlay;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.machines.ReplicatorFluidStackRecipe;
 import mezz.jei.api.IGuiHelper;
@@ -21,17 +26,20 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 
 public class ReplicatorFluidStackRecipeCategory<WRAPPER extends ReplicatorFluidStackRecipeWrapper<ReplicatorFluidStackRecipe>> extends BaseRecipeCategory<WRAPPER> {
 
-    public ReplicatorFluidStackRecipeCategory(IGuiHelper helper) {
-        super(helper, "mekanism:gui/Null.png", RecipeHandler.Recipe.REPLICATOR_FLUIDSTACK_RECIPE.getJEICategory(), "tile.ReplicatorFluidStack.name", GuiProgress.ProgressBar.LARGE_RIGHT, 4, 4, 169, 69);
+    private GuiGauge<?> fluidInput;
+    private GuiGauge<?> gasInput;
+    private GuiGauge<?> fluidOutput;
 
+    public ReplicatorFluidStackRecipeCategory(IGuiHelper helper) {
+        super(helper, "mekanism:gui/Null.png", RecipeHandler.Recipe.REPLICATOR_FLUIDSTACK_RECIPE.getJEICategory(), "tile.ReplicatorFluidStack.name", 4, 4, 169, 69, ProgressType.LARGE_RIGHT);
     }
 
     @Override
     protected void addGuiElements() {
-        guiElements.add(GuiFluidGauge.getDummy(GuiGauge.Type.STANDARD, this, guiLocation, 5, 13).withColor(GuiGauge.TypeColor.RED));
-        guiElements.add(GuiGasGauge.getDummy(GuiGauge.Type.STANDARD, this, guiLocation, 26, 13).withColor(GuiGauge.TypeColor.ORANGE));
-        guiElements.add(GuiFluidGauge.getDummy(GuiGauge.Type.STANDARD, this, guiLocation, 133, 13).withColor(GuiGauge.TypeColor.BLUE));
-        guiElements.add(new GuiEnergySlot(this, guiLocation, 154, 13));
+        fluidInput = addElement(dummyFluidGauge(GuiFluidGauge.Type.STANDARD, GuiFluidGauge.GaugeColor.RED, 5, 13));
+        gasInput = addElement(dummyGasGauge(GuiGasGauge.Type.STANDARD, GuiGasGauge.GaugeColor.ORANGE, 26, 13));
+        fluidOutput = addElement(dummyFluidGauge(GuiFluidGauge.Type.STANDARD, GuiFluidGauge.GaugeColor.BLUE, 133, 13));
+        guiElements.add(new GuiSlot(SlotType.POWER, this, 154, 13).with(SlotOverlay.POWER).setRenderAboveSlots());
         guiElements.add(new GuiNumberGauge(new GuiNumberGauge.INumberInfoHandler() {
             @Override
             public TextureAtlasSprite getIcon() {
@@ -44,22 +52,27 @@ public class ReplicatorFluidStackRecipeCategory<WRAPPER extends ReplicatorFluidS
             }
 
             @Override
-            public double getMaxLevel() {
+            public double getScaledLevel() {
                 return 1D;
             }
 
             @Override
-            public String getText(double level) {
+            public String getText() {
                 return "";
             }
-        }, GuiGauge.Type.SMALL, this, guiLocation, 154, 43));
+        }, GaugeType.SMALL, this, 154, 43));
 
-        guiElements.add(new GuiProgress(new GuiProgress.IProgressInfoHandler() {
+        guiElements.add(new GuiProgress(new IProgressInfoHandler() {
             @Override
             public double getProgress() {
-                return (float) timer.getValue() / 20F;
+                return (double) timer.getValue() / 20F;
             }
-        }, progressBar, this, guiLocation, 62, 38, false));
+
+            @Override
+            public boolean isGuiInJei() {
+                return true;
+            }
+        }, progressType, this, 62, 38));
     }
 
 
@@ -67,13 +80,9 @@ public class ReplicatorFluidStackRecipeCategory<WRAPPER extends ReplicatorFluidS
     public void setRecipe(IRecipeLayout recipeLayout, WRAPPER recipeWrapper, IIngredients ingredients) {
         ReplicatorFluidStackRecipe tempRecipe = recipeWrapper.getRecipe();
         IGuiFluidStackGroup fluidStacks = recipeLayout.getFluidStacks();
-        fluidStacks.init(0, true, 6 - xOffset, 14 - yOffset, 16, 58, tempRecipe.getInput().ingredientFluid.amount, false, fluidOverlayLarge);
-        fluidStacks.set(0, tempRecipe.recipeInput.ingredientFluid);
-
-        fluidStacks.init(1, false, 134 - xOffset, 14 - yOffset, 16, 58, tempRecipe.getOutput().output.amount, false, fluidOverlayLarge);
-        fluidStacks.set(1, tempRecipe.recipeOutput.output);
-
+        initFluid(fluidStacks, 0, true, fluidInput, tempRecipe.getInput().ingredientFluid);
+        initFluid(fluidStacks, 1, false, fluidOutput, tempRecipe.getOutput().output);
         IGuiIngredientGroup<GasStack> gasStacks = recipeLayout.getIngredientsGroup(MekanismJEI.TYPE_GAS);
-        initGas(gasStacks, 0, true, 27 - xOffset, 14 - yOffset, 16, 58, tempRecipe.getInput().ingredientGas, true);
+        initGas(gasStacks, 0, true, gasInput, tempRecipe.getInput().ingredientGas);
     }
 }

@@ -1,0 +1,347 @@
+package mekceumoremachine.common.item.itemBlock;
+
+import cofh.redstoneflux.api.IEnergyContainerItem;
+import ic2.api.item.IElectricItemManager;
+import ic2.api.item.ISpecialElectricItem;
+import mekanism.api.Action;
+import mekanism.api.functions.ConstantPredicates;
+import mekanism.common.base.IRedstoneControl;
+import mekanism.common.base.ISideConfiguration;
+import mekanism.common.base.ISustainedData;
+import mekanism.common.base.ISustainedInventory;
+import mekanism.common.base.IUpgradeTile;
+import mekanism.common.block.states.BlockStateMachine;
+import mekanism.common.capabilities.ItemCapabilityWrapper;
+import mekanism.common.capabilities.energy.item.RateLimitEnergyHandler;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.integration.MekanismHooks;
+import mekanism.common.integration.forgeenergy.ForgeEnergyItemWrapper;
+import mekanism.common.integration.ic2.IC2ItemManager;
+import mekanism.common.integration.redstoneflux.RFIntegration;
+import mekanism.common.integration.tesla.TeslaItemWrapper;
+import mekanism.common.security.ISecurityItem;
+import mekanism.common.security.ISecurityTile;
+import mekanism.common.tier.BaseTier;
+import mekanism.common.tile.prefab.TileEntityBasicBlock;
+import mekanism.common.tile.prefab.TileEntityElectricBlock;
+import mekanism.common.util.ItemDataUtils;
+import mekanism.common.util.LangUtils;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.StorageUtils;
+import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer.MachineType;
+import mekceumoremachine.common.item.interfaces.IItemTipName;
+import mekceumoremachine.common.tier.MachineTier;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.fml.common.Optional;
+import net.minecraftforge.fml.common.Optional.Interface;
+import net.minecraftforge.fml.common.Optional.InterfaceList;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import javax.annotation.Nonnull;
+import java.util.List;
+import java.util.UUID;
+
+@InterfaceList({
+      @Interface(iface = "cofh.redstoneflux.api.IEnergyContainerItem", modid = MekanismHooks.REDSTONEFLUX_MOD_ID),
+      @Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = MekanismHooks.IC2_MOD_ID)
+})
+public class ItemBlockTierChemicalCrystallizer extends ItemBlockMekceuMoreMachine implements ISpecialElectricItem, IEnergyContainerItem, ISustainedInventory,
+      ISecurityItem, IItemTipName {
+
+    public Block metaBlock;
+
+    public ItemBlockTierChemicalCrystallizer(Block block) {
+        super(block);
+        metaBlock = block;
+        setHasSubtypes(true);
+        setNoRepair();
+    }
+
+    @Override
+    public int getMetadata(int i) {
+        return i;
+    }
+
+    @Nonnull
+    @Override
+    public String getTranslationKey(ItemStack itemstack) {
+        MachineType type = MachineType.get(itemstack);
+        if (type != null) {
+            BaseTier tier = type.tier.getBaseTier();
+            return "tile.TierChemicalCrystallizer." + tier.getSimpleName() + ".name";
+        }
+        return "null";
+    }
+
+    @Nonnull
+    @Override
+    public String getItemStackDisplayName(@Nonnull ItemStack itemstack) {
+        MachineType type = MachineType.get(itemstack);
+        if (type != null) {
+            BaseTier tier = type.tier.getBaseTier();
+            return tier.getColor() + LangUtils.localize("tile.TierChemicalCrystallizer." + tier.getSimpleName() + ".name");
+        }
+        return super.getItemStackDisplayName(itemstack);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
+        if (MachineType.get(itemstack) != null) {
+            super.addInformation(itemstack, world, list, flag);
+        }
+    }
+
+    @Override
+    public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY,
+          float hitZ, @Nonnull IBlockState state) {
+        MachineType type = MachineType.get(stack);
+        if (MekanismConfig.current().general.destroyDisabledBlocks.val() && type != null && !type.isEnabled()) {
+            return false;
+        }
+        if (super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
+            if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
+                if (tileEntity instanceof ISecurityTile security) {
+                    security.getSecurity().setOwnerUUID(getOwnerUUID(stack));
+                    if (hasSecurity(stack)) {
+                        security.getSecurity().setMode(getSecurity(stack));
+                    }
+                    if (getOwnerUUID(stack) == null) {
+                        security.getSecurity().setOwnerUUID(player.getUniqueID());
+                    }
+                }
+                if (tileEntity instanceof IUpgradeTile upgradeTile && ItemDataUtils.hasData(stack, "upgrades")) {
+                    upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                }
+                if (tileEntity instanceof ISideConfiguration config && ItemDataUtils.hasData(stack, "sideDataStored")) {
+                    config.getConfig().read(ItemDataUtils.getDataMap(stack));
+                    config.getEjector().read(ItemDataUtils.getDataMap(stack));
+                }
+                if (tileEntity instanceof ISustainedData data && stack.getTagCompound() != null) {
+                    data.readSustainedData(stack);
+                }
+                if (tileEntity instanceof IRedstoneControl redstoneControl && ItemDataUtils.hasData(stack, "controlType")) {
+                    redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"),
+                          IRedstoneControl.RedstoneControl.DISABLED));
+                }
+                if (tileEntity instanceof ISustainedInventory inventory) {
+                    inventory.setInventory(getInventory(stack));
+                }
+                if (tileEntity instanceof TileEntityElectricBlock tile) {
+                    tile.setEnergy(StorageUtils.getStoredEnergyFromItemData(stack));
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void setInventory(NBTTagList nbtTags, Object... data) {
+        if (data[0] instanceof ItemStack stack) {
+            ItemDataUtils.setList(stack, "Items", nbtTags);
+        }
+    }
+
+    @Override
+    public NBTTagList getInventory(Object... data) {
+        if (data[0] instanceof ItemStack stack) {
+            return ItemDataUtils.getList(stack, "Items");
+        }
+        return null;
+    }
+
+    @Override
+    public UUID getOwnerUUID(ItemStack stack) {
+        if (ItemDataUtils.hasData(stack, "ownerUUID")) {
+            try {
+                return UUID.fromString(ItemDataUtils.getString(stack, "ownerUUID"));
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void setOwnerUUID(ItemStack stack, UUID owner) {
+        if (owner == null) {
+            ItemDataUtils.removeData(stack, "ownerUUID");
+        } else {
+            ItemDataUtils.setString(stack, "ownerUUID", owner.toString());
+        }
+    }
+
+    @Override
+    public ISecurityTile.SecurityMode getSecurity(ItemStack stack) {
+        if (!MekanismConfig.current().general.allowProtection.val()) {
+            return ISecurityTile.SecurityMode.PUBLIC;
+        }
+        return MekanismUtils.getByIndex(ISecurityTile.SecurityMode.values(), ItemDataUtils.getInt(stack, "security"), ISecurityTile.SecurityMode.PUBLIC);
+    }
+
+    @Override
+    public void setSecurity(ItemStack stack, ISecurityTile.SecurityMode mode) {
+        if (getOwnerUUID(stack) == null) {
+            ItemDataUtils.removeData(stack, "security");
+        } else {
+            ItemDataUtils.setInt(stack, "security", mode.ordinal());
+        }
+    }
+
+    @Override
+    public boolean hasSecurity(ItemStack stack) {
+        return true;
+    }
+
+    @Override
+    public boolean hasOwner(ItemStack stack) {
+        return hasSecurity(stack);
+    }
+
+    public double getEnergy(ItemStack itemStack) {
+        return StorageUtils.getStoredEnergy(itemStack);
+    }
+
+    public void setEnergy(ItemStack itemStack, double amount) {
+        setStoredEnergy(itemStack, amount);
+    }
+
+    public void setStoredEnergy(ItemStack itemStack, double amount) {
+        if (itemStack.getCount() > 1) {
+            return;
+        }
+        StorageUtils.setStoredEnergy(itemStack, amount, getEnergyCapacity(itemStack));
+    }
+
+    public double getMaxEnergy(ItemStack itemStack) {
+        return getEnergyCapacity(itemStack);
+    }
+
+    public double getEnergyCapacity(ItemStack itemStack) {
+        if (itemStack.getCount() > 1) {
+            return 0;
+        }
+        MachineType type = MachineType.get(itemStack);
+        if (type == null) {
+            return 0;
+        }
+        MachineTier tier = type.tier;
+        double storage = getMachineStorage() * tier.processes;
+        return ItemDataUtils.hasData(itemStack, "upgrades") ? MekanismUtils.getMaxEnergy(itemStack, storage) : storage;
+    }
+
+    public double getMachineStorage() {
+        return BlockStateMachine.MachineType.CHEMICAL_CRYSTALLIZER.getStorage();
+    }
+
+    public double getMaxTransfer(ItemStack itemStack) {
+        return getEnergyTransfer(itemStack);
+    }
+
+    public double getEnergyTransfer(ItemStack itemStack) {
+        if (itemStack.getCount() > 1) {
+            return 0;
+        }
+        return getEnergyCapacity(itemStack) * 0.005;
+    }
+
+    public boolean canReceive(ItemStack itemStack) {
+        return canReceiveEnergy(itemStack);
+    }
+
+    public boolean canReceiveEnergy(ItemStack itemStack) {
+        return itemStack.getCount() <= 1;
+    }
+
+    public boolean canSend(ItemStack itemStack) {
+        return canSendEnergy(itemStack);
+    }
+
+    public boolean canSendEnergy(ItemStack itemStack) {
+        return false;
+    }
+
+    @Override
+    @Optional.Method(modid = MekanismHooks.REDSTONEFLUX_MOD_ID)
+    public int receiveEnergy(ItemStack theItem, int energy, boolean simulate) {
+        if (theItem.getCount() > 1) {
+            return 0;
+        }
+        if (canReceiveEnergy(theItem)) {
+            double amount = RFIntegration.fromRF(energy);
+            double remainder = StorageUtils.insertEnergy(theItem, amount, Action.get(!simulate));
+            return RFIntegration.toRF(amount - remainder);
+        }
+        return 0;
+    }
+
+    @Override
+    @Optional.Method(modid = MekanismHooks.REDSTONEFLUX_MOD_ID)
+    public int extractEnergy(ItemStack theItem, int energy, boolean simulate) {
+        if (theItem.getCount() > 1) {
+            return 0;
+        }
+        if (canSendEnergy(theItem)) {
+            return RFIntegration.toRF(StorageUtils.extractEnergy(theItem, RFIntegration.fromRF(energy), Action.get(!simulate)));
+        }
+        return 0;
+    }
+
+    @Override
+    @Optional.Method(modid = MekanismHooks.REDSTONEFLUX_MOD_ID)
+    public int getEnergyStored(ItemStack theItem) {
+        if (theItem.getCount() > 1) {
+            return 0;
+        }
+        return RFIntegration.toRF(StorageUtils.getStoredEnergy(theItem));
+    }
+
+    @Override
+    @Optional.Method(modid = MekanismHooks.REDSTONEFLUX_MOD_ID)
+    public int getMaxEnergyStored(ItemStack theItem) {
+        if (theItem.getCount() > 1) {
+            return 0;
+        }
+        return RFIntegration.toRF(getEnergyCapacity(theItem));
+    }
+
+    @Override
+    public boolean showDurabilityBar(ItemStack stack) {
+        return stack.getCount() == 1 && StorageUtils.getStoredEnergy(stack) > 0;
+    }
+
+    @Override
+    public double getDurabilityForDisplay(ItemStack stack) {
+        double capacity = getEnergyCapacity(stack);
+        return capacity <= 0 ? 1D : 1D - (StorageUtils.getStoredEnergy(stack) / capacity);
+    }
+
+    @Override
+    @Optional.Method(modid = MekanismHooks.IC2_MOD_ID)
+    public IElectricItemManager getManager(ItemStack itemStack) {
+        return IC2ItemManager.getManager();
+    }
+
+    @Override
+    public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
+        return new ItemCapabilityWrapper(stack, new TeslaItemWrapper(), new ForgeEnergyItemWrapper(),
+              RateLimitEnergyHandler.create(() -> getEnergyTransfer(stack), () -> getEnergyCapacity(stack), ConstantPredicates.alwaysFalse(), ConstantPredicates.alwaysTrue()));
+    }
+
+    @Override
+    public String getItemName() {
+        return "TierChemicalCrystallizer";
+    }
+}

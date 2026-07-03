@@ -16,7 +16,7 @@ public class ItemBlockTierGasGenerator extends ItemBlockMekceuMoreMachineTier {
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierGasGenerator tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.fuelTank.setMaxGas(tile.tier.processes * TileEntityTierGasGenerator.MAX_GAS);
         }
     }

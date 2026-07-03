@@ -2,6 +2,7 @@ package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.base.ITierItem;
 import mekanism.common.tier.BaseTier;
+import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.util.LangUtils;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
@@ -40,16 +41,21 @@ public abstract class ItemBlockMekceuMoreMachineTier extends ItemBlockMekceuMore
 
     @Override
     public double getMachineStorage(ItemStack stack) {
-        return getMachineStorage() * MachineTier.values()[getBaseTier(stack).ordinal()].processes;
+        return getMachineStorage() * MachineTier.get(getBaseTier(stack)).processes;
     }
 
     abstract double getMachineStorage();
 
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
-        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
+    @Override
+    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
+          IBlockState state, TileEntityBasicBlock tileEntity) {
         if (tileEntity instanceof ITierMachine<?>) {
             setTierMachine(tileEntity, stack);
         }
+    }
+
+    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
     }
 
     @Override
@@ -57,7 +63,7 @@ public abstract class ItemBlockMekceuMoreMachineTier extends ItemBlockMekceuMore
         if (!itemstack.hasTagCompound()) {
             return BaseTier.BASIC;
         }
-        return BaseTier.values()[itemstack.getTagCompound().getInteger("tier")];
+        return MachineTier.getBaseTierByIndex(itemstack.getTagCompound().getInteger("tier"));
     }
 
     @Override
@@ -65,7 +71,7 @@ public abstract class ItemBlockMekceuMoreMachineTier extends ItemBlockMekceuMore
         if (!itemstack.hasTagCompound()) {
             itemstack.setTagCompound(new NBTTagCompound());
         }
-        itemstack.getTagCompound().setInteger("tier", tier.ordinal());
+        itemstack.getTagCompound().setInteger("tier", MachineTier.getIndex(tier));
     }
 
     abstract void setTierMachine(TileEntity tileEntity, ItemStack stack);

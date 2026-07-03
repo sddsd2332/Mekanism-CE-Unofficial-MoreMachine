@@ -1,68 +1,65 @@
 package mekceumoremachine.client.gui;
 
-import mekanism.client.gui.GuiMekanismTile;
-import mekanism.client.gui.element.*;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import mekanism.client.gui.GuiConfigurableTile;
+import mekanism.client.gui.element.GuiInnerScreen;
+import mekanism.client.gui.element.bar.GuiVerticalPowerBar;
 import mekanism.client.gui.element.gauge.GuiGasGauge;
-import mekanism.client.gui.element.gauge.GuiGauge;
-import mekanism.client.gui.element.slot.GuiEnergySlot;
-import mekanism.client.gui.element.slot.GuiOutputSlot;
-import mekanism.client.gui.element.tab.GuiSecurityTab;
-import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
-import mekanism.client.gui.element.tab.GuiUpgradeTab;
-
+import mekanism.client.gui.element.tab.GuiEnergyTab;
+import mekanism.client.recipe_viewer.type.RecipeViewerRecipeType;
+import mekanism.common.recipe.machines.AmbientGasRecipe;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.inventory.container.ContainerTierAmbientAccumulator;
 import mekceumoremachine.common.tile.machine.TileEntityTierAmbientAccumulator;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 
-import java.util.Arrays;
-
-public class GuiTierAmbientAccumulator extends GuiMekanismTile<TileEntityTierAmbientAccumulator> {
+public class GuiTierAmbientAccumulator extends GuiConfigurableTile<TileEntityTierAmbientAccumulator, ContainerTierAmbientAccumulator> {
 
     public GuiTierAmbientAccumulator(InventoryPlayer inventory, TileEntityTierAmbientAccumulator tile) {
         super(tile, new ContainerTierAmbientAccumulator(inventory, tile));
-        ResourceLocation resource = getGuiLocation();
-        addGuiElement(new GuiSecurityTab(this, tileEntity, resource));
-        addGuiElement(new GuiRedstoneControl(this, tileEntity, resource));
-        addGuiElement(new GuiUpgradeTab(this, tileEntity, resource));
-        addGuiElement(new GuiSideConfigurationTab(this, tileEntity, resource));
-        addGuiElement(new GuiEnergyInfo(() -> {
-            String usage = MekanismUtils.getEnergyDisplay(tileEntity.clientEnergyUsed);
-            return Arrays.asList(LangUtils.localize("gui.using") + ": " + usage + "/t", LangUtils.localize("gui.needed") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getNeedEnergy()));
-        }, this, resource));
-        addGuiElement(new GuiGasGauge(() -> tileEntity.outputTank, GuiGauge.Type.WIDE, this, getGuiLocation(), 95, 13).withColor(GuiGauge.TypeColor.ORANGE));
-        addGuiElement(new GuiPowerBarLong(this, tileEntity, resource, 165, 9));
-        addGuiElement(new GuiEnergySlot(this, resource, 135, 66,tileEntity));
-        addGuiElement(new GuiOutputSlot(this, resource, 102, 66,tileEntity).with(GuiSlot.SlotOverlay.PLUS));
-        addGuiElement(new GuiInnerScreen(this, resource, 7, 13, 80, 65));
-        addGuiElement(new GuiPlayerSlot(this, resource,7,88));
         ySize += 5;
+        inventoryLabelY += 2;
+        dynamicSlots = true;
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        renderScaledText(tileEntity.getName(), (xSize / 2) - (fontRenderer.getStringWidth(tileEntity.getName()) / 2), 4, 0x404040,174);
-        fontRenderer.drawString(LangUtils.localize("container.inventory"), 8, (ySize - 94) + 2, 0x404040);
-        renderScaledText(LangUtils.localize("gui.dimensionId") + ":" + tileEntity.getWorld().provider.getDimension(), 8, 14, 0x33ff99);
-        renderScaledText(LangUtils.localize("gui.dimensionName") + ":", 8, 23, 0x33ff99);
-        renderScaledText(tileEntity.getWorld().provider.getDimensionType().getName(), 8, 32, 0x33ff99);
-        if (tileEntity.getRecipe() != null){
-            renderScaledText(LangUtils.localize("gui.dimensionGas") + ":", 8, 41, 0x33ff99);
-            renderScaledText(tileEntity.getRecipe().getOutput().output.getGas().getLocalizedName(), 8, 50, 0x33ff99);
-            float Chance = Math.round(tileEntity.getRecipe().getOutput().primaryChance * 100);
-            renderScaledText(LangUtils.localize("gui.probability") + ":" + Chance + "%", 8, 59, 0x33ff99);
-            renderScaledText(tileEntity.outputTank.getStored() + " / " + tileEntity.outputTank.getMaxGas(), 8, 68, 0x33ff99);
-        }else {
-            renderScaledText(LangUtils.localize("gui.dimensionNoGas"), 8, 41, 0x33ff99);
-            renderScaledText(tileEntity.outputTank.getStored() + " / " + tileEntity.outputTank.getMaxGas(), 8, 50, 0x33ff99);
-        }
-        super.drawGuiContainerForegroundLayer(mouseX, mouseY);
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addButton(new GuiEnergyTab(this, () -> Arrays.asList(
+              new TextComponentString(LangUtils.localize("gui.using") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.clientEnergyUsed) + "/t"),
+              new TextComponentString(LangUtils.localize("gui.needed") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getNeedEnergy())))));
+        addButton(new GuiGasGauge(this, tileEntity.outputTank, GuiGasGauge.Type.WIDE, 95, 13).withColor(GuiGasGauge.GaugeColor.ORANGE));
+        addButton(new GuiVerticalPowerBar(this, tileEntity.getMainEnergyContainer(), 165, 9, 78));
+        addButton(new GuiInnerScreen(this, 7, 13, 80, 65, this::getScreenText).clearFormat().padding(1).clearSpacing().textScale(0.8F)
+              .recipeViewerCategories(RecipeViewerRecipeType.AMBIENT_ACCUMULATOR));
     }
 
+    @Override
+    protected void drawForegroundText(int mouseX, int mouseY) {
+        drawTitleText(new TextComponentString(tileEntity.getName()), 4);
+        renderInventoryText();
+        super.drawForegroundText(mouseX, mouseY);
+    }
 
-    public void renderScaledText(String text, int x, int y, int color) {
-        renderScaledText(text,x,y,color,78);
+    private List<ITextComponent> getScreenText() {
+        List<ITextComponent> list = new ArrayList<>();
+        list.add(new TextComponentString(LangUtils.localize("gui.dimensionId") + ":" + tileEntity.getWorld().provider.getDimension()));
+        list.add(new TextComponentString(LangUtils.localize("gui.dimensionName") + ":"));
+        list.add(new TextComponentString(tileEntity.getWorld().provider.getDimensionType().getName()));
+        AmbientGasRecipe recipe = tileEntity.getRecipe();
+        if (recipe != null) {
+            list.add(new TextComponentString(LangUtils.localize("gui.dimensionGas") + ":"));
+            list.add(new TextComponentString(recipe.getOutput().output.getGas().getLocalizedName()));
+            list.add(new TextComponentString(LangUtils.localize("gui.probability") + ":" + Math.round(recipe.getOutput().primaryChance * 100) + "%"));
+        } else {
+            list.add(new TextComponentString(LangUtils.localize("gui.dimensionNoGas")));
+        }
+        list.add(new TextComponentString(tileEntity.outputTank.getStored() + " / " + tileEntity.outputTank.getMaxGas()));
+        return list;
     }
 }

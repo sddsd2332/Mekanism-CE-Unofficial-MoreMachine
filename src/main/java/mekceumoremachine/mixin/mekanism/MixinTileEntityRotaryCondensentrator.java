@@ -1,24 +1,22 @@
 package mekceumoremachine.mixin.mekanism;
 
-import mekanism.api.gas.GasTank;
-import mekanism.api.transmitters.TransmissionType;
-import mekanism.common.Mekanism;
-import mekanism.common.base.IBoundingBlock;
-import mekanism.common.base.ITierUpgradeable;
+import mekanism.common.capabilities.fluid.BasicFluidTank;
+import mekanism.common.capabilities.gas.BasicGasTank;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.component.TileComponentConfig;
 import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.machine.TileEntityRotaryCondensentrator;
 import mekanism.common.tile.prefab.TileEntityMachine;
+import mekanism.common.upgrade.IUpgradeData;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.tile.interfaces.ITierFirstUpgrade;
-import mekceumoremachine.common.tile.machine.TileEntityTierRotaryCondensentrator;
-import net.minecraftforge.fluids.FluidTank;
+import mekceumoremachine.common.upgrade.FirstRotaryCondensentratorUpgradeData;
+import net.minecraft.block.state.IBlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(value = TileEntityRotaryCondensentrator.class, remap = false)
-public abstract class MixinTileEntityRotaryCondensentrator extends TileEntityMachine implements ITierUpgradeable, ITierFirstUpgrade {
+public abstract class MixinTileEntityRotaryCondensentrator extends TileEntityMachine implements ITierFirstUpgrade {
 
 
     @Shadow
@@ -28,13 +26,16 @@ public abstract class MixinTileEntityRotaryCondensentrator extends TileEntityMac
     public TileComponentConfig configComponent;
 
     @Shadow
-    public GasTank gasTank;
+    public BasicGasTank gasTank;
 
     @Shadow
-    public FluidTank fluidTank;
+    public BasicFluidTank fluidTank;
 
     @Shadow
     public int mode;
+
+    @Shadow
+    public double clientEnergyUsed;
 
     public MixinTileEntityRotaryCondensentrator(String sound, String name, double energyStorge, double energUsage, int upgradeSlot) {
         super(sound, name, energyStorge, energUsage, upgradeSlot);
@@ -43,60 +44,21 @@ public abstract class MixinTileEntityRotaryCondensentrator extends TileEntityMac
     public boolean isUpgrade = true;
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier != BaseTier.BASIC) {
-            return false;
-        }
+    public IBlockState getUpgradeResult(BaseTier upgradeTier) {
+        return canInstallUpgrade(upgradeTier) ? MEKCeuMoreMachineBlocks.TierRotaryCondensentrator.getDefaultState() : null;
+    }
 
+    @Override
+    public void prepareForUpgrade() {
         isUpgrade = false;
-        if (world.getTileEntity(getPos()) instanceof IBoundingBlock block){
-            block.onBreak();
-        }else {
-            world.setBlockToAir(getPos());
-        }
-        world.setBlockState(getPos(), MEKCeuMoreMachineBlocks.TierRotaryCondensentrator.getDefaultState(), 3);
-        if (world.getTileEntity(getPos()) instanceof TileEntityTierRotaryCondensentrator tile) {
-            //Basic
-            tile.facing = facing;
-            tile.clientFacing = clientFacing;
-            tile.ticker = ticker;
-            tile.redstone = redstone;
-            tile.redstoneLastTick = redstoneLastTick;
-            tile.doAutoSync = doAutoSync;
+    }
 
-            //Electric
-            tile.electricityStored.set(electricityStored.get());
-            //Machine
-            tile.setActive(isActive);
-            tile.setControlType(getControlType());
-            tile.prevEnergy = prevEnergy;
-            tile.upgradeComponent.readFrom(upgradeComponent);
-            tile.upgradeComponent.setUpgradeSlot(upgradeComponent.getUpgradeSlot());
-
-            tile.ejectorComponent.readFrom(ejectorComponent);
-            tile.ejectorComponent.setOutputData(TransmissionType.GAS, tile.configComponent.getOutputs(TransmissionType.GAS).get(1));
-            tile.ejectorComponent.setOutputData(TransmissionType.FLUID, tile.configComponent.getOutputs(TransmissionType.FLUID).get(1));
-
-            tile.securityComponent.readFrom(securityComponent);
-            configComponent.getTransmissions().forEach(transmission -> {
-                tile.configComponent.setConfig(transmission, configComponent.getConfig(transmission).asByteArray());
-                tile.configComponent.setEjecting(transmission, configComponent.isEjecting(transmission));
-            });
-
-            for (int i = 0; i < inventory.size(); i++) {
-                tile.inventory.set(i, inventory.get(i));
-            }
-            tile.gasTank.setGas(gasTank.getGas());
-            tile.fluidTank.setFluid(fluidTank.getFluid());
-            tile.mode = mode == 0;
-            tile.upgradeComponent.getSupportedTypes().forEach(tile::recalculateUpgradables);
-            tile.markNoUpdateSync();
-            Mekanism.packetHandler.sendUpdatePacket(tile);
-            markNoUpdateSync();
-            return true;
-        }
-
-        return false;
+    @Override
+    public IUpgradeData getUpgradeData(BaseTier upgradeTier) {
+        return canInstallUpgrade(upgradeTier)
+              ? new FirstRotaryCondensentratorUpgradeData(upgradeTier, this, clientEnergyUsed, prevEnergy, configComponent, ejectorComponent,
+                    gasTank, fluidTank, mode)
+              : null;
     }
 
     /**

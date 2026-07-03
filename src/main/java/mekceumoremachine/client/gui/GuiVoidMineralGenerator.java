@@ -1,62 +1,62 @@
 package mekceumoremachine.client.gui;
 
-import mekanism.client.gui.GuiMekanismTile;
-import mekanism.client.gui.element.*;
+import java.util.Arrays;
+import mekanism.client.gui.GuiConfigurableTile;
+import mekanism.client.gui.element.GuiInnerScreen;
 import mekanism.client.gui.element.gauge.GuiEnergyGauge;
-import mekanism.client.gui.element.slot.GuiEnergySlot;
-import mekanism.client.gui.element.slot.GuiOutputSlot;
-import mekanism.client.gui.element.tab.GuiSecurityTab;
-import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
-import mekanism.client.gui.element.tab.GuiTransporterConfigTab;
-import mekanism.client.gui.element.tab.GuiUpgradeTab;
+import mekanism.client.gui.element.progress.GuiProgress;
+import mekanism.client.gui.element.progress.IProgressInfoHandler;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.tab.GuiEnergyTab;
 import mekanism.client.render.MekanismRenderer;
 import mekanism.common.util.LangUtils;
+import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.inventory.container.ContainerVoidMineralGenerator;
 import mekceumoremachine.common.tile.machine.TileEntityVoidMineralGenerator;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
 
-public class GuiVoidMineralGenerator extends GuiMekanismTile<TileEntityVoidMineralGenerator> {
+public class GuiVoidMineralGenerator extends GuiConfigurableTile<TileEntityVoidMineralGenerator, ContainerVoidMineralGenerator> {
 
     private int delay;
     private int supportedIndex;
 
     public GuiVoidMineralGenerator(InventoryPlayer inventory, TileEntityVoidMineralGenerator tile) {
         super(tile, new ContainerVoidMineralGenerator(inventory, tile));
-        ResourceLocation resource = getGuiLocation();
-        addGuiElement(new GuiSecurityTab(this, tileEntity, resource, 80, 0));
-        addGuiElement(new GuiRedstoneControl(this, tileEntity, resource, 80, 0));
-        addGuiElement(new GuiUpgradeTab(this, tileEntity, resource, 80, 0));
-        addGuiElement(new GuiSideConfigurationTab(this, tileEntity, resource));
-        addGuiElement(new GuiTransporterConfigTab(this, 34, tileEntity, resource));
-        addGuiElement(new GuiEnergyInfo(tileEntity, this, resource));
-        addGuiElement(new GuiEnergyGauge(() -> tileEntity, GuiEnergyGauge.Type.MEDIUM, this, resource, 6, 78));
-        addGuiElement(new GuiEnergySlot(this, resource, 14, 56, tileEntity));
-        addGuiElement(new GuiProgress(new GuiProgress.IProgressInfoHandler() {
-            @Override
-            public double getProgress() {
-                return tileEntity.getScaledProgress();
-            }
-        }, GuiProgress.ProgressBar.SMALL_RIGHT, this, resource, 44, 103));
-        for (int slotY = 0; slotY < 9; slotY++) {
-            for (int slotX = 0; slotX < 9; slotX++) {
-                addGuiElement(new GuiOutputSlot(this, resource, 80 + slotX * 18, 13 + slotY * 18, tileEntity));
-            }
-        }
-        addGuiElement(new GuiPlayerSlot(this, resource, 7, 185));
-        addGuiElement(new GuiInnerScreen(this, resource, 176, 185, 72, 76));
         xSize += 80;
         ySize += 102;
+        dynamicSlots = true;
+    }
+
+    @Override
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addButton(new GuiEnergyTab(this, () -> Arrays.asList(
+              new TextComponentString(LangUtils.localize("gui.using") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.energyPerTick) + "/t"),
+              new TextComponentString(LangUtils.localize("gui.needed") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getMaxEnergy() - tileEntity.getEnergy())))));
+        addButton(new GuiEnergyGauge(this, tileEntity, GuiEnergyGauge.Type.MEDIUM, 6, 78));
+        addButton(new GuiProgress(new IProgressInfoHandler() {
+            @Override
+            public double getProgress(){
+                return tileEntity.getScaledProgress();
+            }
+            //这里不需走显示配方的字体
+            @Override
+            public boolean isGuiInJei(){
+                return true;
+            }
+        }, ProgressType.SMALL_RIGHT, this, 44, 103));
+        addButton(new GuiInnerScreen(this, 176, 185, 72, 76));
     }
 
     @Override
     public void updateScreen() {
         super.updateScreen();
         if (!VoidMineralGeneratorUitls.getCanOre().isEmpty()) {
-            if (delay < 30) {
+            if (delay < 40) {
                 delay++;
             } else {
                 delay = 0;
@@ -65,11 +65,10 @@ public class GuiVoidMineralGenerator extends GuiMekanismTile<TileEntityVoidMiner
         }
     }
 
-
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        fontRenderer.drawString(tileEntity.getName(), (xSize / 2) - (fontRenderer.getStringWidth(tileEntity.getName()) / 2), 4, 0x404040);
-        fontRenderer.drawString(LangUtils.localize("container.inventory"), 8, (ySize - 96) + 2, 0x404040);
+    protected void drawForegroundText(int mouseX, int mouseY) {
+        drawTitleText(new TextComponentString(tileEntity.getName()), 4);
+        renderInventoryText(8, ySize - 94, getXSize());
         String runningType;
         if (tileEntity.energyPerTick > tileEntity.getEnergy()) {
             runningType = LangUtils.localize("mekanism.gui.digitalMiner.lowPower");
@@ -80,21 +79,21 @@ public class GuiVoidMineralGenerator extends GuiMekanismTile<TileEntityVoidMiner
         }
         int xAxis = mouseX - guiLeft;
         int yAxis = mouseY - guiTop;
-        fontRenderer.drawString(LangUtils.localize("gui.state") + ":" + runningType, 179, 188, 0xFF3CFE9A);
+        fontRenderer.drawString(LangUtils.localize("gui.state") + ":" + runningType, 179, 188, screenTextColor());
         if (!VoidMineralGeneratorUitls.getCanOre().isEmpty()) {
-            fontRenderer.drawString(LangUtils.localize("gui.canOre") + ": ", 179, 197, 0xFF3CFE9A);
-            fontRenderer.drawString(String.valueOf(VoidMineralGeneratorUitls.getCanOre().size()), 179, 206, 0xFF3CFE9A);
+            fontRenderer.drawString(LangUtils.localize("gui.canOre") + ": ", 179, 197, screenTextColor());
+            fontRenderer.drawString(String.valueOf(VoidMineralGeneratorUitls.getCanOre().size()), 179, 206, screenTextColor());
             ItemStack[] supported = VoidMineralGeneratorUitls.getCanOre().toArray(new ItemStack[0]);
             if (supported.length > supportedIndex) {
                 GlStateManager.pushMatrix();
                 MekanismRenderer.resetColor();
                 renderItem(supported[supportedIndex], 231, 244);
                 GlStateManager.popMatrix();
-                if (xAxis >= 231 && xAxis <= 231 + 18 && yAxis >= 244 && yAxis <= 244 + 18) {
+                if (xAxis >= 231 && xAxis <= 249 && yAxis >= 244 && yAxis <= 262) {
                     displayTooltip(supported[supportedIndex].getDisplayName(), xAxis, yAxis);
                 }
             }
         }
-        super.drawGuiContainerForegroundLayer(mouseX, mouseY);
+        super.drawForegroundText(mouseX, mouseY);
     }
 }

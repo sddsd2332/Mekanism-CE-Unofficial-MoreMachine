@@ -16,7 +16,7 @@ public class ItemBlockTierChemicalWasher extends ItemBlockMekceuMoreMachineTier 
     @Override
     public void setTierMachine(TileEntity tileEntity, ItemStack stack) {
         if (tileEntity instanceof TileEntityTierChemicalWasher tile) {
-            tile.tier = MachineTier.values()[getBaseTier(stack).ordinal()];
+            tile.tier = MachineTier.get(getBaseTier(stack));
             tile.fluidTank.setCapacity(tile.tier.processes * TileEntityTierChemicalWasher.MAX_FLUID);
             tile.inputTank.setMaxGas(tile.tier.processes * TileEntityTierChemicalWasher.MAX_GAS);
             tile.outputTank.setMaxGas(tile.tier.processes * TileEntityTierChemicalWasher.MAX_GAS);

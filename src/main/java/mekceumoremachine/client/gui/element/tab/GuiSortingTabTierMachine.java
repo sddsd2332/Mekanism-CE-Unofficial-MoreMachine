@@ -1,63 +1,52 @@
 package mekceumoremachine.client.gui.element.tab;
 
 import mekanism.api.TileNetworkList;
+import mekanism.client.SpecialColors;
 import mekanism.client.gui.IGuiWrapper;
-import mekanism.client.gui.element.GuiTileEntityElement;
+import mekanism.client.gui.element.GuiInsetElement;
 import mekanism.client.render.MekanismRenderer;
-import mekanism.client.sound.SoundHandler;
 import mekanism.common.Mekanism;
 import mekanism.common.network.PacketTileEntity;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.tile.interfaces.ITierSorting;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class GuiSortingTabTierMachine<TILE extends TileEntity & ITierSorting> extends GuiTileEntityElement<TILE> {
+public class GuiSortingTabTierMachine<TILE extends TileEntity & ITierSorting> extends GuiInsetElement<TILE> {
 
-    public GuiSortingTabTierMachine(IGuiWrapper gui, TILE tile, ResourceLocation def) {
-        super(gui, def, tile, -26, 58, 26, 54, -21, 62, 18, 18);
+    private static final ResourceLocation SORTING = MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "sorting.png");
+
+    public GuiSortingTabTierMachine(IGuiWrapper gui, TILE tile) {
+        super(SORTING, gui, tile, -26, 62, 35, 18, true);
     }
 
     @Override
-    public void renderBackground(int xAxis, int yAxis, int guiWidth, int guiHeight) {
-        super.renderBackground(xAxis, yAxis, guiWidth, guiHeight);
-        mc.renderEngine.bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.BUTTON_TAB, "button_tab_icon.png"));
-        guiObj.drawTexturedRect(guiWidth - 21, guiHeight + 62, 216, 18, 18, 18);
-        mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "State.png"));
-        guiObj.drawTexturedRect(guiWidth - 22, guiHeight + 81, 6, 6, 8, 8);
-        guiObj.drawTexturedRect(guiWidth - 21, guiHeight + 82, tileEntity.getsorting() ? 0 : 6, 0, 6, 6);
-        mc.renderEngine.bindTexture(defaultLocation);
+    protected void colorTab() {
+        MekanismRenderer.color(SpecialColors.TAB_FACTORY_SORT.argb());
     }
 
     @Override
-    public void renderForeground(int xAxis, int yAxis) {
-        if (inBounds(xAxis, yAxis)) {
-            List<String> info = new ArrayList<>();
-            info.add(LangUtils.localize("gui.factory.autoSort") + ":" + LangUtils.transOnOff(tileEntity.getsorting()));
-            if (tileEntity.getoldSorting()) {
-                info.add(LangUtils.localize("gui.factory.autoSort.isold"));
-            }
-            displayTooltips(info, xAxis, yAxis);
-        }
-        mc.renderEngine.bindTexture(defaultLocation);
-        MekanismRenderer.resetColor();
+    public void drawBackground(int mouseX, int mouseY, float partialTicks) {
+        super.drawBackground(mouseX, mouseY, partialTicks);
+        drawScaledScrollingString(new TextComponentString(LangUtils.transOnOff(dataSource.getsorting())), 0, 24, TextAlignment.CENTER, titleTextColor(), width, 3,
+              false, 1, getMillis());
     }
 
     @Override
-    public void preMouseClicked(int xAxis, int yAxis, int button) {
+    public void renderToolTip(int mouseX, int mouseY) {
+        super.renderToolTip(mouseX, mouseY);
+        List<String> info = new ArrayList<>();
+        info.add(LangUtils.localize("gui.factory.autoSort") + ":" + LangUtils.transOnOff(dataSource.getsorting()));
+        displayTooltips(info, mouseX, mouseY);
     }
 
     @Override
-    public void mouseClicked(int xAxis, int yAxis, int button) {
-        if (button == 0 && inBounds(xAxis, yAxis)) {
-            TileNetworkList data = TileNetworkList.withContents(0);
-            Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(tileEntity, data));
-            SoundHandler.playSound(SoundEvents.UI_BUTTON_CLICK);
-        }
+    public void onClick(double mouseX, double mouseY, int button) {
+        Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(dataSource, TileNetworkList.withContents(0)));
     }
 }

@@ -1,17 +1,26 @@
 package mekceumoremachine.common.tile.machine.replicator;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.IContentsListener;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.*;
 import mekanism.api.transmitters.TransmissionType;
-import mekanism.common.SideData;
 import mekanism.common.Upgrade;
 import mekanism.common.base.IGuiProvider;
 import mekanism.common.base.ISpecialSelectionWireframeTile;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.base.ITankManager;
-import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.gas.GasTankHelper;
+import mekanism.common.capabilities.holder.gas.IGasTankHolder;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.recipe.RecipeHandler;
+import mekanism.common.recipe.cache.CachedRecipe;
+import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
+import mekanism.common.recipe.cache.TwoInputCachedRecipe;
+import mekanism.common.recipe.cache.inputs.InputHelper;
+import mekanism.common.recipe.cache.outputs.OutputHelper;
 import mekanism.common.recipe.inputs.ChemicalGasInput;
 import mekanism.common.recipe.machines.ReplicatorGasStackRecipe;
 import mekanism.common.recipe.outputs.GasOutput;
@@ -20,13 +29,12 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityBasicMachine;
 import mekanism.common.util.*;
+import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -34,42 +42,71 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.Map;
 
-public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGasInput, GasOutput, ReplicatorGasStackRecipe> implements IGasHandler, ISustainedData, ITankManager, ISpecialSelectionWireframeTile {
+public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGasInput, GasOutput, ReplicatorGasStackRecipe> implements ISustainedData, ITankManager, ISpecialSelectionWireframeTile {
 
     public static final int MAX_GAS = 10000;
-    public GasTank inputTank = new GasTank(MAX_GAS);
-    public GasTank uuTank = new GasTank(MAX_GAS);
-    public GasTank outputTank = new GasTank(MAX_GAS);
+    public ResizableGasTank inputTank;
+    public ResizableGasTank uuTank;
+    public ResizableGasTank outputTank;
+    private EnergyInventorySlot energySlot;
 
     public TileEntityReplicatorGases() {
         super("prc", "ReplicatorGases", MoreMachineConfig.current().config.ReplicatorGasesEnergyStorge.val(), MoreMachineConfig.current().config.ReplicatorGasesEnergyUsage.val(), 1, 200);
 
         configComponent = new TileComponentConfig(this, TransmissionType.ENERGY, TransmissionType.GAS);
 
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.INPUT_1, new int[]{0}));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.INPUT_2, new int[]{1}));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.OUTPUT, new int[]{2}));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(DataType.INPUT, new int[]{0, 1}));
-        configComponent.addOutput(TransmissionType.GAS, new SideData(new int[]{0, 1, 2}, new boolean[]{false, false, true}));
-        configComponent.setConfig(TransmissionType.GAS, new byte[]{0, 0, 3, 0, 1, 2});
+        initializeInventorySlots();
+        configComponent.setupGasDualInputOutputConfig(inputTank, uuTank, outputTank);
+        configComponent.setConfig(TransmissionType.GAS, DataType.NONE, DataType.NONE, DataType.OUTPUT, DataType.NONE, DataType.INPUT_1, DataType.INPUT_2);
 
         configComponent.setInputConfig(TransmissionType.ENERGY);
 
         ejectorComponent = new TileComponentEjector(this);
-        ejectorComponent.setOutputData(TransmissionType.GAS, configComponent.getOutputs(TransmissionType.GAS).get(3));
-        ejectorComponent.setInputOutputData(TransmissionType.GAS, configComponent.getOutputs(TransmissionType.GAS).get(5));
+        ejectorComponent.setOutputData(configComponent, TransmissionType.GAS);
+    }
 
-        inventory = NonNullListSynchronized.withSize(2, ItemStack.EMPTY);
+    @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 154, 13));
+        return builder.build();
+    }
+
+    @Override
+    protected IGasTankHolder getInitialGasTanks(IContentsListener listener) {
+        GasTankHelper builder = createGasTankHelper();
+        builder.addTank(getOrCreateInputTank(listener));
+        builder.addTank(getOrCreateUUTank(listener));
+        builder.addTank(getOrCreateOutputTank(listener));
+        return builder.build();
+    }
+
+    private ResizableGasTank getOrCreateInputTank(IContentsListener listener) {
+        if (inputTank == null) {
+            inputTank = ResizableGasTank.input(MAX_GAS, this::caninputTank, listener);
+        }
+        return inputTank;
+    }
+
+    private ResizableGasTank getOrCreateUUTank(IContentsListener listener) {
+        if (uuTank == null) {
+            uuTank = ResizableGasTank.input(MAX_GAS, this::canUUTank, listener);
+        }
+        return uuTank;
+    }
+
+    private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
+        if (outputTank == null) {
+            outputTank = ResizableGasTank.output(MAX_GAS, listener);
+        }
+        return outputTank;
     }
 
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
-        ChargeUtils.discharge(0, this);
-        ReplicatorGasStackRecipe recipe = getRecipe();
-        double energy = recipe != null ? MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK + recipe.extraEnergy) : 0;
-        getProcess(recipe, true, energy);
+        energySlot.fillContainerOrConvert();
+        processRecipe(getMainEnergyContainer());
         prevEnergy = getEnergy();
     }
 
@@ -79,25 +116,19 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     }
 
     @Override
-    protected void setupVariableValues() {
-        if (getRecipe() == null) {
-            return;
-        }
-        boolean update = BASE_TICKS_REQUIRED != getRecipe().ticks;
-        BASE_TICKS_REQUIRED = getRecipe().ticks;
+    public void onCachedRecipeChanged(CachedRecipe<ReplicatorGasStackRecipe> cachedRecipe, int cacheIndex) {
+        super.onCachedRecipeChanged(cachedRecipe, cacheIndex);
+        int ticks = cachedRecipe == null ? 200 : cachedRecipe.getRecipe().ticks;
+        boolean update = BASE_TICKS_REQUIRED != ticks;
+        BASE_TICKS_REQUIRED = ticks;
         if (update) {
             recalculateUpgradables(Upgrade.SPEED);
         }
     }
 
     @Override
-    public boolean isItemValidForSlot(int slotID, @Nonnull ItemStack itemstack) {
-        return slotID == 0 && ChargeUtils.canBeDischarged(itemstack);
-    }
-
-
-    @Override
     public ReplicatorGasStackRecipe getRecipe() {
+        refreshRecipeLookupCache();
         ChemicalGasInput input = getInput();
         if (cachedRecipe == null || !input.testEquality(cachedRecipe.getInput())) {
             cachedRecipe = RecipeHandler.getReplicatorGasStackRecipe(input);
@@ -106,14 +137,14 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     }
 
     @Override
-    public ChemicalGasInput getInput() {
-        return new ChemicalGasInput(inputTank.getGas(), uuTank.getGas());
+    protected void clearRecipeLookupCache() {
+        super.clearRecipeLookupCache();
+        cachedRecipe = null;
     }
 
     @Override
-    public void operate(ReplicatorGasStackRecipe recipe) {
-        recipe.operate(inputTank, uuTank, outputTank, 1);
-        markNoUpdateSync();
+    public ChemicalGasInput getInput() {
+        return new ChemicalGasInput(inputTank.getGas(), uuTank.getGas());
     }
 
     @Override
@@ -122,11 +153,39 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     }
 
     @Override
-    public boolean canExtractItem(int slotID, @Nonnull ItemStack itemstack, @Nonnull EnumFacing side) {
-        if (slotID == 0) {
-            return ChargeUtils.canBeOutputted(itemstack, false);
-        }
-        return false;
+    public ReplicatorGasStackRecipe getRecipe(int cacheIndex) {
+        return getRecipe();
+    }
+
+    @Override
+    public CachedRecipe<ReplicatorGasStackRecipe> createNewCachedRecipe(ReplicatorGasStackRecipe recipe, int cacheIndex) {
+        return new TwoInputCachedRecipe<>(recipe, this::shouldRecheckAllRecipeErrors,
+              InputHelper.getGasInputHandler(inputTank, RecipeError.NOT_ENOUGH_INPUT, () -> false),
+              InputHelper.getGasInputHandler(uuTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
+              OutputHelper.getGasOutputHandler(outputTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
+              () -> recipe.getInput().input, () -> recipe.getInput().uu,
+              (input, uu) -> input != null && input.isGasEqual(recipe.getInput().input)
+                    && uu != null && uu.isGasEqual(recipe.getInput().uu),
+              (input, uu) -> recipe.getOutput().output.copy(),
+              input -> input == null || input.amount <= 0,
+              uu -> uu == null || uu.amount <= 0,
+              output -> output == null || output.amount <= 0)
+              .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
+              .setActive(active -> {
+                  if (active || prevEnergy >= getEnergy()) {
+                      setActive(active);
+                  }
+              })
+              .setEnergyRequirements(() -> getReplicatorEnergyPerTick(recipe), getMainEnergyContainer())
+              .setRequiredTicks(() -> ticksRequired)
+              .setBaselineMaxOperations(() -> getBaselineMaxOperations(getReplicatorEnergyPerTick(recipe), true))
+              .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
+              .setErrorsChanged(this::onRecipeErrorsChanged)
+              .setOnFinish(this::onCachedRecipeFinish);
+    }
+
+    private double getReplicatorEnergyPerTick(ReplicatorGasStackRecipe recipe) {
+        return MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK + recipe.extraEnergy);
     }
 
     @Override
@@ -180,39 +239,6 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
         return new Object[0];
     }
 
-    @Override
-    public int receiveGas(EnumFacing side, GasStack stack, boolean doTransfer) {
-        if (canReceiveGas(side, stack != null ? stack.getGas() : null)) {
-            if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(0, 1)) {
-                if (stack != null) {
-                    if (inputTank.canReceive(stack.getGas()) && caninputTank(stack.getGas()) && uuTank.getGasType() != stack.getGas()) {
-                        return inputTank.receive(stack, doTransfer);
-                    }
-                    if (uuTank.canReceive(stack.getGas()) && canUUTank(stack.getGas()) && inputTank.getGasType() != stack.getGas()) {
-                        return uuTank.receive(stack, doTransfer);
-                    }
-                }
-            }
-        }
-        return 0;
-    }
-
-    @Override
-    public GasStack drawGas(EnumFacing side, int amount, boolean doTransfer) {
-        if (canDrawGas(side, null)) {
-            return outputTank.draw(amount, doTransfer);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean canReceiveGas(EnumFacing side, Gas type) {
-        if (configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(0, 1)) {
-            return inputTank.canReceive(type) && caninputTank(type) || uuTank.canReceive(type) && canUUTank(type);
-        }
-        return false;
-    }
-
     public boolean caninputTank(Gas type) {
         Map<ChemicalGasInput, ReplicatorGasStackRecipe> r = getRecipes();
         for (Map.Entry<ChemicalGasInput, ReplicatorGasStackRecipe> entry : r.entrySet()) {
@@ -228,35 +254,6 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
 
         }
         return false;
-    }
-
-    @Override
-    public boolean canDrawGas(EnumFacing side, Gas type) {
-        return configComponent.getOutput(TransmissionType.GAS, side, facing).hasSlot(2) && outputTank.canDraw(type);
-    }
-
-    @Nonnull
-    @Override
-    public GasTankInfo[] getTankInfo() {
-        return new GasTankInfo[]{inputTank, outputTank, uuTank};
-    }
-
-    @Override
-    public boolean hasCapability(@Nonnull Capability<?> capability, EnumFacing side) {
-        if (isCapabilityDisabled(capability, side)) {
-            return false;
-        }
-        return capability == Capabilities.GAS_HANDLER_CAPABILITY || super.hasCapability(capability, side);
-    }
-
-    @Override
-    public <T> T getCapability(@Nonnull Capability<T> capability, EnumFacing side) {
-        if (isCapabilityDisabled(capability, side)) {
-            return null;
-        } else if (capability == Capabilities.GAS_HANDLER_CAPABILITY) {
-            return Capabilities.GAS_HANDLER_CAPABILITY.cast(this);
-        }
-        return super.getCapability(capability, side);
     }
 
     @Override
@@ -280,23 +277,8 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     }
 
     @Override
-    public Object[] getTanks() {
+    public Object[] getManagedTanks() {
         return new Object[]{inputTank, uuTank, outputTank};
-    }
-
-    @Override
-    public boolean getEnergySlot() {
-        return inventory.get(0).isEmpty();
-    }
-
-    @Override
-    public boolean getInputSlot() {
-        return false;
-    }
-
-    @Override
-    public boolean getOuputSlot() {
-        return false;
     }
 
     @Override

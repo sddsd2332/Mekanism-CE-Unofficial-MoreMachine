@@ -1,160 +1,85 @@
 package mekceumoremachine.client.gui;
 
+import java.util.Arrays;
 import mekanism.api.TileNetworkList;
-import mekanism.api.util.time.Timeticks;
-import mekanism.client.gui.GuiMekanismTile;
-import mekanism.client.gui.IJeiNoShowRecipe;
-import mekanism.client.gui.button.GuiDisableableButton;
-import mekanism.client.gui.element.*;
+import mekanism.client.gui.GuiConfigurableTile;
+import mekanism.client.gui.element.GuiDownArrow;
+import mekanism.client.gui.element.bar.GuiHorizontalPowerBar;
+import mekanism.client.gui.element.button.ToggleButton;
 import mekanism.client.gui.element.gauge.GuiFluidGauge;
 import mekanism.client.gui.element.gauge.GuiGasGauge;
-import mekanism.client.gui.element.gauge.GuiGauge;
-import mekanism.client.gui.element.slot.GuiEnergySlot;
-import mekanism.client.gui.element.slot.GuiInputSlot;
-import mekanism.client.gui.element.slot.GuiOutputSlot;
-import mekanism.client.gui.element.tab.GuiSecurityTab;
-import mekanism.client.gui.element.tab.GuiSideConfigurationTab;
-import mekanism.client.gui.element.tab.GuiTransporterConfigTab;
-import mekanism.client.gui.element.tab.GuiUpgradeTab;
+import mekanism.client.gui.element.progress.IProgressInfoHandler;
+import mekanism.client.gui.element.progress.GuiProgress;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.tab.GuiEnergyTab;
+import mekanism.client.recipe_viewer.type.RecipeViewerRecipeType;
 import mekanism.client.sound.SoundHandler;
 import mekanism.common.Mekanism;
-import mekanism.common.network.PacketTileEntity;
+import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.inventory.container.ContainerTierRotaryCondensentrator;
 import mekceumoremachine.common.tile.machine.TileEntityTierRotaryCondensentrator;
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-public class GuiTierRotaryCondensentrator extends GuiMekanismTile<TileEntityTierRotaryCondensentrator> implements IJeiNoShowRecipe {
-
-    protected Timeticks time;
-
-    public GuiDisableableButton mode;
+public class GuiTierRotaryCondensentrator extends GuiConfigurableTile<TileEntityTierRotaryCondensentrator, ContainerTierRotaryCondensentrator> {
 
     public GuiTierRotaryCondensentrator(InventoryPlayer inventory, TileEntityTierRotaryCondensentrator tile) {
         super(tile, new ContainerTierRotaryCondensentrator(inventory, tile));
-        time = new Timeticks(20, 20, false);
-        ResourceLocation resource = getGuiLocation();
-        addGuiElement(new GuiSecurityTab(this, tileEntity, resource));
-        addGuiElement(new GuiRedstoneControl(this, tileEntity, resource));
-        addGuiElement(new GuiUpgradeTab(this, tileEntity, resource));
-        addGuiElement(new GuiSideConfigurationTab(this, tileEntity, resource));
-        addGuiElement(new GuiTransporterConfigTab(this, 34, tileEntity, resource));
-        addGuiElement(new GuiInputSlot(this, resource, 4, 24, tileEntity).with(GuiSlot.SlotOverlay.PLUS));
-        addGuiElement(new GuiOutputSlot(this, resource, 4, 55, tileEntity).with(GuiSlot.SlotOverlay.MINUS));
-        addGuiElement(new GuiInputSlot(this, resource, 154, 24, tileEntity));
-        addGuiElement(new GuiOutputSlot(this, resource, 154, 55, tileEntity));
-        addGuiElement(new GuiEnergySlot(this, resource, 154, 4, tileEntity));
-        addGuiElement(new GuiPowerBarHorizontal(this, tileEntity, resource, 115 - 2, 74));
-        addGuiElement(new GuiEnergyInfo(() -> {
-            String usage = MekanismUtils.getEnergyDisplay(tileEntity.clientEnergyUsed);
-            return Arrays.asList(LangUtils.localize("gui.using") + ": " + usage + "/t", LangUtils.localize("gui.needed") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getNeedEnergy()));
-        }, this, resource));
+        dynamicSlots = true;
+        titleLabelY = 4;
+    }
 
-        addGuiElement(new GuiFluidGauge(() -> tileEntity.fluidTank, GuiGauge.Type.STANDARD, this, resource, 133, 13).withColor(GuiGauge.TypeColor.RED));
-        addGuiElement(new GuiGasGauge(() -> tileEntity.gasTank, GuiGauge.Type.STANDARD, this, resource, 25, 13).withColor(GuiGauge.TypeColor.RED));
-        addGuiElement(new GuiProgress(new GuiProgress.IProgressInfoHandler() {
+    @Override
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addButton(new GuiDownArrow(this, 159, 44));
+        addButton(new GuiHorizontalPowerBar(this, tileEntity, 113, 74));
+        addButton(new GuiEnergyTab(this, () -> Arrays.asList(
+              new TextComponentString(LangUtils.localize("gui.using") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.clientEnergyUsed) + "/t"),
+              new TextComponentString(LangUtils.localize("gui.needed") + ": " + MekanismUtils.getEnergyDisplay(tileEntity.getNeedEnergy())))));
+        addButton(new GuiGasGauge(this, tileEntity.gasTank, GuiGasGauge.Type.STANDARD, 25, 13).withColor(GuiGasGauge.GaugeColor.RED));
+        addButton(new GuiFluidGauge(this, tileEntity.fluidTank, GuiFluidGauge.Type.STANDARD, 133, 13).withColor(GuiFluidGauge.GaugeColor.RED));
+        addButton(new GuiProgress(new IProgressInfoHandler.IBooleanProgressInfoHandler() {
             @Override
-            public double getProgress() {
-                return tileEntity.getActive() ? (double) time.getValue() / 20F : 0;
+            public boolean fillProgressBar() {
+                return tileEntity.getActive();
             }
 
             @Override
             public boolean isActive() {
                 return tileEntity.mode;
             }
-        }, GuiProgress.ProgressBar.LARGE_RIGHT, this, resource, 62, 38));
-        addGuiElement(new GuiProgress(new GuiProgress.IProgressInfoHandler() {
+        }, ProgressType.LARGE_RIGHT, this, 64, 39)
+              .recipeViewerCategories(RecipeViewerRecipeType.CONDENSENTRATING));
+        addButton(new GuiProgress(new IProgressInfoHandler.IBooleanProgressInfoHandler() {
             @Override
-            public double getProgress() {
-                return tileEntity.getActive() ? (double) time.getValue() / 20F : 0;
+            public boolean fillProgressBar() {
+                return tileEntity.getActive();
             }
 
             @Override
             public boolean isActive() {
                 return !tileEntity.mode;
             }
-        }, GuiProgress.ProgressBar.LARGE_LEFT, this, resource, 62, 38));
-        addGuiElement(new GuiPlayerSlot(this, resource));
+        }, ProgressType.LARGE_LEFT, this, 64, 39)
+              .recipeViewerCategories(RecipeViewerRecipeType.DECONDENSENTRATING));
+        addButton(new ToggleButton(this, 4, 4, () -> !tileEntity.mode, this::sendModePacket,
+              new TextComponentString(LangUtils.localize("gui.rotaryCondensentrator.toggleOperation")),
+              new TextComponentString(LangUtils.localize("gui.rotaryCondensentrator.toggleOperation"))));
     }
 
     @Override
-    public void initGui() {
-        super.initGui();
-        buttonList.clear();
-        buttonList.add(mode = new GuiDisableableButton(0, guiLeft + 4, guiTop + 4, 18, 18, () -> tileEntity.mode ? 0 : 1).with(GuiDisableableButton.ImageOverlay.TOGGLE));
+    protected void drawForegroundText(int mouseX, int mouseY) {
+        drawTitleText(new TextComponentString(tileEntity.getName()), titleLabelY);
+        fontRenderer.drawString(tileEntity.mode ? LangUtils.localize("gui.condensentrating") : LangUtils.localize("gui.decondensentrating"), 6, ySize - 92, titleTextColor());
+        super.drawForegroundText(mouseX, mouseY);
     }
 
-    @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        fontRenderer.drawString(tileEntity.getName(), (xSize / 2) - (fontRenderer.getStringWidth(tileEntity.getName()) / 2), 4, 0x404040);
-        fontRenderer.drawString(tileEntity.mode ? LangUtils.localize("gui.condensentrating")
-                : LangUtils.localize("gui.decondensentrating"), 6, (ySize - 94) + 2, 0x404040);
-        int xAxis = mouseX - guiLeft;
-        int yAxis = mouseY - guiTop;
-        if (mode.isMouseOver()) {
-            this.displayTooltip(LangUtils.localize("gui.rotaryCondensentrator.toggleOperation"), xAxis, yAxis);
-        } else if (xAxis >= 116 && xAxis <= 168 && yAxis >= 76 && yAxis <= 80) {
-            this.displayTooltip(MekanismUtils.getEnergyDisplay(tileEntity.getEnergy(), tileEntity.getMaxEnergy()), xAxis, yAxis);
-        } else if (xAxis >= -21 && xAxis <= -3 && yAxis >= 116 && yAxis <= 134) {
-            List<String> info = new ArrayList<>();
-            boolean energy = tileEntity.getEnergy() < tileEntity.energyPerTick || tileEntity.getEnergy() == 0;
-            boolean gas = tileEntity.gasTank.getStored() == tileEntity.gasTank.getMaxGas() && !tileEntity.mode;
-            boolean fluid = tileEntity.fluidTank.getFluidAmount() == tileEntity.fluidTank.getCapacity() && tileEntity.mode;
-            if (energy) {
-                info.add(LangUtils.localize("gui.no_energy"));
-            }
-            if (gas) {
-                info.add(LangUtils.localize("gui.gas_no_space"));
-            }
-            if (fluid) {
-                info.add(LangUtils.localize("gui.fluid_no_space"));
-            }
-            if (energy || gas || fluid) {
-                this.displayTooltips(info, xAxis, yAxis);
-            }
-        }
-        super.drawGuiContainerForegroundLayer(mouseX, mouseY);
-    }
-
-
-    @Override
-    protected void drawGuiContainerBackgroundLayer(int xAxis, int yAxis) {
-        super.drawGuiContainerBackgroundLayer(xAxis, yAxis);
-        boolean energy = tileEntity.getEnergy() < tileEntity.energyPerTick || tileEntity.getEnergy() == 0;
-        boolean gas = tileEntity.gasTank.getStored() == tileEntity.gasTank.getMaxGas() && !tileEntity.mode;
-        boolean fluid = tileEntity.fluidTank.getFluidAmount() == tileEntity.fluidTank.getCapacity() && tileEntity.mode;
-        if (gas) {
-            mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "Warning.png"));
-            drawTexturedModalRect(guiLeft + 25 + 9, guiTop + 13 + 1, 9, 1, 8, 29);
-            drawTexturedModalRect(guiLeft + 25 + 9, guiTop + 13 + 31, 9, 32, 8, 28);
-        }
-        if (fluid) {
-            mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "Warning.png"));
-            drawTexturedModalRect(guiLeft + 133 + 9, guiTop + 13 + 1, 9, 1, 8, 29);
-            drawTexturedModalRect(guiLeft + 133 + 9, guiTop + 13 + 31, 9, 32, 8, 28);
-        }
-        if (energy || gas || fluid) {
-            mc.getTextureManager().bindTexture(MekanismUtils.getResource(MekanismUtils.ResourceType.TAB, "Warning_Info.png"));
-            drawTexturedModalRect(guiLeft - 26, guiTop + 112, 0, 0, 26, 26);
-            addGuiElement(new GuiWarningInfo(this, getGuiLocation(), false));
-        }
-    }
-
-    @Override
-    protected void actionPerformed(GuiButton guibutton) throws IOException {
-        super.actionPerformed(guibutton);
-        if (guibutton.id == mode.id) {
-            Mekanism.packetHandler.sendToServer(new PacketTileEntity.TileEntityMessage(tileEntity, TileNetworkList.withContents(0)));
-            SoundHandler.playSound(SoundEvents.UI_BUTTON_CLICK);
-        }
+    private void sendModePacket() {
+        Mekanism.packetHandler.sendToServer(new TileEntityMessage(tileEntity, TileNetworkList.withContents(0)));
+        SoundHandler.playSound(SoundEvents.UI_BUTTON_CLICK);
     }
 }

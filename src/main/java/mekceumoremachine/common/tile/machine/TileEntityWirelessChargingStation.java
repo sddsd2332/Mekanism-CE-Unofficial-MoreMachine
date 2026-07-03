@@ -3,17 +3,25 @@ package mekceumoremachine.common.tile.machine;
 import baubles.api.BaublesApi;
 import com.google.common.base.Predicate;
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Action;
+import mekanism.api.AutomationType;
 import mekanism.api.Coord4D;
 import mekanism.api.IConfigCardAccess.ISpecialConfigData;
+import mekanism.api.IContentsListener;
 import mekanism.api.TileNetworkList;
+import mekanism.api.energy.IStrictEnergyHandler;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
-import mekanism.common.SideData;
 import mekanism.common.base.*;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
+import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.entity.EntityRobit;
+import mekanism.common.integration.energy.EnergyCompatUtils;
 import mekanism.common.integration.MekanismHooks;
 import mekanism.common.integration.computer.IComputerIntegration;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.component.TileComponentConfig;
@@ -63,30 +71,40 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     public boolean playerArmor;
     public boolean playerInventory;
     public boolean clientRendering = false;
+    private EnergyInventorySlot chargeSlot;
+    private EnergyInventorySlot dischargeSlot;
 
     public TileEntityWirelessChargingStation() {
         super("WirelessChargingStation", 0);
         configComponent = new TileComponentConfig(this, TransmissionType.ENERGY, TransmissionType.ITEM);
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.NONE, InventoryUtils.EMPTY));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.INPUT, new int[]{0}));
-        configComponent.addOutput(TransmissionType.ITEM, new SideData(DataType.OUTPUT, new int[]{1}));
-        configComponent.setConfig(TransmissionType.ITEM, new byte[]{0, -1, 0, 0, 0, 1});
+        initializeInventorySlots();
+        configComponent.setupItemIOConfig(chargeSlot, dischargeSlot);
+        configComponent.setConfig(TransmissionType.ITEM, DataType.NONE, DataType.EMPTY, DataType.NONE, DataType.NONE, DataType.NONE, DataType.INPUT);
         configComponent.setCanEject(TransmissionType.ITEM, false);
 
         configComponent.setInputConfig(TransmissionType.ENERGY);
-        configComponent.setConfig(TransmissionType.ENERGY, new byte[]{1, -1, 1, 1, 1, 1});
+        configComponent.setConfig(TransmissionType.ENERGY, DataType.INPUT, DataType.EMPTY, DataType.INPUT, DataType.INPUT, DataType.INPUT, DataType.INPUT);
 
-        inventory = NonNullListSynchronized.withSize(2, ItemStack.EMPTY);
         controlType = RedstoneControl.DISABLED;
         ejectorComponent = new TileComponentEjector(this);
         securityComponent = new TileComponentSecurity(this);
     }
 
     @Override
+    protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
+        InventorySlotHelper builder = createInventorySlotHelper();
+        chargeSlot = builder.addSlot(EnergyInventorySlot.drain(getMainEnergyContainer(listener), listener, 26, 56 + 2));
+        chargeSlot.setSlotOverlay(SlotOverlay.PLUS);
+        dischargeSlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(listener), this::getWorld, listener, 26, 14 + 2));
+        dischargeSlot.setSlotOverlay(SlotOverlay.MINUS);
+        return builder.build();
+    }
+
+    @Override
     public void onUpdateServer() {
         super.onUpdateServer();
-        ChargeUtils.charge(0, this);
-        ChargeUtils.discharge(1, this);
+        chargeSlot.drainContainer();
+        dischargeSlot.fillContainerOrConvert();
         List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, getChargeBox(), CHARGE_PREDICATE);
         if (MekanismUtils.canFunction(this)) {
             List<EntityLivingBase> addeEtities = new ArrayList<>();
@@ -107,10 +125,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             if (!addeEtities.isEmpty()) {
                 for (EntityLivingBase entity : addeEtities) {
                     if (chargeRobit && entity instanceof EntityRobit robit) {
-                        double canGive = Math.min(getEnergy(), 1000);
-                        double toGive = Math.min(robit.MAX_ELECTRICITY - robit.getEnergy(), canGive);
-                        robit.setEnergy(robit.getEnergy() + toGive);
-                        setEnergy(getEnergy() - toGive);
+                        provideEnergy(robit, 1_000);
                     } else if (entity instanceof EntityPlayer player) {
                         List<ItemStack> stacks = new ArrayList<>();
                         if (playerArmor) {
@@ -128,7 +143,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
                                 if (getEnergy() <= 0) {
                                     break;
                                 }
-                                ChargeUtils.charge(stack, this);
+                                provideEnergy(EnergyCompatUtils.getStrictEnergyHandler(stack), getMaxOutput());
                             }
                         }
                     }
@@ -140,6 +155,41 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         prevScale = newScale;
+    }
+
+    private boolean provideEnergy(EntityRobit robit, double maxTransfer) {
+        double energyToGive = Math.min(Math.min(getEnergy(), maxTransfer), robit.MAX_ELECTRICITY);
+        double simulatedRemainder = robit.insert(energyToGive, Action.SIMULATE, AutomationType.INTERNAL);
+        if (simulatedRemainder < energyToGive) {
+            double extracted = getMainEnergyContainer().extract(energyToGive - simulatedRemainder, Action.EXECUTE, AutomationType.INTERNAL);
+            if (extracted > 0) {
+                double remainder = robit.insert(extracted, Action.EXECUTE, AutomationType.INTERNAL);
+                if (remainder > 0) {
+                    getMainEnergyContainer().insert(remainder, Action.EXECUTE, AutomationType.INTERNAL);
+                }
+                return remainder < extracted;
+            }
+        }
+        return false;
+    }
+
+    private boolean provideEnergy(IStrictEnergyHandler energyHandler, double maxTransfer) {
+        if (energyHandler == null) {
+            return false;
+        }
+        double energyToGive = Math.min(getEnergy(), maxTransfer);
+        double simulatedRemainder = energyHandler.insertEnergy(energyToGive, Action.SIMULATE);
+        if (simulatedRemainder < energyToGive) {
+            double extracted = getMainEnergyContainer().extract(energyToGive - simulatedRemainder, Action.EXECUTE, AutomationType.INTERNAL);
+            if (extracted > 0) {
+                double remainder = energyHandler.insertEnergy(extracted, Action.EXECUTE);
+                if (remainder > 0) {
+                    getMainEnergyContainer().insert(remainder, Action.EXECUTE, AutomationType.INTERNAL);
+                }
+                return remainder < extracted;
+            }
+        }
+        return false;
     }
 
 
@@ -155,14 +205,11 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
 
 
     @Override
-    public boolean upgrade(BaseTier upgradeTier) {
-        if (upgradeTier.ordinal() != tier.ordinal() + 1) {
+    public boolean applyTierUpgrade(BaseTier upgradeTier) {
+        if (!tier.canUpgradeTo(upgradeTier)) {
             return false;
         }
-        if (upgradeTier == BaseTier.CREATIVE) {
-            return false;
-        }
-        tier = MachineTier.values()[upgradeTier.ordinal()];
+        tier = MachineTier.get(upgradeTier);
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();
         return true;
@@ -187,19 +234,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
 
 
     @Override
-    public boolean isItemValidForSlot(int slotID, @Nonnull ItemStack itemstack) {
-        if (slotID == 0) {
-            return ChargeUtils.canBeCharged(itemstack);
-        } else if (slotID == 1) {
-            return ChargeUtils.canBeDischarged(itemstack);
-        }
-        return true;
-    }
-
-
-    @Override
     public boolean sideIsConsumer(EnumFacing side) {
-        return configComponent.hasSideForData(TransmissionType.ENERGY, facing, 1, side);
+        return configComponent.hasSideForData(TransmissionType.ENERGY, facing, DataType.INPUT, side);
     }
 
 
@@ -218,23 +254,6 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
             case ULTIMATE -> MoreMachineConfig.current().config.UltimateWirelessChargingMaxEnergy.val();
         };
     }
-
-    @Nonnull
-    @Override
-    public int[] getSlotsForFace(@Nonnull EnumFacing side) {
-        return configComponent.getOutput(TransmissionType.ITEM, side, facing).availableSlots;
-    }
-
-    @Override
-    public boolean canExtractItem(int slotID, @Nonnull ItemStack itemstack, @Nonnull EnumFacing side) {
-        if (slotID == 1) {
-            return ChargeUtils.canBeOutputted(itemstack, false);
-        } else if (slotID == 0) {
-            return ChargeUtils.canBeOutputted(itemstack, true);
-        }
-        return false;
-    }
-
 
     @Override
     public String[] getMethods() {
@@ -262,8 +281,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
 
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             MachineTier prevTier = tier;
-            tier = MachineTier.values()[dataStream.readInt()];
-            controlType = RedstoneControl.values()[dataStream.readInt()];
+            tier = MachineTier.byIndex(dataStream.readInt());
+            controlType = MekanismUtils.getByIndex(RedstoneControl.values(), dataStream.readInt(), controlType);
             chargeRobit = dataStream.readBoolean();
             playerArmor = dataStream.readBoolean();
             playerInventory = dataStream.readBoolean();
@@ -288,8 +307,8 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
-        tier = MachineTier.values()[nbtTags.getInteger("tier")];
-        controlType = RedstoneControl.values()[nbtTags.getInteger("controlType")];
+        tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
+        controlType = MekanismUtils.getByIndex(RedstoneControl.values(), nbtTags.getInteger("controlType"), controlType);
         chargeRobit = nbtTags.getBoolean("chargeRobit");
         playerArmor = nbtTags.getBoolean("playerArmor");
         playerInventory = nbtTags.getBoolean("playerInventory");

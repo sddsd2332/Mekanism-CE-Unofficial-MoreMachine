@@ -1,0 +1,30 @@
+{
+  "result": {
+    "item": "mekceumoremachine:tierchemicalcrystallizer",
+    "data": 2
+  },
+  "pattern": [
+    "ECE",
+    "oOo",
+    "ECE"
+  ],
+  "type": "mekanism:ore_shaped",
+  "key": {
+    "C": {
+      "ore": "circuitElite",
+      "type": "forge:ore_dict"
+    },
+    "E": {
+      "ore": "alloyElite",
+      "type": "forge:ore_dict"
+    },
+    "o": {
+      "ore": "ingotRefinedObsidian",
+      "type": "forge:ore_dict"
+    },
+    "O": {
+      "item": "mekceumoremachine:tierchemicalcrystallizer",
+      "data": 1
+    }
+  }
+}

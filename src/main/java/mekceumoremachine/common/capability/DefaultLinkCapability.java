@@ -45,8 +45,10 @@ public class DefaultLinkCapability implements LinkTileEntity {
 
     @Override
     public void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey("link")) {
+        if (nbt.hasKey("x") && nbt.hasKey("y") && nbt.hasKey("z") && nbt.hasKey("dimensionId")) {
             link = Coord4D.read(nbt);
+        } else {
+            link = null;
         }
     }
 
