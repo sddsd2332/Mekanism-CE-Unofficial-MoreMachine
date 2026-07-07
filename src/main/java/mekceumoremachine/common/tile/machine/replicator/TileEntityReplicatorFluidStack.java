@@ -32,6 +32,7 @@ import mekceumoremachine.common.capability.ResizableFluidTank;
 import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.recipe.cache.inputs.TemplateInputHelper;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -93,21 +94,21 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
 
     private ResizableFluidTank getOrCreateInputTank(IContentsListener listener) {
         if (inputTank == null) {
-            inputTank = ResizableFluidTank.input(MAX_GAS_OR_FLUID, fluid -> true, listener);
+            inputTank = ResizableFluidTank.input(MAX_GAS_OR_FLUID, fluid -> true, getRecipeCacheListener());
         }
         return inputTank;
     }
 
     private ResizableFluidTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
-            outputTank = ResizableFluidTank.output(MAX_GAS_OR_FLUID, listener);
+            outputTank = ResizableFluidTank.output(MAX_GAS_OR_FLUID, getRecipeCacheChangeListener(listener));
         }
         return outputTank;
     }
 
     private ResizableGasTank getOrCreateUUTank(IContentsListener listener) {
         if (uuTank == null) {
-            uuTank = ResizableGasTank.input(MAX_GAS_OR_FLUID, gas -> true, listener);
+            uuTank = ResizableGasTank.input(MAX_GAS_OR_FLUID, gas -> true, getRecipeCacheListener());
         }
         return uuTank;
     }
@@ -171,7 +172,7 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
     public CachedRecipe<ReplicatorFluidStackRecipe> createNewCachedRecipe(ReplicatorFluidStackRecipe recipe, int cacheIndex) {
         return new TwoInputCachedRecipe<>(recipe, this::shouldRecheckAllRecipeErrors,
               InputHelper.getGasInputHandler(uuTank, RecipeError.NOT_ENOUGH_INPUT),
-              InputHelper.getFluidInputHandler(inputTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
+              TemplateInputHelper.getFluidTemplateInputHandler(inputTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
               OutputHelper.getOutputHandler(outputTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
               () -> recipe.getInput().ingredientGas, () -> recipe.getInput().ingredientFluid,
               (gas, fluid) -> gas != null && gas.isGasEqual(recipe.getInput().ingredientGas)

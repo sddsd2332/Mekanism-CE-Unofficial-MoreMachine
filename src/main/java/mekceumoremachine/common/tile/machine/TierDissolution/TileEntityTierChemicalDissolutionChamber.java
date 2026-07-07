@@ -15,6 +15,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.gas.GasTankHelper;
 import mekanism.common.capabilities.holder.gas.IGasTankHolder;
 import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
@@ -214,6 +215,24 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             }
         }
         return builder.build();
+    }
+
+    @Override
+    protected IEnergyContainerHolder getInitialEnergyContainers(IContentsListener listener) {
+        return super.getInitialEnergyContainers(() -> {
+            listener.onContentsChanged();
+            unpauseRecipeCaches();
+        });
+    }
+
+    private void unpauseRecipeCaches() {
+        if (recipeCacheLookupMonitors != null) {
+            for (RecipeCacheLookupMonitor<DissolutionRecipe> monitor : recipeCacheLookupMonitors) {
+                if (monitor != null) {
+                    monitor.unpause();
+                }
+            }
+        }
     }
 
     private ResizableGasTank getOrCreateInjectTank(IContentsListener listener) {
@@ -682,6 +701,15 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_USAGE);
             injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
             baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
+        }
+    }
+
+    @Override
+    public void setEnergy(double energy) {
+        double previous = getEnergy();
+        super.setEnergy(energy);
+        if (world != null && !world.isRemote && Double.compare(previous, getEnergy()) != 0) {
+            unpauseRecipeCaches();
         }
     }
 

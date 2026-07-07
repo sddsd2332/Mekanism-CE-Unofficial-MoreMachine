@@ -5,6 +5,7 @@ import mekanism.api.AutomationType;
 import mekanism.api.IContentsListener;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.functions.ConstantPredicates;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 
@@ -62,6 +63,25 @@ public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank 
     @Override
     public void setStackUnchecked(@Nullable FluidStack stack) {
         setFluid(stack);
+    }
+
+    @Override
+    public void setFluid(@Nullable FluidStack stack) {
+        super.setFluid(stack);
+        onContentsChanged();
+    }
+
+    @Override
+    public FluidTank readFromNBT(NBTTagCompound nbt) {
+        super.readFromNBT(nbt);
+        FluidStack stored = getFluid();
+        if (stored != null && (stored.amount <= 0 || stored.getFluid() == null)) {
+            setFluid(null);
+        } else if (stored != null && stored.amount > getCapacity()) {
+            stored.amount = getCapacity();
+            onContentsChanged();
+        }
+        return this;
     }
 
     @Override

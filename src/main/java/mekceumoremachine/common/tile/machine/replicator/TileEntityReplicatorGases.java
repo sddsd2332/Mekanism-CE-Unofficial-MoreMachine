@@ -32,6 +32,7 @@ import mekanism.common.util.*;
 import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.recipe.cache.inputs.TemplateInputHelper;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -83,21 +84,21 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
 
     private ResizableGasTank getOrCreateInputTank(IContentsListener listener) {
         if (inputTank == null) {
-            inputTank = ResizableGasTank.input(MAX_GAS, this::caninputTank, listener);
+            inputTank = ResizableGasTank.input(MAX_GAS, this::caninputTank, getRecipeCacheListener());
         }
         return inputTank;
     }
 
     private ResizableGasTank getOrCreateUUTank(IContentsListener listener) {
         if (uuTank == null) {
-            uuTank = ResizableGasTank.input(MAX_GAS, this::canUUTank, listener);
+            uuTank = ResizableGasTank.input(MAX_GAS, this::canUUTank, getRecipeCacheListener());
         }
         return uuTank;
     }
 
     private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
-            outputTank = ResizableGasTank.output(MAX_GAS, listener);
+            outputTank = ResizableGasTank.output(MAX_GAS, getRecipeCacheChangeListener(listener));
         }
         return outputTank;
     }
@@ -160,7 +161,7 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     @Override
     public CachedRecipe<ReplicatorGasStackRecipe> createNewCachedRecipe(ReplicatorGasStackRecipe recipe, int cacheIndex) {
         return new TwoInputCachedRecipe<>(recipe, this::shouldRecheckAllRecipeErrors,
-              InputHelper.getGasInputHandler(inputTank, RecipeError.NOT_ENOUGH_INPUT, () -> false),
+              TemplateInputHelper.getGasTemplateInputHandler(inputTank, RecipeError.NOT_ENOUGH_INPUT),
               InputHelper.getGasInputHandler(uuTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
               OutputHelper.getGasOutputHandler(outputTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
               () -> recipe.getInput().input, () -> recipe.getInput().uu,
@@ -240,18 +241,27 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
     }
 
     public boolean caninputTank(Gas type) {
+        if (type == null) {
+            return false;
+        }
         Map<ChemicalGasInput, ReplicatorGasStackRecipe> r = getRecipes();
         for (Map.Entry<ChemicalGasInput, ReplicatorGasStackRecipe> entry : r.entrySet()) {
-            return entry.getKey().input.isGasEqual(type);
+            if (entry.getKey().input.isGasEqual(type)) {
+                return true;
+            }
         }
         return false;
     }
 
     public boolean canUUTank(Gas type) {
+        if (type == null) {
+            return false;
+        }
         Map<ChemicalGasInput, ReplicatorGasStackRecipe> r = getRecipes();
         for (Map.Entry<ChemicalGasInput, ReplicatorGasStackRecipe> entry : r.entrySet()) {
-            return entry.getKey().uu.isGasEqual(type);
-
+            if (entry.getKey().uu.isGasEqual(type)) {
+                return true;
+            }
         }
         return false;
     }

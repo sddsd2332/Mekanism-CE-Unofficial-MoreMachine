@@ -1,6 +1,7 @@
 package mekceumoremachine.common.tile.machine;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Action;
 import mekanism.api.AutomationType;
 import mekanism.api.IConfigCardAccess;
 import mekanism.api.IContentsListener;
@@ -14,6 +15,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.fluid.FluidTankHelper;
 import mekanism.common.capabilities.holder.fluid.IFluidTankHolder;
 import mekanism.common.capabilities.holder.gas.GasTankHelper;
@@ -172,6 +174,14 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         return builder.build();
     }
 
+    @Override
+    protected IEnergyContainerHolder getInitialEnergyContainers(IContentsListener listener) {
+        return super.getInitialEnergyContainers(() -> {
+            listener.onContentsChanged();
+            recipeCacheLookupMonitor.unpause();
+        });
+    }
+
     private IContentsListener getRecipeCacheChangeListener(@Nullable IContentsListener listener) {
         return () -> {
             if (listener != null) {
@@ -208,13 +218,11 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         if (mode) {
             gasInputSlot.fillTank();
             fluidSlot.drainTank(fluidContainerOutputSlot);
-            if (fluidTank.getFluid() != null && fluidTank.getFluidAmount() == 0) {
-                fluidTank.setEmpty();
-            }
         } else {
             gasOutputSlot.drainTank();
             fluidSlot.fillTank(fluidContainerOutputSlot);
         }
+        sanitizeAndClampTanks();
         clientEnergyUsed = recipeCacheLookupMonitor.updateAndProcess(getMainEnergyContainer());
         if (recipeCacheLookupMonitor.getCachedRecipe(0) == null && prevEnergy >= getEnergy()) {
             setActive(false);
@@ -243,6 +251,15 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
 
     public boolean isValidFluid(FluidStack f) {
         return RecipeHandler.isRotaryFluidValid(f);
+    }
+
+    @Override
+    public void setEnergy(double energy) {
+        double previous = getEnergy();
+        super.setEnergy(energy);
+        if (recipeCacheLookupMonitor != null && world != null && !world.isRemote && Double.compare(previous, getEnergy()) != 0) {
+            recipeCacheLookupMonitor.unpause();
+        }
     }
 
     public RotaryRecipe getRecipe() {
@@ -334,6 +351,7 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
                 mode = !mode;
                 cachedRecipe = null;
                 recipeCacheLookupMonitor.onChange();
+                markDirty();
             }
             playersUsing.forEach(player -> Mekanism.packetHandler.sendTo(new PacketTileEntity.TileEntityMessage(this), (EntityPlayerMP) player));
             return;
@@ -376,6 +394,7 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         if (nbtTags.hasKey("fluidTank")) {
             fluidTank.readFromNBT(nbtTags.getCompoundTag("fluidTank"));
         }
+        sanitizeAndClampTanks();
     }
 
 
@@ -427,6 +446,30 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
     public void readSustainedData(ItemStack itemStack) {
         fluidTank.setFluid(FluidStack.loadFluidStackFromNBT(ItemDataUtils.getCompound(itemStack, "fluidTank")));
         gasTank.setGas(GasStack.readFromNBT(ItemDataUtils.getCompound(itemStack, "gasTank")));
+        sanitizeAndClampTanks();
+    }
+
+    private void sanitizeAndClampTanks() {
+        sanitizeAndClampTank(fluidTank);
+        sanitizeAndClampTank(gasTank);
+    }
+
+    private void sanitizeAndClampTank(ResizableFluidTank tank) {
+        FluidStack stored = tank.getFluid();
+        if (stored != null && (stored.amount <= 0 || stored.getFluid() == null)) {
+            tank.setEmpty();
+        } else if (stored != null) {
+            tank.setStackSize(stored.amount, Action.EXECUTE);
+        }
+    }
+
+    private void sanitizeAndClampTank(ResizableGasTank tank) {
+        GasStack stored = tank.getGas();
+        if (stored != null && (stored.amount <= 0 || stored.getGas() == null)) {
+            tank.setEmpty();
+        } else if (stored != null) {
+            tank.setStackSize(stored.amount, Action.EXECUTE);
+        }
     }
 
     @Override

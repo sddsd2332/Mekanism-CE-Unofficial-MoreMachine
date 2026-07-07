@@ -13,6 +13,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.gas.GasTankHelper;
 import mekanism.common.capabilities.holder.gas.IGasTankHolder;
 import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
@@ -176,6 +177,24 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
             }
         }
         return builder.build();
+    }
+
+    @Override
+    protected IEnergyContainerHolder getInitialEnergyContainers(IContentsListener listener) {
+        return super.getInitialEnergyContainers(() -> {
+            listener.onContentsChanged();
+            unpauseRecipeCaches();
+        });
+    }
+
+    private void unpauseRecipeCaches() {
+        if (recipeCacheLookupMonitors != null) {
+            for (RecipeCacheLookupMonitor<OxidationRecipe> monitor : recipeCacheLookupMonitors) {
+                if (monitor != null) {
+                    monitor.unpause();
+                }
+            }
+        }
     }
 
     private ResizableGasTank getOrCreateOutputTank(int process, IContentsListener listener) {
@@ -592,6 +611,15 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
         } else if (upgrade == Upgrade.SPEED) {
             ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
+        }
+    }
+
+    @Override
+    public void setEnergy(double energy) {
+        double previous = getEnergy();
+        super.setEnergy(energy);
+        if (world != null && !world.isRemote && Double.compare(previous, getEnergy()) != 0) {
+            unpauseRecipeCaches();
         }
     }
 

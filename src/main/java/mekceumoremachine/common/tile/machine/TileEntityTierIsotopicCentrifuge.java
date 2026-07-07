@@ -245,10 +245,7 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     public int getUpgradedUsage(IsotopicRecipe recipe) {
         int possibleProcess = Math.min((int) Math.pow(2, upgradeComponent.getUpgrades(Upgrade.SPEED)), MekanismConfig.current().mekce.MAXspeedmachines.val());
         possibleProcess *= tier.processes;
-        possibleProcess = Math.min(Math.min(inputTank.getStored(), outputTank.getNeeded()), possibleProcess);
-        possibleProcess = Math.min((int) (getEnergy() / energyPerTick), possibleProcess);
-        possibleProcess = Math.max(possibleProcess, 1);
-        return Math.min(inputTank.getStored() / recipe.recipeInput.ingredient.amount, possibleProcess);
+        return Math.max(possibleProcess, 1);
     }
 
     @Override

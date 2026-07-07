@@ -8,6 +8,7 @@ import mekanism.api.gas.Gas;
 import mekanism.api.gas.GasStack;
 import mekanism.api.gas.GasTank;
 import mekanism.api.gas.IExtendedGasTank;
+import net.minecraft.nbt.NBTTagCompound;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -63,7 +64,28 @@ public class ResizableGasTank extends GasTank implements IExtendedGasTank {
     @Override
     public void setStackUnchecked(@Nullable GasStack stack) {
         setGas(stack);
+    }
+
+    @Override
+    public void setGas(@Nullable GasStack stack) {
+        super.setGas(stack);
         onContentsChanged();
+    }
+
+    @Override
+    public void read(NBTTagCompound nbtTags) {
+        int capacity = getMaxGas();
+        super.read(nbtTags);
+        setMaxGas(capacity);
+        GasStack stored = getGas();
+        if (stored != null && (stored.amount <= 0 || stored.getGas() == null)) {
+            setGas(null);
+        } else if (stored != null && stored.amount > capacity) {
+            stored.amount = capacity;
+            onContentsChanged();
+        } else {
+            onContentsChanged();
+        }
     }
 
     @Override

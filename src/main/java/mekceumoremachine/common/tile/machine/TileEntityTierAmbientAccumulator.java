@@ -11,6 +11,7 @@ import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.gas.GasTankHelper;
 import mekanism.common.capabilities.holder.gas.IGasTankHolder;
 import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
@@ -103,6 +104,14 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return builder.build();
     }
 
+    @Override
+    protected IEnergyContainerHolder getInitialEnergyContainers(IContentsListener listener) {
+        return super.getInitialEnergyContainers(() -> {
+            listener.onContentsChanged();
+            recipeCacheLookupMonitor.unpause();
+        });
+    }
+
     private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
             outputTank = ResizableGasTank.output(MAX_GAS * tier.processes, () -> {
@@ -151,6 +160,15 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
             cachedRecipe = RecipeHandler.getDimensionGas(new IntegerInput(cachedDimensionId));
         }
         return new IntegerInput(cachedDimensionId);
+    }
+
+    @Override
+    public void setEnergy(double energy) {
+        double previous = getEnergy();
+        super.setEnergy(energy);
+        if (recipeCacheLookupMonitor != null && world != null && !world.isRemote && Double.compare(previous, getEnergy()) != 0) {
+            recipeCacheLookupMonitor.unpause();
+        }
     }
 
     private void refreshRecipeLookupCache() {

@@ -33,6 +33,7 @@ import mekanism.common.util.*;
 import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.recipe.cache.inputs.TemplateInputHelper;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -70,7 +71,7 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
     @Override
     protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
         InventorySlotHelper builder = createInventorySlotHelper();
-        inputSlot = builder.addSlot(BasicInventorySlot.at(TileEntityReplicatorItemStack::isInRecipe, listener, 53, 34));
+        inputSlot = builder.addSlot(BasicInventorySlot.at(TileEntityReplicatorItemStack::isInRecipe, getRecipeCacheListener(), 53, 34));
         energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 140, 34));
         outputSlot = builder.addSlot(OutputInventorySlot.at(getRecipeCacheChangeListener(listener), 115, 34));
         return builder.build();
@@ -85,7 +86,7 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
 
     private ResizableGasTank getOrCreateInputGasTank(IContentsListener listener) {
         if (inputGasTank == null) {
-            inputGasTank = ResizableGasTank.input(10000, gas -> true, listener);
+            inputGasTank = ResizableGasTank.input(10000, gas -> true, getRecipeCacheListener());
         }
         return inputGasTank;
     }
@@ -159,7 +160,7 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
     @Override
     public CachedRecipe<ReplicatorItemStackRecipe> createNewCachedRecipe(ReplicatorItemStackRecipe recipe, int cacheIndex) {
         return new TwoInputCachedRecipe<>(recipe, this::shouldRecheckAllRecipeErrors,
-              InputHelper.getInputHandler(inputSlot, RecipeError.NOT_ENOUGH_INPUT),
+              TemplateInputHelper.getItemTemplateInputHandler(inputSlot, RecipeError.NOT_ENOUGH_INPUT),
               InputHelper.getGasInputHandler(inputGasTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
               OutputHelper.getOutputHandler(outputSlot, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
               () -> recipe.getInput().getSolid(), () -> recipe.getInput().getGas(),
