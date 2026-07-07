@@ -587,15 +587,11 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
     @Override
     public void recalculateUpgradables(Upgrade upgrade) {
         super.recalculateUpgradables(upgrade);
-        switch (upgrade) {
-            case ENERGY ->
-                    energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK); // incorporate speed upgrades
-            case SPEED -> {
-                ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
-                energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
-            }
-            default -> {
-            }
+        if (upgrade == Upgrade.ENERGY) {
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK); // incorporate speed upgrades
+        } else if (upgrade == Upgrade.SPEED) {
+            ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
         }
     }
 

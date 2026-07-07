@@ -57,8 +57,8 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
             if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
                 prepareTileForDataLoad(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
                 if (tileEntity instanceof IUpgradeTile upgradeTile) {
-                    if (ItemDataUtils.hasData(stack, "upgrades")) {
-                        upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                    if (Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
+                        upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
                     }
                 }
                 if (tileEntity instanceof ISideConfiguration config) {

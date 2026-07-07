@@ -7,7 +7,6 @@ import mekanism.common.base.IUpgradeTile;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.component.TileComponentSecurity;
-import mekanism.common.tile.component.TileComponentUpgrade;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.upgrade.TierUpgradeData;
@@ -52,10 +51,7 @@ public class LargeMachineUpgradeData extends TierUpgradeData {
     private static NBTTagCompound writeUpgradeComponent(TileEntityContainerBlock source) {
         NBTTagCompound data = new NBTTagCompound();
         if (source instanceof IUpgradeTile upgradeTile) {
-            TileComponentUpgrade component = upgradeTile.getComponent();
-            if (component != null) {
-                component.write(data);
-            }
+            upgradeTile.writeUpgrades(data);
         }
         return data;
     }

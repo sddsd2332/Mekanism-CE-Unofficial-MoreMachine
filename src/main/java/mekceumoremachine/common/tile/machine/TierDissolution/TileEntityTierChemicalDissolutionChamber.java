@@ -672,21 +672,16 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     @Override
     public void recalculateUpgradables(Upgrade upgrade) {
         super.recalculateUpgradables(upgrade);
-        switch (upgrade) {
-            case ENERGY ->
-                    energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK); // incorporate speed upgrades
-            case GAS -> {
-                injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
-                baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
-            }
-            case SPEED -> {
-                ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
-                energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_USAGE);
-                injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
-                baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
-            }
-            default -> {
-            }
+        if (upgrade == Upgrade.ENERGY) {
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK); // incorporate speed upgrades
+        } else if (upgrade == Upgrade.GAS) {
+            injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
+            baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
+        } else if (upgrade == Upgrade.SPEED) {
+            ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_USAGE);
+            injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
+            baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
         }
     }
 

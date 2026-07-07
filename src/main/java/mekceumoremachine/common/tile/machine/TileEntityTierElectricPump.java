@@ -517,15 +517,15 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     public void recalculateUpgradables(Upgrade upgrade) {
         super.recalculateUpgradables(upgrade);
         BASE_ENERGY_PER_TICK = BlockStateMachine.MachineType.ELECTRIC_PUMP.getUsage() * tier.processes;
-        switch (upgrade) {
-            case SPEED:
-                ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
-            case ENERGY:
-                energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
-                maxEnergy = MekanismUtils.getMaxEnergy(this, getTierEnergy());
-                setEnergy(Math.min(getMaxEnergy(), getEnergy()));
-            default:
-                break;
+        if (upgrade == Upgrade.SPEED) {
+            ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
+            maxEnergy = MekanismUtils.getMaxEnergy(this, getTierEnergy());
+            setEnergy(Math.min(getMaxEnergy(), getEnergy()));
+        } else if (upgrade == Upgrade.ENERGY) {
+            energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
+            maxEnergy = MekanismUtils.getMaxEnergy(this, getTierEnergy());
+            setEnergy(Math.min(getMaxEnergy(), getEnergy()));
         }
     }
 

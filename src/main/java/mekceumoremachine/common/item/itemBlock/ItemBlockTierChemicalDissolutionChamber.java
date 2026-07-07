@@ -5,6 +5,7 @@ import ic2.api.item.IElectricItemManager;
 import ic2.api.item.ISpecialElectricItem;
 import mekanism.api.Action;
 import mekanism.api.functions.ConstantPredicates;
+import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.block.states.BlockStateMachine;
 import mekanism.common.capabilities.ItemCapabilityWrapper;
@@ -125,8 +126,8 @@ public class ItemBlockTierChemicalDissolutionChamber extends ItemBlockMekceuMore
                     }
                 }
                 if (tileEntity instanceof IUpgradeTile upgradeTile) {
-                    if (ItemDataUtils.hasData(stack, "upgrades")) {
-                        upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                    if (Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
+                        upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
                     }
                 }
                 if (tileEntity instanceof ISideConfiguration config) {

@@ -5,6 +5,7 @@ import ic2.api.item.IElectricItemManager;
 import ic2.api.item.ISpecialElectricItem;
 import mekanism.api.Action;
 import mekanism.api.functions.ConstantPredicates;
+import mekanism.common.Upgrade;
 import mekanism.common.base.IRedstoneControl;
 import mekanism.common.base.ISideConfiguration;
 import mekanism.common.base.ISustainedData;
@@ -121,8 +122,8 @@ public class ItemBlockTierChemicalCrystallizer extends ItemBlockMekceuMoreMachin
                         security.getSecurity().setOwnerUUID(player.getUniqueID());
                     }
                 }
-                if (tileEntity instanceof IUpgradeTile upgradeTile && ItemDataUtils.hasData(stack, "upgrades")) {
-                    upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                if (tileEntity instanceof IUpgradeTile upgradeTile && Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
+                    upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
                 }
                 if (tileEntity instanceof ISideConfiguration config && ItemDataUtils.hasData(stack, "sideDataStored")) {
                     config.getConfig().read(ItemDataUtils.getDataMap(stack));

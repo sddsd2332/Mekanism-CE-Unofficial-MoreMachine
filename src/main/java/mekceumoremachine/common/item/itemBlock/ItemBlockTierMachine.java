@@ -1,5 +1,6 @@
 package mekceumoremachine.common.item.itemBlock;
 
+import mekanism.common.Upgrade;
 import mekanism.common.base.*;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.security.ISecurityItem;
@@ -78,8 +79,8 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
                     }
                 }
                 if (tileEntity instanceof IUpgradeTile upgradeTile) {
-                    if (ItemDataUtils.hasData(stack, "upgrades")) {
-                        upgradeTile.getComponent().read(ItemDataUtils.getDataMap(stack));
+                    if (Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
+                        upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
                     }
                 }
                 if (tileEntity instanceof ISideConfiguration config) {

@@ -13,11 +13,13 @@
     "useDependencyInformation": true,
     "dependencies": [
       "mekanism",
+      "mekanismmultiblockmachine",
       "mixinbooter"
     ],
     "requiredMods": [
       "forge@[14.23.5.2768,)",
       "mekanism",
+      "mekanismmultiblockmachine",
       "mixinbooter"
     ]
   }

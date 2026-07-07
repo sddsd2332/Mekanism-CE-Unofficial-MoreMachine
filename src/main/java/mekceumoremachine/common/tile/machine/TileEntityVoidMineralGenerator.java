@@ -10,7 +10,6 @@ import mekanism.api.TileNetworkList;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
-import mekanism.common.Upgrade;
 import mekanism.common.base.IBoundingBlock;
 import mekanism.common.base.IGuiProvider;
 import mekanism.common.base.ISideConfiguration;
@@ -31,6 +30,7 @@ import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
+import mekanism.multiblockmachine.common.MultiblockMachineUpgrades;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.item.ItemStack;
@@ -60,7 +60,7 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     public TileEntityVoidMineralGenerator() {
         super("machine.smelter", "VoidMineralGenerator", MoreMachineConfig.current().config.VoidMineralGeneratorEnergyStorge.val(), MoreMachineConfig.current().config.VoidMineralGeneratorEnergyUsage.val(), 0, MoreMachineConfig.current().config.VoidMineralGeneratorTick.val());
         configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.ENERGY);
-        upgradeComponent.setSupported(Upgrade.THREAD);
+        upgradeComponent.setSupported(MultiblockMachineUpgrades.THREAD);
         initializeInventorySlots();
         configComponent.addItemSlotInfo(DataType.ENERGY, energySlot);
         configComponent.addItemSlotInfo(DataType.OUTPUT, outputSlots);
@@ -146,8 +146,8 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
 
     public int getThread() {
         int thread = 1;
-        if (upgradeComponent.isUpgradeInstalled(Upgrade.THREAD)) {
-            thread += upgradeComponent.getUpgrades(Upgrade.THREAD);
+        if (upgradeComponent.isUpgradeInstalled(MultiblockMachineUpgrades.THREAD)) {
+            thread += upgradeComponent.getUpgrades(MultiblockMachineUpgrades.THREAD);
         }
         return thread;
     }
