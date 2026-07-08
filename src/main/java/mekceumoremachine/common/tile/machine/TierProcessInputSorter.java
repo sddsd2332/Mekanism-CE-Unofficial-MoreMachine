@@ -5,6 +5,7 @@ import mekanism.api.inventory.IInventorySlot;
 import mekanism.common.lib.inventory.HashedItem;
 import mekanism.common.util.MekanismUtils;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -136,9 +137,30 @@ public class TierProcessInputSorter {
             if (state.numberPerSlot == state.maxStackSize) {
                 continue;
             }
-            changed |= applyDistributionPlan(buildDistributionPlan(recipeProcessInfo, state, processCount));
+            List<DistributionPlan> plan = buildDistributionPlan(recipeProcessInfo, state, processCount);
+            if (isDistributionPlanValid(recipeProcessInfo, plan)) {
+                changed |= applyDistributionPlan(plan);
+            }
         }
         return changed;
+    }
+
+    private boolean isDistributionPlanValid(RecipeProcessInfo recipeProcessInfo, List<DistributionPlan> plan) {
+        int totalCount = 0;
+        for (DistributionPlan target : plan) {
+            int sizeForSlot = target.sizeForSlot;
+            if (sizeForSlot < 0) {
+                return false;
+            }
+            if (sizeForSlot > 0) {
+                ItemStack stack = target.item.createStack(sizeForSlot);
+                if (sizeForSlot > target.inputSlot.getLimit(stack) || !target.inputSlot.isItemValid(stack)) {
+                    return false;
+                }
+            }
+            totalCount += sizeForSlot;
+        }
+        return totalCount == recipeProcessInfo.totalCount;
     }
 
     private List<DistributionPlan> buildDistributionPlan(RecipeProcessInfo recipeProcessInfo, DistributionState state, int processCount) {
@@ -170,7 +192,7 @@ public class TierProcessInputSorter {
         } else if (sizeForSlot == 0) {
             inputSlot.setEmpty();
             return true;
-        } else if (inputSlot.getCount() != sizeForSlot) {
+        } else if (ItemHandlerHelper.canItemStacksStack(inputSlot.getStack(), item.getInternalStack()) && inputSlot.getCount() != sizeForSlot) {
             MekanismUtils.logMismatchedStackSize(sizeForSlot, inputSlot.setStackSize(sizeForSlot, Action.EXECUTE));
             return true;
         }

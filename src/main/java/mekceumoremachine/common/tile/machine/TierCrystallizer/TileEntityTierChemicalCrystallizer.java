@@ -288,30 +288,96 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
             return false;
         }
 
-        boolean changed = false;
-        int amountPerTank = group.totalAmount / targets.size();
-        int remainder = group.totalAmount % targets.size();
-        for (GasProcessTarget target : targets) {
-            int amount = amountPerTank;
-            if (remainder > 0) {
-                amount++;
-                remainder--;
-            }
-            changed |= setInputTankGas(target.tank, group.gas, amount);
+        List<GasDistributionPlan> plan = buildGasDistributionPlan(group, targets);
+        if (!isGasDistributionPlanValid(group, plan)) {
+            return false;
         }
-        for (int i = targetCount; i < group.targets.size(); i++) {
-            GasProcessTarget target = group.targets.get(i);
-            changed |= setInputTankGas(target.tank, null, 0);
-            emptyTargets.add(target);
-        }
-        return changed;
+        return applyGasDistributionPlan(group, plan, emptyTargets);
     }
 
     private int getGasDistributionTargetCount(GasDistributionGroup group, int emptyTankCount) {
         int minPerTank = getMinGasPerTank(group.gas);
         int maxTargetsByAmount = Math.max(1, group.totalAmount / minPerTank);
         int maxTargetsBySpace = Math.min(tier.processes, group.targets.size() + emptyTankCount);
-        return Math.min(maxTargetsByAmount, maxTargetsBySpace);
+        return Math.min(Math.max(group.targets.size(), maxTargetsByAmount), maxTargetsBySpace);
+    }
+
+    private List<GasDistributionPlan> buildGasDistributionPlan(GasDistributionGroup group, List<GasProcessTarget> targets) {
+        GasDistributionState state = getInitialGasDistributionState(group, targets);
+        List<GasDistributionPlan> plan = new ArrayList<>(targets.size());
+        int remainder = state.remainder;
+        for (GasProcessTarget target : targets) {
+            GasDistributionTarget distributionTarget = getGasDistributionTarget(state.amountPerTank, remainder, state.minPerTank);
+            plan.add(new GasDistributionPlan(target, distributionTarget.amountForTank));
+            remainder = distributionTarget.remainder;
+        }
+        return plan;
+    }
+
+    private GasDistributionState getInitialGasDistributionState(GasDistributionGroup group, List<GasProcessTarget> targets) {
+        int maxTankSize = getSmallestTargetCapacity(targets);
+        int amountPerTank = group.totalAmount / targets.size();
+        int remainder = group.totalAmount % targets.size();
+        int minPerTank = getMinGasPerTank(group.gas);
+        if (minPerTank > 1) {
+            int perTankRemainder = amountPerTank % minPerTank;
+            if (perTankRemainder > 0) {
+                amountPerTank -= perTankRemainder;
+                remainder += perTankRemainder * targets.size();
+            }
+            if (amountPerTank + minPerTank > maxTankSize) {
+                minPerTank = Math.max(1, maxTankSize - amountPerTank);
+            }
+        }
+        return new GasDistributionState(amountPerTank, remainder, minPerTank);
+    }
+
+    private int getSmallestTargetCapacity(List<GasProcessTarget> targets) {
+        int capacity = Integer.MAX_VALUE;
+        for (GasProcessTarget target : targets) {
+            capacity = Math.min(capacity, target.tank.getMaxGas());
+        }
+        return capacity == Integer.MAX_VALUE ? MAX_GAS : capacity;
+    }
+
+    private GasDistributionTarget getGasDistributionTarget(int amountPerTank, int remainder, int minPerTank) {
+        int amountForTank = amountPerTank;
+        if (remainder > 0) {
+            if (remainder > minPerTank) {
+                amountForTank += minPerTank;
+                remainder -= minPerTank;
+            } else {
+                amountForTank += remainder;
+                remainder = 0;
+            }
+        }
+        return new GasDistributionTarget(amountForTank, remainder);
+    }
+
+    private boolean isGasDistributionPlanValid(GasDistributionGroup group, List<GasDistributionPlan> plan) {
+        int totalAmount = 0;
+        for (GasDistributionPlan target : plan) {
+            int amount = target.amountForTank;
+            if (amount < 0 || amount > target.target.tank.getMaxGas()) {
+                return false;
+            }
+            if (amount > 0 && !target.target.tank.isValid(new GasStack(group.gas, amount))) {
+                return false;
+            }
+            totalAmount += amount;
+        }
+        return totalAmount == group.totalAmount;
+    }
+
+    private boolean applyGasDistributionPlan(GasDistributionGroup group, List<GasDistributionPlan> plan, List<GasProcessTarget> emptyTargets) {
+        boolean changed = false;
+        for (GasDistributionPlan target : plan) {
+            changed |= setInputTankGas(target.target.tank, group.gas, target.amountForTank);
+            if (target.amountForTank <= 0 && !emptyTargets.contains(target.target)) {
+                emptyTargets.add(target.target);
+            }
+        }
+        return changed;
     }
 
     private int getMinGasPerTank(Gas gas) {
@@ -389,6 +455,41 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         private GasProcessTarget(int process, ResizableGasTank tank) {
             this.process = process;
             this.tank = tank;
+        }
+    }
+
+    private static class GasDistributionState {
+
+        private final int amountPerTank;
+        private final int remainder;
+        private final int minPerTank;
+
+        private GasDistributionState(int amountPerTank, int remainder, int minPerTank) {
+            this.amountPerTank = amountPerTank;
+            this.remainder = remainder;
+            this.minPerTank = minPerTank;
+        }
+    }
+
+    private static class GasDistributionTarget {
+
+        private final int amountForTank;
+        private final int remainder;
+
+        private GasDistributionTarget(int amountForTank, int remainder) {
+            this.amountForTank = amountForTank;
+            this.remainder = remainder;
+        }
+    }
+
+    private static class GasDistributionPlan {
+
+        private final GasProcessTarget target;
+        private final int amountForTank;
+
+        private GasDistributionPlan(GasProcessTarget target, int amountForTank) {
+            this.target = target;
+            this.amountForTank = amountForTank;
         }
     }
 
