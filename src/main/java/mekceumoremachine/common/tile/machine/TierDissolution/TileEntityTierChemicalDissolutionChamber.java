@@ -637,6 +637,11 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     }
 
     @Override
+    public boolean isSorterProcessLocked(int process) {
+        return isProcessIndex(process) && (progress[process] > 0 || usedSoFar[process] > 0);
+    }
+
+    @Override
     public void onSorterChanged() {
         markNoUpdateSync();
     }
@@ -701,6 +706,9 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_USAGE);
             injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
             baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
+        }
+        if (world != null && !world.isRemote) {
+            unpauseRecipeCaches();
         }
     }
 

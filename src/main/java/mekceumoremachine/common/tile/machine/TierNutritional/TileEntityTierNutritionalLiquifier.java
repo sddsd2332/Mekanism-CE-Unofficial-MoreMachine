@@ -323,6 +323,11 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
     }
 
     @Override
+    public boolean isSorterProcessLocked(int process) {
+        return isProcessIndex(process) && progress[process] > 0;
+    }
+
+    @Override
     public void onSorterChanged() {
         markNoUpdateSync();
     }
@@ -615,6 +620,9 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
         } else if (upgrade == Upgrade.SPEED) {
             ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
+        }
+        if (world != null && !world.isRemote) {
+            unpauseRecipeCaches();
         }
     }
 

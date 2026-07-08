@@ -240,6 +240,9 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         Map<Gas, GasDistributionGroup> groups = new LinkedHashMap<>();
         List<GasProcessTarget> emptyTargets = new ArrayList<>();
         for (int process = 0; process < tier.processes; process++) {
+            if (isGasProcessLockedForSorting(process)) {
+                continue;
+            }
             ResizableGasTank tank = inputTanks[process];
             GasProcessTarget target = new GasProcessTarget(process, tank);
             GasStack stack = tank.getGas();
@@ -320,6 +323,10 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
             }
         }
         return min == Integer.MAX_VALUE ? 1 : min;
+    }
+
+    private boolean isGasProcessLockedForSorting(int process) {
+        return isProcessIndex(process) && progress[process] > 0;
     }
 
     private boolean inputProducesOutput(int process, Gas gas, boolean updateCache) {
@@ -717,6 +724,9 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         } else if (upgrade == Upgrade.SPEED) {
             ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK);
+        }
+        if (world != null && !world.isRemote) {
+            unpauseRecipeCaches();
         }
     }
 

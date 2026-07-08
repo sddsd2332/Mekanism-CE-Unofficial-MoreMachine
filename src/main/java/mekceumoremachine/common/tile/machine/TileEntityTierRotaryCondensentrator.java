@@ -262,6 +262,14 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         }
     }
 
+    @Override
+    public void recalculateUpgradables(Upgrade upgrade) {
+        super.recalculateUpgradables(upgrade);
+        if (recipeCacheLookupMonitor != null && world != null && !world.isRemote) {
+            recipeCacheLookupMonitor.unpause();
+        }
+    }
+
     public RotaryRecipe getRecipe() {
         int recipeVersion = RecipeHandler.Recipe.ROTARY_CONDENSENTRATOR.getRecipeVersion();
         if (cachedRecipeVersion != recipeVersion) {

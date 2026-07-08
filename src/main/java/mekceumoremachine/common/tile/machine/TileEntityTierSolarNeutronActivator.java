@@ -220,6 +220,14 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         return Math.max(possibleProcess, 1);
     }
 
+    @Override
+    public void recalculateUpgradables(Upgrade upgrade) {
+        super.recalculateUpgradables(upgrade);
+        if (recipeCacheLookupMonitor != null && world != null && !world.isRemote) {
+            recipeCacheLookupMonitor.unpause();
+        }
+    }
+
     public SolarNeutronRecipe getRecipe() {
         refreshRecipeLookupCache();
         GasInput input = getInput();

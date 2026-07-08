@@ -49,6 +49,9 @@ public class TierProcessInputSorter {
 
     private void collectProcesses() {
         for (int process = 0; process < context.getSorterProcessCount(); process++) {
+            if (context.isSorterProcessLocked(process)) {
+                continue;
+            }
             IInventorySlot inputSlot = context.getSorterInputSlot(process);
             if (inputSlot == null) {
                 continue;
@@ -223,6 +226,10 @@ public class TierProcessInputSorter {
         boolean areRecipeCachesInvalid();
 
         void onSorterChanged();
+
+        default boolean isSorterProcessLocked(int process) {
+            return false;
+        }
     }
 
     private static class ProcessInfo {

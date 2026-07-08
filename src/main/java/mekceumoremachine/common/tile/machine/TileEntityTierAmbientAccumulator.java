@@ -171,6 +171,14 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         }
     }
 
+    @Override
+    public void recalculateUpgradables(Upgrade upgrade) {
+        super.recalculateUpgradables(upgrade);
+        if (recipeCacheLookupMonitor != null && world != null && !world.isRemote) {
+            recipeCacheLookupMonitor.unpause();
+        }
+    }
+
     private void refreshRecipeLookupCache() {
         int recipeVersion = RecipeHandler.getGlobalRecipeVersion();
         if (cachedRecipeVersion != recipeVersion) {
