@@ -13,6 +13,7 @@ import mekanism.common.util.MekanismUtils;
 import mekanism.common.util.SecurityUtils;
 import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.item.itemBlock.ItemBlockMekceuMoreMachineEnergy;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
@@ -80,9 +81,9 @@ public class MEKCeuMoreMachineUtils {
         list.add(addItem);
         if (charged) {
             ItemStack addChargedItem = new ItemStack(block);
-            double maxEnergy = StorageUtils.getMaxEnergy(addChargedItem);
+            double maxEnergy = getItemEnergyCapacity(addChargedItem);
             if (maxEnergy > 0) {
-                StorageUtils.setStoredEnergy(addChargedItem, maxEnergy, maxEnergy);
+                setItemEnergy(addChargedItem, maxEnergy);
             }
             list.add(addChargedItem);
         }
@@ -100,12 +101,27 @@ public class MEKCeuMoreMachineUtils {
                 if (addChargedItem.getItem() instanceof ITierItem item) {
                     item.setBaseTier(addChargedItem, tier.getBaseTier());
                 }
-                double maxEnergy = StorageUtils.getMaxEnergy(addChargedItem);
+                double maxEnergy = getItemEnergyCapacity(addChargedItem);
                 if (maxEnergy > 0) {
-                    StorageUtils.setStoredEnergy(addChargedItem, maxEnergy, maxEnergy);
+                    setItemEnergy(addChargedItem, maxEnergy);
                 }
                 list.add(addChargedItem);
             }
+        }
+    }
+
+    private static double getItemEnergyCapacity(ItemStack stack) {
+        if (stack.getItem() instanceof ItemBlockMekceuMoreMachineEnergy energyItem) {
+            return energyItem.getEnergyCapacity(stack);
+        }
+        return StorageUtils.getMaxEnergy(stack);
+    }
+
+    private static void setItemEnergy(ItemStack stack, double energy) {
+        if (stack.getItem() instanceof ItemBlockMekceuMoreMachineEnergy energyItem) {
+            energyItem.setStoredEnergy(stack, energy);
+        } else {
+            StorageUtils.setStoredEnergy(stack, energy, energy);
         }
     }
 

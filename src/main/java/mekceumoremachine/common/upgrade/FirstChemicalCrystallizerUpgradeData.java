@@ -22,6 +22,7 @@ public class FirstChemicalCrystallizerUpgradeData extends LargeMachineUpgradeDat
     public final GasStack inputGas;
     public final ItemStack outputSlot;
     public final ItemStack energySlot;
+    public final ItemStack unmappedInputGasSlot;
 
     public FirstChemicalCrystallizerUpgradeData(@Nonnull BaseTier upgradeTier, @Nonnull TileEntityContainerBlock source,
           double prevEnergy, int operatingTicks, TileComponentConfig configComponent, TileComponentEjector ejectorComponent, BasicGasTank inputTank) {
@@ -33,6 +34,7 @@ public class FirstChemicalCrystallizerUpgradeData extends LargeMachineUpgradeDat
         ejectorComponentData = new NBTTagCompound();
         ejectorComponent.write(ejectorComponentData);
         inputGas = inputTank.getGas() == null ? null : inputTank.getGas().copy();
+        unmappedInputGasSlot = copySlot(source, 0);
         outputSlot = copySlot(source, 1);
         energySlot = copySlot(source, 2);
     }

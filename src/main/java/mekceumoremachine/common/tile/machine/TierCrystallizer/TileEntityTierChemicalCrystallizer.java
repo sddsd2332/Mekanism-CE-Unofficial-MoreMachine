@@ -926,7 +926,7 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
     }
 
     private boolean applyFirstUpgradeSnapshot(FirstChemicalCrystallizerUpgradeData data) {
-        LargeMachineUpgradeDataApplier.applyCommon(this, data, upgradeComponent, securityComponent);
+        LargeMachineUpgradeDataApplier.applyCommonWithoutInventory(this, data, upgradeComponent, securityComponent);
         prevEnergy = data.prevEnergy;
         progress[0] = data.operatingTicks;
         configComponent.read(data.configComponentData.copy());
@@ -936,6 +936,7 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         clearOutputSlots();
         setUpgradeSlot(1, data.outputSlot);
         inputTank1.setGas(data.inputGas == null ? null : data.inputGas.copy());
+        LargeMachineUpgradeDataApplier.returnUnmappedStack(this, data.unmappedInputGasSlot);
         upgraded = true;
         isUpgrade = true;
         LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);

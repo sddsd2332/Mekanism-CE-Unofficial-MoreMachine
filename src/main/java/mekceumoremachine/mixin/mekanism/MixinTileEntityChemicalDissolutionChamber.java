@@ -26,6 +26,9 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
     @Shadow
     public BasicGasTank outputTank;
 
+    @Shadow
+    public abstract long getSavedUsedSoFar(int cacheIndex);
+
     public MixinTileEntityChemicalDissolutionChamber(String soundPath, BlockStateMachine.MachineType type, int upgradeSlot, int baseTicksRequired) {
         super(soundPath, type, upgradeSlot, baseTicksRequired);
     }
@@ -47,7 +50,7 @@ public abstract class MixinTileEntityChemicalDissolutionChamber extends TileEnti
     @Override
     public IUpgradeData getUpgradeData(BaseTier upgradeTier) {
         return canInstallUpgrade(upgradeTier)
-              ? new FirstChemicalDissolutionChamberUpgradeData(upgradeTier, this, prevEnergy, operatingTicks, configComponent,
+              ? new FirstChemicalDissolutionChamberUpgradeData(upgradeTier, this, prevEnergy, operatingTicks, getSavedUsedSoFar(0), configComponent,
                     ejectorComponent, injectTank, outputTank)
               : null;
     }

@@ -20,9 +20,9 @@ public class FirstNutritionalLiquifierUpgradeData extends LargeMachineUpgradeDat
     public final NBTTagCompound configComponentData;
     public final NBTTagCompound ejectorComponentData;
     public final GasStack outputGas;
-    public final ItemStack targetSlot0;
-    public final ItemStack targetSlot1;
-    public final ItemStack targetSlot2;
+    public final ItemStack energySlot;
+    public final ItemStack inputSlot;
+    public final ItemStack unmappedGasSlot;
 
     public FirstNutritionalLiquifierUpgradeData(@Nonnull BaseTier upgradeTier, @Nonnull TileEntityContainerBlock source,
           double prevEnergy, int operatingTicks, TileComponentConfig configComponent, TileComponentEjector ejectorComponent,
@@ -35,9 +35,9 @@ public class FirstNutritionalLiquifierUpgradeData extends LargeMachineUpgradeDat
         ejectorComponentData = new NBTTagCompound();
         ejectorComponent.write(ejectorComponentData);
         outputGas = gasTank.getGas() == null ? null : gasTank.getGas().copy();
-        targetSlot0 = copySlot(source, 1);
-        targetSlot1 = copySlot(source, 2);
-        targetSlot2 = copySlot(source, 0);
+        energySlot = copySlot(source, 1);
+        inputSlot = copySlot(source, 0);
+        unmappedGasSlot = copySlot(source, 2);
     }
 
     private static ItemStack copySlot(TileEntityContainerBlock source, int slot) {

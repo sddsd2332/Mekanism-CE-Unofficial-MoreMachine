@@ -722,16 +722,16 @@ public class TileEntityTierNutritionalLiquifier extends TileEntityMachine implem
     }
 
     private boolean applyFirstUpgradeSnapshot(FirstNutritionalLiquifierUpgradeData data) {
-        LargeMachineUpgradeDataApplier.applyCommon(this, data, upgradeComponent, securityComponent);
+        LargeMachineUpgradeDataApplier.applyCommonWithoutInventory(this, data, upgradeComponent, securityComponent);
         prevEnergy = data.prevEnergy;
         progress[0] = data.operatingTicks;
         configComponent.read(data.configComponentData.copy());
         ejectorComponent.read(data.ejectorComponentData.copy());
         ejectorComponent.setOutputData(configComponent, TransmissionType.GAS);
-        setUpgradeSlot(0, data.targetSlot0);
-        setUpgradeSlot(1, data.targetSlot1);
-        setUpgradeSlot(2, data.targetSlot2);
+        setUpgradeSlot(0, data.energySlot);
+        setUpgradeSlot(1, data.inputSlot);
         outputTank1.setGas(data.outputGas == null ? null : data.outputGas.copy());
+        LargeMachineUpgradeDataApplier.returnUnmappedStack(this, data.unmappedGasSlot);
         upgraded = true;
         isUpgrade = true;
         LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);

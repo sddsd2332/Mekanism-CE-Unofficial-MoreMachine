@@ -8,6 +8,7 @@ import mekanism.common.tile.component.TileComponentSecurity;
 import mekanism.common.tile.component.TileComponentUpgrade;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
+import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 
 import java.util.List;
@@ -19,15 +20,22 @@ public final class LargeMachineUpgradeDataApplier {
 
     public static void applyCommon(TileEntityContainerBlock tile, LargeMachineUpgradeData data, TileComponentUpgrade upgradeComponent,
           TileComponentSecurity securityComponent) {
+        applyCommon(tile, data, upgradeComponent, securityComponent, true);
+    }
+
+    public static void applyCommonWithoutInventory(TileEntityContainerBlock tile, LargeMachineUpgradeData data, TileComponentUpgrade upgradeComponent,
+          TileComponentSecurity securityComponent) {
+        applyCommon(tile, data, upgradeComponent, securityComponent, false);
+    }
+
+    private static void applyCommon(TileEntityContainerBlock tile, LargeMachineUpgradeData data, TileComponentUpgrade upgradeComponent,
+          TileComponentSecurity securityComponent, boolean applyInventory) {
         tile.facing = data.facing;
         tile.clientFacing = data.clientFacing;
         tile.ticker = data.ticker;
         tile.redstone = data.redstone;
         tile.redstoneLastTick = data.redstoneLastTick;
         tile.doAutoSync = data.doAutoSync;
-        if (tile instanceof TileEntityElectricBlock electric) {
-            electric.setEnergy(data.energy);
-        }
         if (tile instanceof IActiveState activeState) {
             activeState.setActive(data.active);
         }
@@ -40,7 +48,18 @@ public final class LargeMachineUpgradeDataApplier {
         if (securityComponent != null) {
             securityComponent.read(data.securityComponentData.copy());
         }
-        applyInventory(tile, data.inventory);
+        if (tile instanceof TileEntityElectricBlock electric) {
+            electric.setEnergy(data.energy);
+        }
+        if (applyInventory) {
+            applyInventory(tile, data.inventory);
+        }
+    }
+
+    public static void returnUnmappedStack(TileEntityContainerBlock tile, ItemStack stack) {
+        if (stack != null && !stack.isEmpty() && tile.getWorld() != null && !tile.getWorld().isRemote) {
+            Block.spawnAsEntity(tile.getWorld(), tile.getPos(), LargeMachineUpgradeData.copyStack(stack));
+        }
     }
 
     public static void finish(TileEntityContainerBlock tile, TileComponentUpgrade upgradeComponent) {

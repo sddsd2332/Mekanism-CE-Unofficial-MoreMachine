@@ -150,7 +150,7 @@ public class ItemBlockTierChemicalDissolutionChamber extends ItemBlockMekceuMore
                     inventory.setInventory(getInventory(stack));
                 }
                 if (tileEntity instanceof TileEntityElectricBlock tile) {
-                    tile.setEnergy(StorageUtils.getStoredEnergyFromItemData(stack));
+                    tile.setEnergy(getStoredEnergyForPlacement(stack));
                 }
             }
             return true;
@@ -254,6 +254,11 @@ public class ItemBlockTierChemicalDissolutionChamber extends ItemBlockMekceuMore
         MachineTier tier = type.tier;
         double storage = getMachineStorage() * tier.processes;
         return ItemDataUtils.hasData(itemStack, "upgrades") ? MekanismUtils.getMaxEnergy(itemStack, storage) : storage;
+    }
+
+    @Override
+    protected double getEnergyCapacityForDisplay(ItemStack stack) {
+        return getEnergyCapacity(stack);
     }
 
 

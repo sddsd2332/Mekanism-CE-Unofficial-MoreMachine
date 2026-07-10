@@ -9,6 +9,7 @@
     "MixinTileEntityBin",
     "MixinTileEntityChemicalDissolutionChamber",
     "MixinTileEntityChemicalCrystallizer",
+    "MixinTileEntityChemicalOxidizer",
     "MixinTileEntityChemicalInfuser",
     "MixinTileEntityChemicalWasher",
     "MixinTileEntityElectricPump",

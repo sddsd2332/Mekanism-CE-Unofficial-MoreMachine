@@ -45,6 +45,8 @@ import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
 import mekceumoremachine.common.tile.interfaces.ITierSorting;
 import mekceumoremachine.common.tile.machine.TierProcessInputSorter;
+import mekceumoremachine.common.upgrade.FirstChemicalOxidizerUpgradeData;
+import mekceumoremachine.common.upgrade.LargeMachineUpgradeData;
 import mekceumoremachine.common.upgrade.LargeMachineUpgradeDataApplier;
 import mekceumoremachine.common.upgrade.RepeatedChemicalOxidizerUpgradeData;
 import net.minecraft.block.Block;
@@ -701,6 +703,9 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
 
     @Override
     public boolean parseUpgradeData(IUpgradeData upgradeData) {
+        if (upgradeData instanceof FirstChemicalOxidizerUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
+            return applyFirstUpgradeSnapshot(data);
+        }
         if (upgradeData instanceof RepeatedChemicalOxidizerUpgradeData data && data.getUpgradeTier() == tier.getBaseTier()) {
             return applyUpgradeData(data);
         }
@@ -712,6 +717,32 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
         IUpgradeData upgradeData = getUpgradeData(upgradeTier);
         IBlockState upgradeResult = getUpgradeResult(upgradeTier);
         return upgradeData != null && upgradeResult != null && UpgradeUtils.replaceTileForUpgrade(this, upgradeResult, upgradeData);
+    }
+
+    private boolean applyFirstUpgradeSnapshot(FirstChemicalOxidizerUpgradeData data) {
+        LargeMachineUpgradeDataApplier.applyCommonWithoutInventory(this, data, upgradeComponent, securityComponent);
+        prevEnergy = data.prevEnergy;
+        progress[0] = data.operatingTicks;
+        configComponent.read(data.configComponentData.copy());
+        ejectorComponent.read(data.ejectorComponentData.copy());
+        ejectorComponent.setOutputData(configComponent, TransmissionType.GAS);
+        setUpgradeSlot(0, data.energySlot);
+        setUpgradeSlot(1, data.inputSlot);
+        outputTank1.setGas(data.outputGas == null ? null : data.outputGas.copy());
+        LargeMachineUpgradeDataApplier.returnUnmappedStack(this, data.unmappedGasSlot);
+        sorting = false;
+        markSortingNeeded();
+        upgraded = true;
+        isUpgrade = true;
+        LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);
+        return true;
+    }
+
+    private void setUpgradeSlot(int slot, ItemStack stack) {
+        List<IInventorySlot> slots = getInventorySlots(null);
+        if (slot < slots.size()) {
+            slots.get(slot).setStack(LargeMachineUpgradeData.copyStack(stack));
+        }
     }
 
     private boolean applyUpgradeData(RepeatedChemicalOxidizerUpgradeData data) {

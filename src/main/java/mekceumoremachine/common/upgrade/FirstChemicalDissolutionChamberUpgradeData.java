@@ -17,6 +17,7 @@ public class FirstChemicalDissolutionChamberUpgradeData extends LargeMachineUpgr
 
     public final double prevEnergy;
     public final int operatingTicks;
+    public final long usedSoFar;
     public final NBTTagCompound configComponentData;
     public final NBTTagCompound ejectorComponentData;
     public final GasStack injectGas;
@@ -24,14 +25,15 @@ public class FirstChemicalDissolutionChamberUpgradeData extends LargeMachineUpgr
     public final ItemStack targetSlot0;
     public final ItemStack targetSlot1;
     public final ItemStack targetSlot2;
-    public final ItemStack targetSlot3;
+    public final ItemStack unmappedOutputGasSlot;
 
     public FirstChemicalDissolutionChamberUpgradeData(@Nonnull BaseTier upgradeTier, @Nonnull TileEntityContainerBlock source,
-          double prevEnergy, int operatingTicks, TileComponentConfig configComponent, TileComponentEjector ejectorComponent,
+          double prevEnergy, int operatingTicks, long usedSoFar, TileComponentConfig configComponent, TileComponentEjector ejectorComponent,
           BasicGasTank injectTank, BasicGasTank outputTank) {
         super(upgradeTier, source);
         this.prevEnergy = prevEnergy;
         this.operatingTicks = operatingTicks;
+        this.usedSoFar = usedSoFar;
         configComponentData = new NBTTagCompound();
         configComponent.write(configComponentData);
         ejectorComponentData = new NBTTagCompound();
@@ -40,8 +42,8 @@ public class FirstChemicalDissolutionChamberUpgradeData extends LargeMachineUpgr
         outputGas = outputTank.getGas() == null ? null : outputTank.getGas().copy();
         targetSlot0 = copySlot(source, 0);
         targetSlot1 = copySlot(source, 3);
-        targetSlot2 = copySlot(source, 2);
-        targetSlot3 = copySlot(source, 1);
+        targetSlot2 = copySlot(source, 1);
+        unmappedOutputGasSlot = copySlot(source, 2);
     }
 
     private static ItemStack copySlot(TileEntityContainerBlock source, int slot) {

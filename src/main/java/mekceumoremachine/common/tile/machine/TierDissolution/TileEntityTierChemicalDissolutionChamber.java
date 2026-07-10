@@ -813,9 +813,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     }
 
     private boolean applyFirstUpgradeSnapshot(FirstChemicalDissolutionChamberUpgradeData data) {
-        LargeMachineUpgradeDataApplier.applyCommon(this, data, upgradeComponent, securityComponent);
+        LargeMachineUpgradeDataApplier.applyCommonWithoutInventory(this, data, upgradeComponent, securityComponent);
         prevEnergy = data.prevEnergy;
         progress[0] = data.operatingTicks;
+        usedSoFar[0] = data.usedSoFar;
         configComponent.read(data.configComponentData.copy());
         ejectorComponent.read(data.ejectorComponentData.copy());
         ejectorComponent.setOutputData(configComponent, TransmissionType.GAS)
@@ -823,9 +824,9 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         setUpgradeSlot(0, data.targetSlot0);
         setUpgradeSlot(1, data.targetSlot1);
         setUpgradeSlot(2, data.targetSlot2);
-        setUpgradeSlot(3, data.targetSlot3);
         injectTank.setGas(data.injectGas == null ? null : data.injectGas.copy());
         outputTank1.setGas(data.outputGas == null ? null : data.outputGas.copy());
+        LargeMachineUpgradeDataApplier.returnUnmappedStack(this, data.unmappedOutputGasSlot);
         upgraded = true;
         isUpgrade = true;
         LargeMachineUpgradeDataApplier.finish(this, upgradeComponent);

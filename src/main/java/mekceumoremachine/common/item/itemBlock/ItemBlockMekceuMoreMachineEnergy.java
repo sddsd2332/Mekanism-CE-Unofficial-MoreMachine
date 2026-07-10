@@ -44,7 +44,7 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
     public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state , TileEntity tileEntity) {
         super.addOtherMachine(stack,player,world,pos,side,hitX,hitY,hitZ,state,tileEntity);
         if (tileEntity instanceof TileEntityElectricBlock tile) {
-            tile.setEnergy(StorageUtils.getStoredEnergyFromItemData(stack));
+            tile.setEnergy(getStoredEnergyForPlacement(stack));
         }
     }
 
@@ -73,6 +73,11 @@ public abstract class ItemBlockMekceuMoreMachineEnergy extends ItemBlockMekCeuMo
         }
         double storage = getMachineStorage(itemStack);
         return ItemDataUtils.hasData(itemStack, "upgrades") ? MekanismUtils.getMaxEnergy(itemStack, storage) : storage;
+    }
+
+    @Override
+    protected double getEnergyCapacityForDisplay(ItemStack stack) {
+        return getEnergyCapacity(stack);
     }
 
     abstract double getMachineStorage(ItemStack stack);

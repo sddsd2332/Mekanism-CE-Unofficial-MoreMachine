@@ -88,6 +88,15 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
     public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
     }
 
+    protected double getStoredEnergyForPlacement(ItemStack stack) {
+        double storedEnergy = StorageUtils.getStoredEnergy(stack);
+        return storedEnergy > 0 ? storedEnergy : StorageUtils.getStoredEnergyFromItemData(stack);
+    }
+
+    protected double getEnergyCapacityForDisplay(ItemStack stack) {
+        return StorageUtils.getMaxEnergy(stack);
+    }
+
     protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
           IBlockState state, TileEntityBasicBlock tileEntity) {
     }
@@ -116,7 +125,7 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
                 }
             }
             if (itemstack.getCount() <= 1) {
-                double maxEnergy = StorageUtils.getMaxEnergy(itemstack);
+                double maxEnergy = getEnergyCapacityForDisplay(itemstack);
                 if (maxEnergy > 0) {
                     list.add(EnumColor.BRIGHT_GREEN + LangUtils.localize("tooltip.storedEnergy") + ": " + EnumColor.GREY + MekanismUtils.getEnergyDisplay(StorageUtils.getStoredEnergy(itemstack), maxEnergy));
                 }
