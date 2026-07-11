@@ -55,6 +55,7 @@ import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.tier.MachineTier;
+import mekceumoremachine.common.tile.machine.TierGasInputSorter;
 import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
 import mekceumoremachine.common.tile.interfaces.ITierSorting;
 import mekceumoremachine.common.upgrade.FirstChemicalCrystallizerUpgradeData;
@@ -74,13 +75,11 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData,
       IComparatorSupport, ISideConfiguration, ISpecialSelectionWireframeTile, INeedRepeatTierUpgrade<MachineTier>, IRecipeLookupHandler<CrystallizerRecipe>,
-      ITierSorting {
+      ITierSorting, TierGasInputSorter.Context {
 
     public static final int MAX_GAS = 10000;
     public static final int BASE_TICKS_REQUIRED = 200;
@@ -113,6 +112,7 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
     private boolean sortingNeeded = true;
     private int observedRecipeVersion = RecipeHandler.getGlobalRecipeVersion();
     private boolean recipeCachesInvalid;
+    private final TierGasInputSorter gasSorter = new TierGasInputSorter(this);
 
     private final List<IInventorySlot> outputSlots = new ArrayList<>();
     private EnergyInventorySlot energySlot;
@@ -236,148 +236,44 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         return Recipe.CHEMICAL_CRYSTALLIZER.containsRecipe(gas);
     }
 
-    private void sortInputGasTanks() {
-        Map<Gas, GasDistributionGroup> groups = new LinkedHashMap<>();
-        List<GasProcessTarget> emptyTargets = new ArrayList<>();
-        for (int process = 0; process < tier.processes; process++) {
-            if (isGasProcessLockedForSorting(process)) {
-                continue;
-            }
-            ResizableGasTank tank = inputTanks[process];
-            GasProcessTarget target = new GasProcessTarget(process, tank);
-            GasStack stack = tank.getGas();
-            if (stack == null || stack.amount <= 0) {
-                emptyTargets.add(target);
-                continue;
-            }
-            groups.computeIfAbsent(stack.getGas(), GasDistributionGroup::new).add(target, stack.amount);
-        }
-        if (groups.isEmpty()) {
-            return;
-        }
-        boolean changed = false;
-        for (GasDistributionGroup group : groups.values()) {
-            changed |= distributeGasGroup(group, emptyTargets);
-        }
-        if (changed) {
-            needsPacket = true;
-            markNoUpdateSync();
-        }
+    void sortInputGasTanks() {
+        gasSorter.sort();
     }
 
-    private boolean distributeGasGroup(GasDistributionGroup group, List<GasProcessTarget> emptyTargets) {
-        int targetCount = getGasDistributionTargetCount(group, emptyTargets.size());
-        if (targetCount <= 0) {
-            return false;
-        }
-
-        List<GasProcessTarget> targets = new ArrayList<>(targetCount);
-        for (int i = 0; i < Math.min(targetCount, group.targets.size()); i++) {
-            targets.add(group.targets.get(i));
-        }
-        for (int i = 0; i < emptyTargets.size() && targets.size() < targetCount; ) {
-            GasProcessTarget emptyTarget = emptyTargets.get(i);
-            if (inputProducesOutput(emptyTarget.process, group.gas, true)) {
-                targets.add(emptyTarget);
-                emptyTargets.remove(i);
-            } else {
-                i++;
-            }
-        }
-        if (targets.isEmpty()) {
-            return false;
-        }
-
-        List<GasDistributionPlan> plan = buildGasDistributionPlan(group, targets);
-        if (!isGasDistributionPlanValid(group, plan)) {
-            return false;
-        }
-        return applyGasDistributionPlan(group, plan, emptyTargets);
+    @Override
+    public boolean isGasSorting() {
+        return isSorting();
     }
 
-    private int getGasDistributionTargetCount(GasDistributionGroup group, int emptyTankCount) {
-        int minPerTank = getMinGasPerTank(group.gas);
-        int maxTargetsByAmount = Math.max(1, group.totalAmount / minPerTank);
-        int maxTargetsBySpace = Math.min(tier.processes, group.targets.size() + emptyTankCount);
-        return Math.min(Math.max(group.targets.size(), maxTargetsByAmount), maxTargetsBySpace);
+    @Override
+    public int getGasSorterProcessCount() {
+        return tier.processes;
     }
 
-    private List<GasDistributionPlan> buildGasDistributionPlan(GasDistributionGroup group, List<GasProcessTarget> targets) {
-        GasDistributionState state = getInitialGasDistributionState(group, targets);
-        List<GasDistributionPlan> plan = new ArrayList<>(targets.size());
-        int remainder = state.remainder;
-        for (GasProcessTarget target : targets) {
-            GasDistributionTarget distributionTarget = getGasDistributionTarget(state.amountPerTank, remainder, state.minPerTank);
-            plan.add(new GasDistributionPlan(target, distributionTarget.amountForTank));
-            remainder = distributionTarget.remainder;
-        }
-        return plan;
+    @Override
+    public IExtendedGasTank getGasSorterInputTank(int process) {
+        return isProcessIndex(process) ? inputTanks[process] : null;
     }
 
-    private GasDistributionState getInitialGasDistributionState(GasDistributionGroup group, List<GasProcessTarget> targets) {
-        int maxTankSize = getSmallestTargetCapacity(targets);
-        int amountPerTank = group.totalAmount / targets.size();
-        int remainder = group.totalAmount % targets.size();
-        int minPerTank = getMinGasPerTank(group.gas);
-        if (minPerTank > 1) {
-            int perTankRemainder = amountPerTank % minPerTank;
-            if (perTankRemainder > 0) {
-                amountPerTank -= perTankRemainder;
-                remainder += perTankRemainder * targets.size();
-            }
-            if (amountPerTank + minPerTank > maxTankSize) {
-                minPerTank = Math.max(1, maxTankSize - amountPerTank);
-            }
-        }
-        return new GasDistributionState(amountPerTank, remainder, minPerTank);
+    @Override
+    public boolean gasSorterInputProducesOutput(int process, Gas gas, boolean updateCache) {
+        return inputProducesOutput(process, gas, updateCache);
     }
 
-    private int getSmallestTargetCapacity(List<GasProcessTarget> targets) {
-        int capacity = Integer.MAX_VALUE;
-        for (GasProcessTarget target : targets) {
-            capacity = Math.min(capacity, target.tank.getMaxGas());
-        }
-        return capacity == Integer.MAX_VALUE ? MAX_GAS : capacity;
+    @Override
+    public int getGasSorterNeededInput(Gas gas) {
+        return getMinGasPerTank(gas);
     }
 
-    private GasDistributionTarget getGasDistributionTarget(int amountPerTank, int remainder, int minPerTank) {
-        int amountForTank = amountPerTank;
-        if (remainder > 0) {
-            if (remainder > minPerTank) {
-                amountForTank += minPerTank;
-                remainder -= minPerTank;
-            } else {
-                amountForTank += remainder;
-                remainder = 0;
-            }
-        }
-        return new GasDistributionTarget(amountForTank, remainder);
+    @Override
+    public boolean isGasSorterProcessLocked(int process) {
+        return isGasProcessLockedForSorting(process);
     }
 
-    private boolean isGasDistributionPlanValid(GasDistributionGroup group, List<GasDistributionPlan> plan) {
-        int totalAmount = 0;
-        for (GasDistributionPlan target : plan) {
-            int amount = target.amountForTank;
-            if (amount < 0 || amount > target.target.tank.getMaxGas()) {
-                return false;
-            }
-            if (amount > 0 && !target.target.tank.isValid(new GasStack(group.gas, amount))) {
-                return false;
-            }
-            totalAmount += amount;
-        }
-        return totalAmount == group.totalAmount;
-    }
-
-    private boolean applyGasDistributionPlan(GasDistributionGroup group, List<GasDistributionPlan> plan, List<GasProcessTarget> emptyTargets) {
-        boolean changed = false;
-        for (GasDistributionPlan target : plan) {
-            changed |= setInputTankGas(target.target.tank, group.gas, target.amountForTank);
-            if (target.amountForTank <= 0 && !emptyTargets.contains(target.target)) {
-                emptyTargets.add(target.target);
-            }
-        }
-        return changed;
+    @Override
+    public void onGasSorterChanged() {
+        needsPacket = true;
+        markNoUpdateSync();
     }
 
     private int getMinGasPerTank(Gas gas) {
@@ -413,84 +309,6 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
 
     private CrystallizerRecipe getRecipeForGas(Gas gas) {
         return RecipeHandler.getChemicalCrystallizerRecipe(new GasInput(new GasStack(gas, 1)));
-    }
-
-    private boolean setInputTankGas(ResizableGasTank tank, Gas gas, int amount) {
-        GasStack current = tank.getGas();
-        if (gas == null || amount <= 0) {
-            if (current == null || current.amount <= 0) {
-                return false;
-            }
-            tank.setStackUnchecked(null);
-            return true;
-        }
-        if (current != null && current.getGas() == gas && current.amount == amount) {
-            return false;
-        }
-        tank.setStackUnchecked(new GasStack(gas, amount));
-        return true;
-    }
-
-    private static class GasDistributionGroup {
-
-        private final Gas gas;
-        private final List<GasProcessTarget> targets = new ArrayList<>();
-        private int totalAmount;
-
-        private GasDistributionGroup(Gas gas) {
-            this.gas = gas;
-        }
-
-        private void add(GasProcessTarget target, int amount) {
-            targets.add(target);
-            totalAmount += amount;
-        }
-    }
-
-    private static class GasProcessTarget {
-
-        private final int process;
-        private final ResizableGasTank tank;
-
-        private GasProcessTarget(int process, ResizableGasTank tank) {
-            this.process = process;
-            this.tank = tank;
-        }
-    }
-
-    private static class GasDistributionState {
-
-        private final int amountPerTank;
-        private final int remainder;
-        private final int minPerTank;
-
-        private GasDistributionState(int amountPerTank, int remainder, int minPerTank) {
-            this.amountPerTank = amountPerTank;
-            this.remainder = remainder;
-            this.minPerTank = minPerTank;
-        }
-    }
-
-    private static class GasDistributionTarget {
-
-        private final int amountForTank;
-        private final int remainder;
-
-        private GasDistributionTarget(int amountForTank, int remainder) {
-            this.amountForTank = amountForTank;
-            this.remainder = remainder;
-        }
-    }
-
-    private static class GasDistributionPlan {
-
-        private final GasProcessTarget target;
-        private final int amountForTank;
-
-        private GasDistributionPlan(GasProcessTarget target, int amountForTank) {
-            this.target = target;
-            this.amountForTank = amountForTank;
-        }
     }
 
     private List<IExtendedGasTank> getInputTanks() {

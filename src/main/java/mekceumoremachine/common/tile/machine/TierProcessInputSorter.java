@@ -1,6 +1,7 @@
 package mekceumoremachine.common.tile.machine;
 
 import mekanism.api.Action;
+import mekanism.api.IContainerTransaction;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.common.lib.inventory.HashedItem;
 import mekanism.common.util.MekanismUtils;
@@ -26,6 +27,10 @@ public class TierProcessInputSorter {
     }
 
     public void sort() {
+        context.runContainerTransaction(this::sortInTransaction);
+    }
+
+    private void sortInTransaction() {
         if (!context.isSorting()) {
             return;
         }
@@ -232,7 +237,7 @@ public class TierProcessInputSorter {
         return new DistributionTarget(sizeForSlot, remainder);
     }
 
-    public interface Context {
+    public interface Context extends IContainerTransaction {
 
         boolean isSorting();
 
