@@ -1,6 +1,5 @@
 package mekceumoremachine.common;
 
-import ic2.core.ref.FluidName;
 import io.netty.buffer.ByteBuf;
 import mekanism.api.MekanismAPI;
 import mekanism.common.Mekanism;
@@ -40,6 +39,7 @@ import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import java.io.File;
 import java.util.Optional;
@@ -116,9 +116,8 @@ public class MEKCeuMoreMachine implements IModule {
         proxy.registerTESRs();
         proxy.init();
 
-        //和IC2兼容
-        if (Mekanism.hooks.IC2Loaded) {
-            MEKCeuMoreMachineFluids.UU_MATTER.setFluid(FluidName.uu_matter.getInstance());
+        if (FluidRegistry.isFluidRegistered("ic2uu_matter")) {
+            MEKCeuMoreMachineFluids.UU_MATTER.setFluid(FluidRegistry.getFluid("ic2uu_matter"));
         }
 
     }
