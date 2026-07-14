@@ -32,6 +32,10 @@ import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.attachments.component.ConnectionConfig;
 import mekceumoremachine.common.capability.LinkTileEntity;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.config.WirelessConnectionDataManager;
+import mekceumoremachine.common.config.WirelessConnectionDataManager.LoadedData;
+import mekceumoremachine.common.config.WirelessStationRegistryManager;
+import mekceumoremachine.common.network.PacketWirelessConnection;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.INoWirelessChargingEnergy;
 import mekceumoremachine.common.tile.interfaces.IConnectorPreviewProvider;
@@ -42,7 +46,6 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -53,7 +56,6 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -62,9 +64,13 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
-        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization, ITileConnect, IConnectorPreviewProvider, ISpecialSelectionWireframeTile {
+        ISpecialConfigData, IComparatorSupport, IBoundingBlock, ISustainedData, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization,
+        ITileConnect, IConnectorPreviewProvider, ISpecialSelectionWireframeTile {
 
     private static final int EMIT_TARGETS_PER_PROCESS = 16;
+    private static final int VALIDATION_TARGETS_PER_PROCESS = 2;
+    private static final String NBT_DYNAMIC_WIRELESS_CHARGING = "dynamicWirelessCharging";
+    private static final String CONFIG_CARD_DATA_TYPE = "tile.WirelessChargingEnergy.name";
 
 
     public MachineTier tier = MachineTier.BASIC;
@@ -76,11 +82,13 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     public TileComponentEjector ejectorComponent;
     public TileComponentConfig configComponent;
     public TileComponentSecurity securityComponent;
-    public List<ConnectionConfig> skipMachine = new ArrayList<>();
-    public List<ConnectionConfig> connections = new ArrayList<>();
+    private final Set<BlockPos> skipMachine = new HashSet<>();
+    public final List<ConnectionConfig> connections = new ArrayList<>();
     private EnergyInventorySlot chargeSlot;
     private EnergyInventorySlot dischargeSlot;
     private int emitCursor;
+    private int validationCursor;
+    private boolean dynamicWirelessCharging;
     private boolean scanInProgress;
     private int scanMinChunkX;
     private int scanMaxChunkX;
@@ -89,9 +97,13 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     private int scanChunkX;
     private int scanChunkZ;
     private BlockPos scanOrigin;
-    private final Set<Coord4D> scanOccupiedLinks = new HashSet<>();
+    private boolean scanChanged;
+    private UUID connectionDataId = UUID.randomUUID();
+    private boolean connectionsLoaded;
+    private boolean connectionDataRemoved;
+    private int connectionRevision;
+    private int clientConnectionCount;
 
-    public boolean enableEmit;
     public boolean clientRendering = false;
     public boolean scanMachine;
 
@@ -108,6 +120,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
         controlType = RedstoneControl.DISABLED;
         ejectorComponent = new TileComponentEjector(this);
+        ejectorComponent.setOutputData(configComponent, TransmissionType.ITEM);
         securityComponent = new TileComponentSecurity(this);
     }
 
@@ -129,23 +142,27 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         }
     }
 
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (!isRemote()) {
+            WirelessStationRegistryManager.register(this);
+        }
+    }
+
 
     @Override
     public void onUpdateServer() {
         super.onUpdateServer();
+        ensureConnectionsLoaded();
         chargeSlot.drainContainer();
         dischargeSlot.fillContainerOrConvert();
+        validateConnectionsStep();
         if (scanMachine) {
             scan();
         }
-        //每2.5s验证下链接内是否有效
-        if (!scanInProgress && !connections.isEmpty() && ticksExisted % 50 == 0) {
-            isValidLinks();
-        }
 
-        if (enableEmit) {
-            emitMachine();
-        }
+        emitMachine();
         if (!skipMachine.isEmpty()) {
             autoClearErrorMachine();
         }
@@ -170,10 +187,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
     private void beginScan() {
-        disconnectAllConnections();
-        connections.clear();
-        emitCursor = 0;
-        scanOccupiedLinks.clear();
+        ensureConnectionsLoaded();
+        scanChanged = false;
         scanOrigin = getPos().up(2);
         ChunkPos currentChunk = new ChunkPos(scanOrigin);
         int rang = tier.processes;
@@ -208,7 +223,11 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             if (connections.size() >= getMaxLinks()) {
                 break;
             }
-            tryAddScannedMachine(tileEntity);
+            try {
+                tryAddScannedMachine(tileEntity);
+            } catch (RuntimeException e) {
+                markMachineError(tileEntity, e);
+            }
         }
     }
 
@@ -224,8 +243,11 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         scanInProgress = false;
         scanMachine = false;
         scanOrigin = null;
-        scanOccupiedLinks.clear();
-        Mekanism.packetHandler.sendUpdatePacket(this);
+        if (scanChanged) {
+            connectionDataChanged();
+        } else {
+            Mekanism.packetHandler.sendUpdatePacket(this);
+        }
     }
 
     private int getScanChunksPerTick() {
@@ -236,11 +258,15 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         return Math.max(1, tier.processes * EMIT_TARGETS_PER_PROCESS);
     }
 
+    private int getValidationTargetsPerTick() {
+        return Math.max(1, tier.processes * VALIDATION_TARGETS_PER_PROCESS);
+    }
+
     private void tryAddScannedMachine(TileEntity tileEntity) {
         if (tileEntity == null || scanOrigin == null) {
             return;
         }
-        if (tileEntity instanceof INoWirelessChargingEnergy) {
+        if (tileEntity instanceof INoWirelessChargingEnergy energy && energy.isChargingEnergy()) {
             return;
         }
         if (isBlacklistMachine(tileEntity)) {
@@ -253,29 +279,27 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return;
         }
         BlockPos tilePos = tileEntity.getPos();
-        if (hasConnection(tilePos) || skipMachine.stream().anyMatch(tile -> tile.getPos().equals(tilePos))) {
+        TileEntity machineTile = ConnectionConfig.resolveMachineTile(tileEntity);
+        if (machineTile == tileEntity && tileEntity instanceof mekanism.common.tile.TileEntityBoundingBlock) {
             return;
         }
-        Optional<LinkTileEntity> linkCapability = MEKCeuMoreMachine.getLinkInfoCap(tileEntity);
-        if (linkCapability.isPresent()) {
-            Coord4D coord4D = linkCapability.get().isLink();
-            if (coord4D != null) {
-                if (scanOccupiedLinks.contains(coord4D)) {
-                    return;
-                }
-                if (!getWorldNN().isBlockLoaded(coord4D.getPos()) || getWorldNN().getTileEntity(coord4D.getPos()) == null) {
-                    linkCapability.get().stopLink();
-                } else {
-                    scanOccupiedLinks.add(coord4D);
-                    return;
-                }
-            }
+        BlockPos machinePos = ConnectionConfig.resolveMachineCoord(tileEntity).getPos();
+        if (hasConnection(machinePos) || skipMachine.contains(machinePos)) {
+            return;
+        }
+        Optional<LinkTileEntity> linkCapability = MEKCeuMoreMachine.getLinkInfoCap(machineTile);
+        if (linkCapability.isPresent() && isClaimedByOtherStation(linkCapability.get(), machineTile)) {
+            return;
         }
         if (isWithinSquareRange(scanOrigin, tilePos, getRang())) {
-            for (EnumFacing side : EnumFacing.VALUES) {
-                if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, side)) {
-                    connections.add(new ConnectionConfig(tileEntity, side.getOpposite()));
-                    linkCapability.ifPresent(linkInfo -> linkInfo.setLink(this));
+            for (EnumFacing targetSide : EnumFacing.VALUES) {
+                if (LinkUtils.isValidAcceptorOnTargetSideInput(tileEntity, targetSide)) {
+                    addConnectionGrouped(new ConnectionConfig(tileEntity, targetSide));
+                    linkCapability.ifPresent(linkInfo -> {
+                        linkInfo.setLink(this);
+                        machineTile.markDirty();
+                    });
+                    scanChanged = true;
                     break;
                 }
             }
@@ -283,32 +307,113 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
 
-    public void isValidLinks() {
+    private void validateConnectionsStep() {
+        ensureConnectionsLoaded();
         boolean changed = false;
         while (connections.size() > getMaxLinks()) {
-            disconnectConnection(connections.remove(connections.size() - 1));
+            removeConnectionAt(connections.size() - 1);
             changed = true;
         }
-        for (int i = connections.size() - 1; i >= 0; i--) {
-            ConnectionConfig config = connections.get(i);
-            boolean loaded = getWorldNN().isBlockLoaded(config.getPos());
-            if (!loaded || getWorldNN().isAirBlock(config.getPos())) {
-                ConnectionConfig removed = connections.remove(i);
-                if (loaded) {
-                    disconnectConnection(removed);
-                }
-                if (emitCursor > i) {
-                    emitCursor--;
-                }
-                changed = true;
+        int validated = 0;
+        while (validated < getValidationTargetsPerTick() && !connections.isEmpty()) {
+            if (validationCursor >= connections.size()) {
+                validationCursor = 0;
             }
+            int result = validateConnectionAt(validationCursor);
+            changed |= result != 0;
+            if (result != 2) {
+                validationCursor++;
+            }
+            validated++;
         }
         if (emitCursor >= connections.size()) {
             emitCursor = 0;
         }
         if (changed) {
-            Mekanism.packetHandler.sendUpdatePacket(this);
+            normalizeConnectionOrder();
+            validationCursor = 0;
+            connectionDataChanged();
         }
+    }
+
+    // 0: unchanged, 1: refreshed, 2: removed
+    private int validateConnectionAt(int index) {
+        ConnectionConfig current = connections.get(index);
+        if (!isConnectionChunkLoaded(current)) {
+            return 0;
+        }
+        TileEntity endpointTile = getWorldNN().getTileEntity(current.getPos());
+        if (endpointTile == null || getWorldNN().isAirBlock(current.getPos())) {
+            removeConnectionAt(index);
+            return 2;
+        }
+        try {
+            EnumFacing validFacing = findValidTargetSide(endpointTile, current.getFacing());
+            if (validFacing == null || isBlacklistMachine(endpointTile) || endpointTile instanceof ITransmitter) {
+                removeConnectionAt(index);
+                return 2;
+            }
+            ConnectionConfig refreshed = new ConnectionConfig(endpointTile, validFacing, current.isChargingEnabled());
+            if (hasConnection(refreshed.getMachinePos(), index)) {
+                removeConnectionAt(index);
+                return 2;
+            }
+            TileEntity refreshedMachineTile = getWorldNN().getTileEntity(refreshed.getMachinePos());
+            if (refreshedMachineTile == null || getWorldNN().isAirBlock(refreshed.getMachinePos())) {
+                removeConnectionAt(index);
+                return 2;
+            }
+            Optional<LinkTileEntity> refreshedLink = MEKCeuMoreMachine.getLinkInfoCap(refreshedMachineTile);
+            if (refreshedLink.isPresent() && isClaimedByOtherStation(refreshedLink.get(), refreshedMachineTile)) {
+                removeConnectionAt(index);
+                return 2;
+            }
+            boolean changed = !current.hasSameTarget(refreshed);
+            if (changed && !current.getMachineCoord().equals(refreshed.getMachineCoord())) {
+                disconnectConnection(current);
+            }
+            if (changed) {
+                connections.set(index, refreshed);
+            }
+            claimConnection(refreshedMachineTile, refreshedLink);
+            return changed ? 1 : 0;
+        } catch (RuntimeException e) {
+            markMachineError(current, endpointTile, e);
+            removeConnectionAt(index);
+            return 2;
+        }
+    }
+
+    private EnumFacing findValidTargetSide(TileEntity tile, EnumFacing preferred) {
+        if (preferred != null && LinkUtils.isValidAcceptorOnTargetSideInput(tile, preferred)) {
+            return preferred;
+        }
+        for (EnumFacing side : EnumFacing.VALUES) {
+            if (side != preferred && LinkUtils.isValidAcceptorOnTargetSideInput(tile, side)) {
+                return side;
+            }
+        }
+        return null;
+    }
+
+    private void claimConnection(TileEntity machineTile, Optional<LinkTileEntity> linkCapability) {
+        linkCapability.ifPresent(link -> {
+            if (!Coord4D.get(this).equals(link.isLink())) {
+                link.setLink(this);
+                machineTile.markDirty();
+            }
+        });
+    }
+
+    private boolean isConnectionChunkLoaded(ConnectionConfig connection) {
+        return connection.getCoord().dimensionId == getWorldNN().provider.getDimension() &&
+               connection.getMachineCoord().dimensionId == getWorldNN().provider.getDimension() &&
+               getWorldNN().isBlockLoaded(connection.getPos()) && getWorldNN().isBlockLoaded(connection.getMachinePos());
+    }
+
+    public boolean isConnectionLoaded(ConnectionConfig connection) {
+        return isConnectionChunkLoaded(connection) && getWorldNN().getTileEntity(connection.getPos()) != null &&
+               getWorldNN().getTileEntity(connection.getMachinePos()) != null;
     }
 
     //充能机器
@@ -316,7 +421,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         if (getWorld().isRemote || !MekanismUtils.canFunction(this) || connections.isEmpty()) {
             return;
         }
-        if (MoreMachineConfig.current().config.enableDynamicWirelessCharging.val()) {
+        if (dynamicWirelessCharging) {
             emitDynamicMachine();
         } else {
             emitAllMachines();
@@ -325,45 +430,44 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     private void emitAllMachines() {
         boolean changed = false;
-        for (ConnectionConfig machine : new ArrayList<>(connections)) {
+        int index = 0;
+        while (index < connections.size()) {
             if (getEnergy() <= 0) {
                 break;
             }
-            if (!connections.contains(machine)) {
+            ConnectionConfig machine = connections.get(index);
+            if (!machine.isChargingEnabled()) {
+                index++;
                 continue;
             }
             double energyToSend = Math.min(getEnergy(), getMaxOutput());
-            if (!getWorldNN().isBlockLoaded(machine.getPos())) {
-                connections.remove(machine);
-                changed = true;
+            if (!isConnectionChunkLoaded(machine)) {
+                index++;
                 continue;
             }
             TileEntity tile = getWorldNN().getTileEntity(machine.getPos());
             if (tile == null) {
-                connections.remove(machine);
+                removeConnectionAt(index);
                 changed = true;
                 continue;
             }
 
-            EnumFacing opposite = machine.getFacing();
+            EnumFacing targetSide = machine.getFacing();
             try {
                 EnergyAcceptorTarget target = new EnergyAcceptorTarget();
-                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, opposite);
-                if (acceptor != null && acceptor.canReceiveEnergy(opposite) && acceptor.needsEnergy(opposite)) {
-                    target.addHandler(opposite, acceptor);
+                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, targetSide);
+                if (acceptor != null && acceptor.canReceiveEnergy(targetSide) && acceptor.needsEnergy(targetSide)) {
+                    target.addHandler(targetSide, acceptor);
                 }
                 int curHandlers = target.getHandlerCount();
                 if (curHandlers > 0) {
                     double sent = EmitUtils.sendToAcceptors(target, energyToSend);
                     getMainEnergyContainer().extract(sent, Action.EXECUTE, AutomationType.INTERNAL);
                 }
+                index++;
             } catch (Exception e) {
-                Mekanism.logger.error("Wireless power station error occurred");
-                Mekanism.logger.error("A machine that cannot be charged,pos: x {} y{} z {}, tile name:{}", tile.getPos().getX(), tile.getPos().getY(), tile.getPos().getZ(), tile.getDisplayName());
-                Mekanism.logger.error("Will no longer charge this machine");
-                skipMachine.add(machine);
-                disconnectConnection(machine);
-                connections.remove(machine);
+                markMachineError(machine, tile, e);
+                removeConnectionAt(index);
                 changed = true;
             }
         }
@@ -371,39 +475,42 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             emitCursor = 0;
         }
         if (changed) {
-            Mekanism.packetHandler.sendUpdatePacket(this);
+            connectionDataChanged();
         }
     }
 
     private void emitDynamicMachine() {
-        int processed = 0;
+        int visited = 0;
         boolean changed = false;
-        while (processed < getEmitTargetsPerTick() && !connections.isEmpty() && getEnergy() > 0) {
+        int visitLimit = Math.min(getEmitTargetsPerTick(), connections.size());
+        while (visited < visitLimit && !connections.isEmpty() && getEnergy() > 0) {
             if (emitCursor >= connections.size()) {
                 emitCursor = 0;
             }
             ConnectionConfig machine = connections.get(emitCursor);
-            double energyToSend = Math.min(getEnergy(), getMaxOutput());
-            if (!getWorldNN().isBlockLoaded(machine.getPos())) {
-                connections.remove(emitCursor);
-                changed = true;
-                processed++;
+            visited++;
+            if (!machine.isChargingEnabled()) {
+                emitCursor++;
+                continue;
+            }
+            if (!isConnectionChunkLoaded(machine)) {
+                emitCursor++;
                 continue;
             }
             TileEntity tile = getWorldNN().getTileEntity(machine.getPos());
             if (tile == null) {
-                connections.remove(emitCursor);
+                removeConnectionAt(emitCursor);
                 changed = true;
-                processed++;
                 continue;
             }
 
-            EnumFacing opposite = machine.getFacing();
+            EnumFacing targetSide = machine.getFacing();
             try {
+                double energyToSend = Math.min(getEnergy(), getMaxOutput());
                 EnergyAcceptorTarget target = new EnergyAcceptorTarget();
-                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, opposite);
-                if (acceptor != null && acceptor.canReceiveEnergy(opposite) && acceptor.needsEnergy(opposite)) {
-                    target.addHandler(opposite, acceptor);
+                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, targetSide);
+                if (acceptor != null && acceptor.canReceiveEnergy(targetSide) && acceptor.needsEnergy(targetSide)) {
+                    target.addHandler(targetSide, acceptor);
                 }
                 int curHandlers = target.getHandlerCount();
                 if (curHandlers > 0) {
@@ -412,28 +519,34 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 }
                 emitCursor++;
             } catch (Exception e) {
-                Mekanism.logger.error("Wireless power station error occurred");
-                Mekanism.logger.error("A machine that cannot be charged,pos: x {} y{} z {}, tile name:{}", tile.getPos().getX(), tile.getPos().getY(), tile.getPos().getZ(), tile.getDisplayName());
-                Mekanism.logger.error("Will no longer charge this machine");
-                skipMachine.add(machine);
-                disconnectConnection(connections.remove(emitCursor));
+                markMachineError(machine, tile, e);
+                removeConnectionAt(emitCursor);
                 changed = true;
             }
-            processed++;
         }
         if (emitCursor >= connections.size()) {
             emitCursor = 0;
         }
         if (changed) {
-            Mekanism.packetHandler.sendUpdatePacket(this);
+            connectionDataChanged();
         }
     }
 
 
     @Override
     public void invalidate() {
-        disconnectAllConnections();
+        if (!isRemote() && connectionsLoaded && !connectionDataRemoved) {
+            flushConnectionData();
+        }
         super.invalidate();
+    }
+
+    @Override
+    public void onChunkUnload() {
+        if (!isRemote() && connectionsLoaded && !connectionDataRemoved) {
+            flushConnectionData();
+        }
+        super.onChunkUnload();
     }
 
     private void disconnectAllConnections() {
@@ -441,31 +554,402 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
     private void disconnectConnection(ConnectionConfig connection) {
-        if (!getWorldNN().isBlockLoaded(connection.getPos())) {
+        if (!getWorldNN().isBlockLoaded(connection.getMachinePos())) {
             return;
         }
-        TileEntity tile = getWorldNN().getTileEntity(connection.getPos());
+        TileEntity tile = getWorldNN().getTileEntity(connection.getMachinePos());
         if (tile != null) {
-            MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(LinkTileEntity::stopLink);
+            try {
+                MEKCeuMoreMachine.getLinkInfoCap(tile).ifPresent(link -> {
+                    if (Coord4D.get(this).equals(link.isLink())) {
+                        link.stopLink();
+                        tile.markDirty();
+                    }
+                });
+            } catch (RuntimeException e) {
+                Mekanism.logger.warn("Failed to clear wireless charging link from target {} ({})", tile.getPos(), tile.getClass().getName(), e);
+            }
         }
     }
 
+    private void ensureConnectionsLoaded() {
+        if (connectionsLoaded || getWorld() == null || getWorld().isRemote) {
+            return;
+        }
+        LoadedData loadedData = WirelessConnectionDataManager.load(this);
+        connections.clear();
+        connections.addAll(loadedData.getConnections());
+        connectionRevision = loadedData.getRevision();
+        clientConnectionCount = connections.size();
+        connectionsLoaded = true;
+        WirelessStationRegistryManager.register(this);
+        normalizeConnectionOrder();
+        if (connections.size() > getMaxLinks()) {
+            while (connections.size() > getMaxLinks()) {
+                removeConnectionAt(connections.size() - 1);
+            }
+            connectionDataChanged();
+        }
+    }
+
+    private void saveConnectionData() {
+        WirelessConnectionDataManager.save(this, connections, connectionRevision);
+    }
+
+    private void flushConnectionData() {
+        if (scanChanged) {
+            connectionRevision = connectionRevision == Integer.MAX_VALUE ? 1 : connectionRevision + 1;
+            clientConnectionCount = connections.size();
+            scanChanged = false;
+        }
+        saveConnectionData();
+    }
+
+    private void connectionDataChanged() {
+        connectionRevision = connectionRevision == Integer.MAX_VALUE ? 1 : connectionRevision + 1;
+        clientConnectionCount = connections.size();
+        if (emitCursor >= connections.size()) {
+            emitCursor = 0;
+        }
+        if (validationCursor >= connections.size()) {
+            validationCursor = 0;
+        }
+        scanChanged = false;
+        saveConnectionData();
+        Mekanism.packetHandler.sendUpdatePacket(this);
+        PacketWirelessConnection.syncOpenConfigWindows(this);
+    }
+
+    private void addConnectionGrouped(ConnectionConfig connection) {
+        int insertIndex = connections.size();
+        for (int i = connections.size() - 1; i >= 0; i--) {
+            if (connections.get(i).getMachineTypeKey().equals(connection.getMachineTypeKey())) {
+                insertIndex = i + 1;
+                break;
+            }
+        }
+        connections.add(insertIndex, connection);
+        if (insertIndex <= emitCursor && connections.size() > 1) {
+            emitCursor++;
+        }
+        if (insertIndex <= validationCursor && connections.size() > 1) {
+            validationCursor++;
+        }
+    }
+
+    private ConnectionConfig removeConnectionAt(int index) {
+        ConnectionConfig removed = connections.remove(index);
+        disconnectConnection(removed);
+        if (emitCursor > index) {
+            emitCursor--;
+        }
+        if (validationCursor > index) {
+            validationCursor--;
+        }
+        return removed;
+    }
+
+    private void markMachineError(ConnectionConfig connection, TileEntity tile, Exception exception) {
+        Mekanism.logger.error("Wireless power station failed to handle target {} ({}) and will skip it",
+                tile.getPos(), tile.getClass().getName(), exception);
+        skipMachine.add(connection.getMachinePos());
+    }
+
+    private void markMachineError(TileEntity tile, Exception exception) {
+        BlockPos machinePos;
+        try {
+            machinePos = ConnectionConfig.resolveMachineCoord(tile).getPos();
+        } catch (RuntimeException ignored) {
+            machinePos = tile.getPos();
+        }
+        Mekanism.logger.error("Wireless power station failed to inspect target {} ({}) and will skip it",
+              tile.getPos(), tile.getClass().getName(), exception);
+        skipMachine.add(machinePos);
+    }
+
+    private boolean isClaimedByOtherStation(LinkTileEntity link, TileEntity target) {
+        Coord4D linkedStation = link.isLink();
+        if (linkedStation == null || linkedStation.equals(Coord4D.get(this))) {
+            return false;
+        }
+        if (linkedStation.dimensionId == getWorldNN().provider.getDimension() && getWorldNN().isBlockLoaded(linkedStation.getPos())) {
+            TileEntity source = getWorldNN().getTileEntity(linkedStation.getPos());
+            if (source instanceof TileEntityWirelessChargingEnergy station && !source.isInvalid()) {
+                WirelessStationRegistryManager.register(station);
+                if (station.hasConnection(target.getPos())) {
+                    return true;
+                }
+            } else {
+                WirelessStationRegistryManager.unregister(getWorldNN(), linkedStation);
+            }
+        } else {
+            UUID stationId = WirelessStationRegistryManager.getStationId(getWorldNN(), linkedStation);
+            if (stationId != null && WirelessConnectionDataManager.containsConnection(getWorldNN(), stationId, linkedStation, target.getPos())) {
+                return true;
+            }
+        }
+        link.stopLink();
+        target.markDirty();
+        return false;
+    }
+
+    private void normalizeConnectionOrder() {
+        List<String> typeOrder = getMachineTypeOrder();
+        rebuildByTypeOrder(typeOrder);
+    }
+
+    private List<String> getMachineTypeOrder() {
+        List<String> typeOrder = new ArrayList<>();
+        for (ConnectionConfig connection : connections) {
+            if (!typeOrder.contains(connection.getMachineTypeKey())) {
+                typeOrder.add(connection.getMachineTypeKey());
+            }
+        }
+        return typeOrder;
+    }
+
+    private void rebuildByTypeOrder(List<String> typeOrder) {
+        Map<String, List<ConnectionConfig>> grouped = new LinkedHashMap<>();
+        for (ConnectionConfig connection : connections) {
+            grouped.computeIfAbsent(connection.getMachineTypeKey(), key -> new ArrayList<>()).add(connection);
+        }
+        connections.clear();
+        for (String typeKey : typeOrder) {
+            List<ConnectionConfig> group = grouped.remove(typeKey);
+            if (group != null) {
+                connections.addAll(group);
+            }
+        }
+        grouped.values().forEach(connections::addAll);
+    }
+
+    private void rebuildConnectionGroup(String typeKey, List<ConnectionConfig> reorderedGroup) {
+        List<ConnectionConfig> rebuilt = new ArrayList<>(connections.size());
+        boolean inserted = false;
+        for (ConnectionConfig connection : connections) {
+            if (connection.getMachineTypeKey().equals(typeKey)) {
+                if (!inserted) {
+                    rebuilt.addAll(reorderedGroup);
+                    inserted = true;
+                }
+            } else {
+                rebuilt.add(connection);
+            }
+        }
+        connections.clear();
+        connections.addAll(rebuilt);
+    }
+
+    public UUID getConnectionDataId() {
+        return connectionDataId;
+    }
+
+    public int getConnectionRevision() {
+        ensureConnectionsLoaded();
+        return connectionRevision;
+    }
+
+    public boolean isDynamicWirelessCharging() {
+        return dynamicWirelessCharging;
+    }
+
+    public boolean setDynamicWirelessCharging(boolean dynamicWirelessCharging) {
+        if (this.dynamicWirelessCharging == dynamicWirelessCharging) {
+            return false;
+        }
+        this.dynamicWirelessCharging = dynamicWirelessCharging;
+        emitCursor = 0;
+        markDirty();
+        if (getWorld() != null && !getWorld().isRemote) {
+            Mekanism.packetHandler.sendUpdatePacket(this);
+        }
+        return true;
+    }
+
+    public void regenerateConnectionDataId() {
+        connectionDataId = UUID.randomUUID();
+        markDirty();
+        if (getWorld() != null && !getWorld().isRemote) {
+            WirelessStationRegistryManager.register(this);
+        }
+    }
+
+    public List<ConnectionConfig> getConnectionsSnapshot() {
+        ensureConnectionsLoaded();
+        return new ArrayList<>(connections);
+    }
+
+    public boolean setAllConnectionsEnabled(boolean enabled) {
+        ensureConnectionsLoaded();
+        boolean changed = false;
+        for (ConnectionConfig connection : connections) {
+            changed |= connection.setChargingEnabled(enabled);
+        }
+        if (changed) {
+            connectionDataChanged();
+        }
+        return changed;
+    }
+
+    public boolean setMachineTypeEnabled(String machineTypeKey, boolean enabled) {
+        ensureConnectionsLoaded();
+        boolean changed = false;
+        for (ConnectionConfig connection : connections) {
+            if (connection.getMachineTypeKey().equals(machineTypeKey)) {
+                changed |= connection.setChargingEnabled(enabled);
+            }
+        }
+        if (changed) {
+            connectionDataChanged();
+        }
+        return changed;
+    }
+
+    public boolean setConnectionEnabled(Coord4D target, boolean enabled) {
+        ensureConnectionsLoaded();
+        for (ConnectionConfig connection : connections) {
+            if (connection.getMachineCoord().equals(target) && connection.setChargingEnabled(enabled)) {
+                connectionDataChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean removeMachineType(String machineTypeKey) {
+        ensureConnectionsLoaded();
+        boolean changed = false;
+        for (int i = connections.size() - 1; i >= 0; i--) {
+            if (connections.get(i).getMachineTypeKey().equals(machineTypeKey)) {
+                removeConnectionAt(i);
+                changed = true;
+            }
+        }
+        if (changed) {
+            emitCursor = 0;
+            validationCursor = 0;
+            connectionDataChanged();
+        }
+        return changed;
+    }
+
+    public boolean removeAllConnections() {
+        ensureConnectionsLoaded();
+        if (connections.isEmpty()) {
+            return false;
+        }
+        disconnectAllConnections();
+        connections.clear();
+        emitCursor = 0;
+        validationCursor = 0;
+        connectionDataChanged();
+        return true;
+    }
+
+    public boolean removeConnection(String machineTypeKey, Coord4D target) {
+        ensureConnectionsLoaded();
+        for (int i = 0; i < connections.size(); i++) {
+            ConnectionConfig connection = connections.get(i);
+            if (connection.getMachineTypeKey().equals(machineTypeKey) && connection.getMachineCoord().equals(target)) {
+                removeConnectionAt(i);
+                emitCursor = 0;
+                validationCursor = 0;
+                connectionDataChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean moveMachineType(String machineTypeKey, int direction, boolean toEdge) {
+        ensureConnectionsLoaded();
+        List<String> typeOrder = getMachineTypeOrder();
+        int index = typeOrder.indexOf(machineTypeKey);
+        if (index < 0) {
+            return false;
+        }
+        int targetIndex = toEdge ? (direction < 0 ? 0 : typeOrder.size() - 1) : index + Integer.signum(direction);
+        if (targetIndex < 0 || targetIndex >= typeOrder.size() || targetIndex == index) {
+            return false;
+        }
+        typeOrder.remove(index);
+        typeOrder.add(targetIndex, machineTypeKey);
+        rebuildByTypeOrder(typeOrder);
+        emitCursor = 0;
+        validationCursor = 0;
+        connectionDataChanged();
+        return true;
+    }
+
+    public boolean moveConnection(String machineTypeKey, Coord4D target, int direction, boolean toEdge) {
+        ensureConnectionsLoaded();
+        List<ConnectionConfig> group = new ArrayList<>();
+        for (ConnectionConfig connection : connections) {
+            if (connection.getMachineTypeKey().equals(machineTypeKey)) {
+                group.add(connection);
+            }
+        }
+        int index = -1;
+        for (int i = 0; i < group.size(); i++) {
+            if (group.get(i).getMachineCoord().equals(target)) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            return false;
+        }
+        int targetIndex = toEdge ? (direction < 0 ? 0 : group.size() - 1) : index + Integer.signum(direction);
+        if (targetIndex < 0 || targetIndex >= group.size() || targetIndex == index) {
+            return false;
+        }
+        ConnectionConfig connection = group.remove(index);
+        group.add(targetIndex, connection);
+        rebuildConnectionGroup(machineTypeKey, group);
+        emitCursor = 0;
+        validationCursor = 0;
+        connectionDataChanged();
+        return true;
+    }
+
+    public void removeConnectionData() {
+        if (getWorld() == null || getWorld().isRemote || connectionDataRemoved) {
+            return;
+        }
+        ensureConnectionsLoaded();
+        disconnectAllConnections();
+        connections.clear();
+        clientConnectionCount = 0;
+        connectionDataRemoved = true;
+        WirelessConnectionDataManager.delete(this);
+        WirelessStationRegistryManager.unregister(this);
+    }
+
     private boolean hasConnection(BlockPos pos) {
-        return connections.stream().anyMatch(connection -> connection.getPos().equals(pos));
+        return hasConnection(pos, -1);
+    }
+
+    private boolean hasConnection(BlockPos pos, int excludedIndex) {
+        ensureConnectionsLoaded();
+        for (int i = 0; i < connections.size(); i++) {
+            if (i != excludedIndex && connections.get(i).getMachinePos().equals(pos)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     //自动清除错误方块；
     public void autoClearErrorMachine() {
         if (MoreMachineConfig.current().config.enableAutoClearErrorMachine.val() && ticker % (MoreMachineConfig.current().config.AutoClearErrorMachineSecond.val() * 20) == 0) {
-            for (ConnectionConfig machine : new ArrayList<>(skipMachine)) {
-                BlockPos pos = machine.getPos();
-                ChunkPos currentChunk = new ChunkPos(pos);
+            skipMachine.removeIf(machine -> {
+                ChunkPos currentChunk = new ChunkPos(machine);
                 Chunk chunk = getWorld().getChunkProvider().getLoadedChunk(currentChunk.x, currentChunk.z);
                 if (chunk == null || chunk.isEmpty()) {
-                    continue;
+                    return false;
                 }
-                skipMachine.removeIf(tile -> getWorldNN().getTileEntity(pos) == null);
-            }
+                return getWorldNN().getTileEntity(machine) == null;
+            });
         }
     }
 
@@ -563,9 +1047,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         super.handlePacketData(dataStream);
         if (FMLCommonHandler.instance().getEffectiveSide().isServer()) {
             int type = dataStream.readInt();
-            if (type == 0) {
-                enableEmit = !enableEmit;
-            } else if (type == 1) {
+            if (type == 1) {
                 setScanMachine();
             }
         }
@@ -574,13 +1056,10 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             MachineTier prevTier = tier;
             tier = MachineTier.byIndex(dataStream.readInt());
             controlType = MekanismUtils.getByIndex(RedstoneControl.values(), dataStream.readInt(), controlType);
-            enableEmit = dataStream.readBoolean();
             scanMachine = dataStream.readBoolean();
-            connections.clear();
-            int amount = dataStream.readInt();
-            for (int i = 0; i < amount; i++) {
-                connections.add(ConnectionConfig.read(dataStream));
-            }
+            clientConnectionCount = dataStream.readInt();
+            connectionRevision = dataStream.readInt();
+            dynamicWirelessCharging = dataStream.readBoolean();
             if (prevTier != tier) {
                 MekanismUtils.updateBlock(world, getPos());
             }
@@ -592,10 +1071,10 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         super.getNetworkedData(data);
         data.add(tier.ordinal());
         data.add(controlType.ordinal());
-        data.add(enableEmit);
         data.add(scanMachine);
-        data.add(connections.size());
-        connections.forEach(c -> c.write(data));
+        data.add(getScanMachineCount());
+        data.add(connectionRevision);
+        data.add(dynamicWirelessCharging);
         return data;
     }
 
@@ -605,14 +1084,14 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         super.readCustomNBT(nbtTags);
         tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
         controlType = MekanismUtils.getByIndex(RedstoneControl.values(), nbtTags.getInteger("controlType"), controlType);
-        enableEmit = nbtTags.getBoolean("enable");
         scanMachine = nbtTags.getBoolean("scan");
-        if (nbtTags.hasKey("connections")) {
-            NBTTagList tagList = nbtTags.getTagList("connections", Constants.NBT.TAG_COMPOUND);
-            for (int i = 0; i < tagList.tagCount(); i++) {
-                connections.add(ConnectionConfig.fromNBT(tagList.getCompoundTagAt(i)));
-            }
-        }
+        dynamicWirelessCharging = nbtTags.getBoolean(NBT_DYNAMIC_WIRELESS_CHARGING);
+        connectionDataId = nbtTags.hasUniqueId("connectionDataId") ? nbtTags.getUniqueId("connectionDataId") : UUID.randomUUID();
+        connections.clear();
+        connectionsLoaded = false;
+        connectionDataRemoved = false;
+        connectionRevision = 0;
+        clientConnectionCount = 0;
     }
 
     @Override
@@ -620,14 +1099,9 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         super.writeCustomNBT(nbtTags);
         nbtTags.setInteger("tier", tier.ordinal());
         nbtTags.setInteger("controlType", controlType.ordinal());
-        nbtTags.setBoolean("enable", enableEmit);
         nbtTags.setBoolean("scan", scanMachine);
-        NBTTagList list = new NBTTagList();
-        connections.forEach(c -> list.appendTag(c.toNBT()));
-        if (list.tagCount() != 0) {
-            nbtTags.setTag("connections", list);
-        }
-
+        nbtTags.setBoolean(NBT_DYNAMIC_WIRELESS_CHARGING, dynamicWirelessCharging);
+        nbtTags.setUniqueId("connectionDataId", connectionDataId);
     }
 
 
@@ -704,18 +1178,28 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public NBTTagCompound getConfigurationData(NBTTagCompound nbtTags) {
-        nbtTags.setBoolean("enable", enableEmit);
+        nbtTags.setBoolean(NBT_DYNAMIC_WIRELESS_CHARGING, dynamicWirelessCharging);
         return nbtTags;
     }
 
     @Override
     public void setConfigurationData(NBTTagCompound nbtTags) {
-        enableEmit = nbtTags.getBoolean("enable");
+        setDynamicWirelessCharging(nbtTags.getBoolean(NBT_DYNAMIC_WIRELESS_CHARGING));
     }
 
     @Override
     public String getDataType() {
-        return getName();
+        return CONFIG_CARD_DATA_TYPE;
+    }
+
+    @Override
+    public void writeSustainedData(ItemStack itemStack) {
+        ItemDataUtils.setBoolean(itemStack, NBT_DYNAMIC_WIRELESS_CHARGING, dynamicWirelessCharging);
+    }
+
+    @Override
+    public void readSustainedData(ItemStack itemStack) {
+        setDynamicWirelessCharging(ItemDataUtils.getBoolean(itemStack, NBT_DYNAMIC_WIRELESS_CHARGING));
     }
 
 
@@ -739,6 +1223,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public void onBreak() {
+        removeConnectionData();
         world.setBlockToAir(getPos().up());
         world.setBlockToAir(getPos().up(2));
         world.setBlockToAir(getPos());
@@ -781,17 +1266,25 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     //设置扫描机器
     public void setScanMachine() {
+        ensureConnectionsLoaded();
+        if (scanInProgress && scanChanged) {
+            flushConnectionData();
+        }
         scanMachine = true;
         scanInProgress = false;
     }
 
     public int getScanMachineCount() {
-        return connections.size();
+        if (getWorld() != null && !getWorld().isRemote) {
+            ensureConnectionsLoaded();
+            return connections.size();
+        }
+        return clientConnectionCount;
     }
 
     @Override
     public List<ConnectionConfig> getPreviewConnections() {
-        return connections;
+        return getConnectionsSnapshot();
     }
 
     @Override
@@ -813,21 +1306,25 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public ConnectStatus connectOrCut(TileEntity tileEntity, EnumFacing facing, EntityPlayer player) {
+        if (tileEntity == null || player == null) {
+            return ConnectStatus.CONNECT_FAIL;
+        }
+        TileEntity targetTile = ConnectionConfig.resolveMachineTile(tileEntity);
+        if (!SecurityUtils.canAccess(player, this) || !SecurityUtils.canAccess(player, targetTile)) {
+            if (!getWorldNN().isRemote) {
+                SecurityUtils.displayNoAccess(player);
+            }
+            return ConnectStatus.CONNECT_FAIL;
+        }
         ConnectStatus status = linkOrCut(tileEntity, facing, player);
         if (status != ConnectStatus.CONNECT_FAIL && !getWorldNN().isRemote) {
             if (status == ConnectStatus.DISCONNECT) {
-                //通知机器断开
-                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(LinkTileEntity::stopLink);
                 //发送成功断开链接的消息
                 player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.INDIGO + LangUtils.localize("tooltip.connector.disconnect")));
             } else {
-                //通知机器链接
-                MEKCeuMoreMachine.getLinkInfoCap(tileEntity).ifPresent(linkInfo -> linkInfo.setLink(this));
                 //发送成功链接的消息
                 player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.INDIGO + LangUtils.localize("tooltip.connector.to")));
             }
-            //通知更新机器
-            Mekanism.packetHandler.sendUpdatePacket(this);
         }
         return status;
     }
@@ -842,14 +1339,23 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
         if (tileEntity == null) {
             return ConnectStatus.CONNECT_FAIL;
         }
-        ConnectionConfig config = new ConnectionConfig(tileEntity, facing);
+        ensureConnectionsLoaded();
+        TileEntity machineTile = ConnectionConfig.resolveMachineTile(tileEntity);
+        if (machineTile == tileEntity && tileEntity instanceof mekanism.common.tile.TileEntityBoundingBlock) {
+            return ConnectStatus.CONNECT_FAIL;
+        }
+        Coord4D machineCoord = ConnectionConfig.resolveMachineCoord(tileEntity);
         // 已存在,移除连接
-        if (connections.stream().anyMatch(c -> c.getPos().equals(config.getPos()))) {
-            //注意，这是通过方块坐标来移除的，所以即使方块的面不对也能正确移除
-            connections.removeIf(c -> c.getPos().equals(config.getPos()));
-            return ConnectStatus.DISCONNECT;
-        } else {
-            if (tileEntity.getPos().equals(getPos())) {
+        for (int i = 0; i < connections.size(); i++) {
+            if (connections.get(i).getMachineCoord().equals(machineCoord)) {
+                //使用逻辑机器坐标移除，因此点击同一机器的任意能源端点都能断开。
+                removeConnectionAt(i);
+                connectionDataChanged();
+                return ConnectStatus.DISCONNECT;
+            }
+        }
+        {
+            if (machineCoord.getPos().equals(getPos())) {
                 if (!getWorldNN().isRemote) {
                     player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.self")));
                 }
@@ -877,16 +1383,34 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                     }
                     return ConnectStatus.CONNECT_FAIL;
                 }
-                if (LinkUtils.isValidAcceptorOnSideInput(tileEntity, facing)) {
-                    connections.add(config);
-                    return ConnectStatus.CONNECT;
-                } else {
+                Optional<LinkTileEntity> linkCapability;
+                try {
+                    linkCapability = MEKCeuMoreMachine.getLinkInfoCap(machineTile);
+                    if (linkCapability.isPresent() && isClaimedByOtherStation(linkCapability.get(), machineTile)) {
+                        if (!getWorldNN().isRemote) {
+                            player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
+                        }
+                        return ConnectStatus.CONNECT_FAIL;
+                    }
+                    if (!LinkUtils.isValidAcceptorOnTargetSideInput(tileEntity, facing)) {
+                        if (!getWorldNN().isRemote) {
+                            //无法连接到该方块，因为是不支持的能量系统或者没有能量接口
+                            player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
+                        }
+                        return ConnectStatus.CONNECT_FAIL;
+                    }
+                } catch (RuntimeException e) {
+                    markMachineError(tileEntity, e);
                     if (!getWorldNN().isRemote) {
-                        //无法连接到该方块，因为是不支持的能量系统或者没有能量接口
                         player.sendMessage(new TextComponentString(EnumColor.DARK_BLUE + Mekanism.LOG_TAG + " " + EnumColor.RED + LangUtils.localize("tooltip.connector.fail")));
                     }
                     return ConnectStatus.CONNECT_FAIL;
                 }
+                ConnectionConfig config = new ConnectionConfig(tileEntity, facing);
+                addConnectionGrouped(config);
+                claimConnection(machineTile, linkCapability);
+                connectionDataChanged();
+                return ConnectStatus.CONNECT;
 
             } else {
                 //连接过远，无法连接

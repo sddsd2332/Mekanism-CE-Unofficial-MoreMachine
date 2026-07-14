@@ -20,7 +20,7 @@ public class GuiWirelessEnergyEnableScan extends GuiInsetElement<TileEntityWirel
     private static final ResourceLocation CONFIGURATION = MekanismUtils.getResource(MekanismUtils.ResourceType.GUI, "configuration.png");
 
     public GuiWirelessEnergyEnableScan(IGuiWrapper gui, TileEntityWirelessChargingEnergy tile) {
-        super(CONFIGURATION, gui, tile, gui.getWidth(), 26, 26, 18, false);
+        super(CONFIGURATION, gui, tile, gui.getWidth(), 6, 26, 18, false);
     }
 
     @Override

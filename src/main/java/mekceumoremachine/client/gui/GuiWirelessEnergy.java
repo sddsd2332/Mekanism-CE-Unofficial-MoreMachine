@@ -22,6 +22,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuiWirelessEnergy extends GuiConfigurableTile<TileEntityWirelessChargingEnergy, ContainerWirelessEnergy> {
 
+    private GuiWirelessEnergyEnable connectionWindowTab;
+
     public GuiWirelessEnergy(InventoryPlayer inventory, TileEntityWirelessChargingEnergy tile) {
         super(tile, new ContainerWirelessEnergy(inventory, tile));
         dynamicSlots = true;
@@ -30,7 +32,7 @@ public class GuiWirelessEnergy extends GuiConfigurableTile<TileEntityWirelessCha
     @Override
     protected void addGuiElements() {
         super.addGuiElements();
-        addButton(new GuiWirelessEnergyEnable(this, tileEntity));
+        connectionWindowTab = addButton(new GuiWirelessEnergyEnable(this, tileEntity, () -> connectionWindowTab));
         addButton(new GuiWirelessEnergyEnableScan(this, tileEntity));
         addButton(new GuiEnergyGauge(this, tileEntity, GuiEnergyGauge.Type.WIDE, 55, 18));
         addButton(new GuiEnergyTab(this, () -> Arrays.asList(

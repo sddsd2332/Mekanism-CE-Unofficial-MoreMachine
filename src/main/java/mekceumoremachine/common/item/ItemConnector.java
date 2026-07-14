@@ -8,6 +8,7 @@ import mekanism.common.item.ItemEnergized;
 import mekanism.common.item.interfaces.IModeItem;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
+import mekanism.common.util.SecurityUtils;
 import mekanism.common.util.StorageUtils;
 import mekanism.common.util.WorldUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
@@ -85,6 +86,10 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
             if (!(tile instanceof ITileConnect)) {
                 return EnumActionResult.PASS;
             }
+            if (!SecurityUtils.canAccess(player, tile)) {
+                SecurityUtils.displayNoAccess(player);
+                return EnumActionResult.FAIL;
+            }
             if (StorageUtils.getStoredEnergy(stack) >= ENERGY_PER_CONFIGURE) {
                 if (!world.isRemote) {
                     NBTTagCompound data = getBaseData(tile);
@@ -118,7 +123,12 @@ public class ItemConnector extends ItemEnergized implements IModeItem {
             }
 
             // 获取保存位置的方块实体
-            if (WorldUtils.getTileEntity(world, data.getPos()) instanceof ITileConnect linkTile) {
+            TileEntity sourceTile = WorldUtils.getTileEntity(world, data.getPos());
+            if (sourceTile instanceof ITileConnect linkTile) {
+                if (!SecurityUtils.canAccess(player, sourceTile)) {
+                    SecurityUtils.displayNoAccess(player);
+                    return EnumActionResult.FAIL;
+                }
                 if (world.isBlockLoaded(linkTile.getPosition().getPos())) {
                     if (StorageUtils.getStoredEnergy(stack) >= ENERGY_PER_CONFIGURE) {
                         //如果是客户端直接返回成功，等服务端处理完后会同步数据到客户端，客户端再刷新显示数据

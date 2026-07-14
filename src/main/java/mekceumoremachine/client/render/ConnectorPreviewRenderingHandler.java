@@ -1,10 +1,15 @@
 package mekceumoremachine.client.render;
 
 import mekanism.api.Coord4D;
-import mekceumoremachine.common.attachments.component.ConnectionConfig;
+import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.config.WirelessConnectionClientCache;
+import mekceumoremachine.common.config.WirelessPreviewSnapshot;
 import mekceumoremachine.common.item.ItemConnector;
+import mekceumoremachine.common.network.PacketWirelessConnection.ConnectionPacket;
+import mekceumoremachine.common.network.PacketWirelessConnection.WirelessConnectionMessage;
 import mekceumoremachine.common.tile.interfaces.IConnectorPreviewProvider;
+import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingEnergy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
@@ -46,6 +51,7 @@ public class ConnectorPreviewRenderingHandler {
     private Vec3d currentSourceOrigin = null;
     private final Set<PreviewLine> cachedLines = new HashSet<>();
     private long lastSyncWorldTime = Long.MIN_VALUE;
+    private long lastPreviewRequestWorldTime = Long.MIN_VALUE;
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -65,8 +71,12 @@ public class ConnectorPreviewRenderingHandler {
 
         boolean sourceChanged = currentSourcePos == null || !currentSourcePos.equals(bound.pos) || currentDim != bound.dim;
         if (sourceChanged) {
+            if (currentSourcePos != null && currentDim != Integer.MIN_VALUE) {
+                WirelessConnectionClientCache.clearPreview(new Coord4D(currentSourcePos, currentDim));
+            }
             currentSourcePos = bound.pos;
             currentDim = bound.dim;
+            WirelessConnectionClientCache.clearPreview(new Coord4D(bound.pos, bound.dim));
             syncPreviewState(world, bound, true);
             lastSyncWorldTime = world.getTotalWorldTime();
         } else {
@@ -142,7 +152,7 @@ public class ConnectorPreviewRenderingHandler {
             return;
         }
         TileEntity tileEntity = world.getTileEntity(bound.pos);
-        if (!(tileEntity instanceof IConnectorPreviewProvider previewProvider)) {
+        if (!(tileEntity instanceof IConnectorPreviewProvider previewProvider) || !(tileEntity instanceof TileEntityWirelessChargingEnergy wirelessEnergy)) {
             clearPreviewState();
             return;
         }
@@ -153,15 +163,20 @@ public class ConnectorPreviewRenderingHandler {
             return;
         }
 
-        Set<PreviewLine> incoming = new HashSet<>();
-        List<ConnectionConfig> sourceConnections = previewProvider.getPreviewConnections();
-        if (sourceConnections == null) {
-            sourceConnections = Collections.emptyList();
-        }
-        for (ConnectionConfig config : new ArrayList<>(sourceConnections)) {
-            if (config != null) {
-                incoming.add(new PreviewLine(config.getPos(), config.getFacing()));
+        Coord4D station = new Coord4D(bound.pos, bound.dim);
+        WirelessPreviewSnapshot snapshot = WirelessConnectionClientCache.getPreviewSnapshot(station);
+        long worldTime = world.getTotalWorldTime();
+        if (snapshot == null || snapshot.getRevision() != wirelessEnergy.getConnectionRevision()) {
+            if (forceSet || lastPreviewRequestWorldTime == Long.MIN_VALUE || worldTime - lastPreviewRequestWorldTime >= 20) {
+                MEKCeuMoreMachine.packetHandler.sendToServer(new WirelessConnectionMessage(station, ConnectionPacket.REQUEST_PREVIEW));
+                lastPreviewRequestWorldTime = worldTime;
             }
+            return;
+        }
+
+        Set<PreviewLine> incoming = new HashSet<>();
+        for (WirelessPreviewSnapshot.PreviewConnection connection : snapshot.getConnections()) {
+            incoming.add(new PreviewLine(connection.getCoord().getPos(), connection.getFacing()));
         }
 
         currentSourceOrigin = previewOrigin;
@@ -175,10 +190,14 @@ public class ConnectorPreviewRenderingHandler {
     }
 
     private void clearPreviewState() {
+        if (currentSourcePos != null && currentDim != Integer.MIN_VALUE) {
+            WirelessConnectionClientCache.clearPreview(new Coord4D(currentSourcePos, currentDim));
+        }
         currentDim = Integer.MIN_VALUE;
         currentSourcePos = null;
         currentSourceOrigin = null;
         lastSyncWorldTime = Long.MIN_VALUE;
+        lastPreviewRequestWorldTime = Long.MIN_VALUE;
         cachedLines.clear();
     }
 

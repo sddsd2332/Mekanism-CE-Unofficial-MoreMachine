@@ -9,6 +9,7 @@ import mekanism.generators.client.gui.GuiSolarGenerator;
 import mekceumoremachine.client.gui.*;
 import mekceumoremachine.client.render.ConnectorPreviewRenderingHandler;
 import mekceumoremachine.client.render.MEKCeuMoreMachineRenderer;
+import mekceumoremachine.client.render.WirelessConnectionHighlightHandler;
 import mekceumoremachine.client.render.item.generator.RenderTierAdvancedSolarGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierGasGeneratorItem;
 import mekceumoremachine.client.render.item.generator.RenderTierSolarGeneratorItem;
@@ -352,5 +353,6 @@ public class ClientProxy extends CommonProxy {
     public void init() {
         MinecraftForge.EVENT_BUS.register(new ConnectorPreviewRenderingHandler());
         MinecraftForge.EVENT_BUS.register(new WirelessChargingRangeWorldRenderHandler());
+        MinecraftForge.EVENT_BUS.register(WirelessConnectionHighlightHandler.INSTANCE);
     }
 }

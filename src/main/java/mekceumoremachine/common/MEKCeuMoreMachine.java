@@ -11,11 +11,16 @@ import mekanism.common.network.PacketSimpleGui;
 import mekceumoremachine.common.capability.DefaultLinkCapability;
 import mekceumoremachine.common.capability.LinkTileEntity;
 import mekceumoremachine.common.config.MoreMachineConfig;
+import mekceumoremachine.common.config.WirelessConnectionDataManager;
+import mekceumoremachine.common.config.WirelessMachineTypeTableManager;
+import mekceumoremachine.common.config.WirelessStationRegistryManager;
+import mekceumoremachine.common.network.MEKCeuMoreMachinePacketHandler;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.mekceumoremachine.Tags;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
+import mekceumoremachine.common.ui.MoreMachineWindowTypes;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
@@ -31,6 +36,7 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -58,6 +64,7 @@ public class MEKCeuMoreMachine implements IModule {
     public static Version versionNumber = new Version(999, 999, 999);
 
     public static CreativeTabMEKCeuMoreMachine tabMEKCeuMoreMachine = new CreativeTabMEKCeuMoreMachine();
+    public static final MEKCeuMoreMachinePacketHandler packetHandler = new MEKCeuMoreMachinePacketHandler();
 
     public static Configuration config;
 
@@ -100,6 +107,8 @@ public class MEKCeuMoreMachine implements IModule {
         PacketSimpleGui.handlers.add(proxy);
         //Set up the GUI handler
         NetworkRegistry.INSTANCE.registerGuiHandler(this, new MEKCeuMoreMachineGuiHandler());
+        MoreMachineWindowTypes.init();
+        packetHandler.initialize();
         MinecraftForge.EVENT_BUS.register(this);
 
         //Load the proxy
@@ -180,6 +189,13 @@ public class MEKCeuMoreMachine implements IModule {
         if (config.hasChanged()) {
             config.save();
         }
+    }
+
+    @Mod.EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        WirelessMachineTypeTableManager.clearAll();
+        WirelessConnectionDataManager.clearAll();
+        WirelessStationRegistryManager.clearAll();
     }
 
 
