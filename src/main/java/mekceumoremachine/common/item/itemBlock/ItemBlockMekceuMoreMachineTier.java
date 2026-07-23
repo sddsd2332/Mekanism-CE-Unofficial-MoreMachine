@@ -9,6 +9,7 @@ import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -47,15 +48,10 @@ public abstract class ItemBlockMekceuMoreMachineTier extends ItemBlockMekceuMore
     abstract double getMachineStorage();
 
     @Override
-    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
-          IBlockState state, TileEntityBasicBlock tileEntity) {
+    protected void prepareTileForDataLoad(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
         if (tileEntity instanceof ITierMachine<?>) {
             setTierMachine(tileEntity, stack);
         }
-    }
-
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
-        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
     }
 
     @Override

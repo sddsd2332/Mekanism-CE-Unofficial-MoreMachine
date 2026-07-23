@@ -1,12 +1,14 @@
 package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.Mekanism;
+import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingEnergy;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -31,15 +33,9 @@ public class ItemBlockWirelessEnergy extends ItemBlockMekceuMoreMachineTier {
 
 
     @Override
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
-        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
-        if (!world.isRemote) {
-            if (tileEntity instanceof TileEntityWirelessChargingEnergy tile) {
-                if (player.isSneaking()) {
-                    tile.setScanMachine();//通知机器进行首次扫描
-                }
-                Mekanism.packetHandler.sendUpdatePacket(tile);
-            }
+    protected void restoreOtherPlacementData(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
+        if (!world.isRemote && tileEntity instanceof TileEntityWirelessChargingEnergy tile && placer.isSneaking()) {
+            tile.setScanMachine();//通知机器进行首次扫描
         }
     }
 

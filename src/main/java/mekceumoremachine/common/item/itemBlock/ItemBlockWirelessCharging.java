@@ -30,16 +30,6 @@ public class ItemBlockWirelessCharging extends ItemBlockMekceuMoreMachineTier {
     }
 
 
-    @Override
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
-        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
-        if (!world.isRemote) {
-            if (tileEntity instanceof TileEntityWirelessChargingStation tile) {
-                Mekanism.packetHandler.sendUpdatePacket(tile);
-            }
-        }
-    }
-
 
     @Override
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {

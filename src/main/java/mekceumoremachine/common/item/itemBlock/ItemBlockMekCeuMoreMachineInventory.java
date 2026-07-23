@@ -31,23 +31,6 @@ public abstract class ItemBlockMekCeuMoreMachineInventory extends ItemBlockMekce
     }
 
     @Override
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state , TileEntity tileEntity) {
-        super.addOtherMachine(stack,player,world,pos,side,hitX,hitY,hitZ,state,tileEntity);
-        if (tileEntity instanceof ISecurityTile security) {
-            security.getSecurity().setOwnerUUID(getOwnerUUID(stack));
-            if (hasSecurity(stack)) {
-                security.getSecurity().setMode(getSecurity(stack));
-            }
-            if (getOwnerUUID(stack) == null) {
-                security.getSecurity().setOwnerUUID(player.getUniqueID());
-            }
-        }
-        if (tileEntity instanceof ISustainedInventory inventory) {
-            inventory.setInventory(getInventory(stack));
-        }
-    }
-
-    @Override
     public void setInventory(NBTTagList nbtTags, Object... data) {
         if (data[0] instanceof ItemStack stack) {
             ItemDataUtils.setList(stack, "Items", nbtTags);

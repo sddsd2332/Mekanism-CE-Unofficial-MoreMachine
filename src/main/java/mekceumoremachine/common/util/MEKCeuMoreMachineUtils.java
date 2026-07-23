@@ -10,6 +10,7 @@ import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.MekanismPlacementData;
 import mekanism.common.util.SecurityUtils;
 import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
@@ -65,6 +66,7 @@ public class MEKCeuMoreMachineUtils {
             if (tileEntity instanceof IBoundingBlock block) {
                 block.onPlace();
             }
+            MekanismPlacementData.apply(world, pos, placer, stack);
         }
     }
 

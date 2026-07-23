@@ -6,11 +6,13 @@ import mekanism.client.MekanismClient;
 import mekanism.client.MekanismKeyHandler;
 import mekanism.common.Upgrade;
 import mekanism.common.base.*;
+import mekanism.common.item.interfaces.IItemBlockPlacementData;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.MekanismPlacementData;
 import mekanism.common.util.SecurityUtils;
 import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
@@ -21,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -34,7 +37,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class ItemBlockMekceuMoreMachine extends ItemBlock {
+public class ItemBlockMekceuMoreMachine extends ItemBlock implements IItemBlockPlacementData {
 
     public ItemBlockMekceuMoreMachine(Block block) {
         super(block);
@@ -53,39 +56,20 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
             place = false;
         }
 
-        if (place && super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
-            if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
-                prepareTileForDataLoad(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
-                if (tileEntity instanceof IUpgradeTile upgradeTile) {
-                    if (Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
-                        upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
-                    }
-                }
-                if (tileEntity instanceof ISideConfiguration config) {
-                    if (ItemDataUtils.hasData(stack, "sideDataStored")) {
-                        config.getConfig().read(ItemDataUtils.getDataMap(stack));
-                        config.getEjector().read(ItemDataUtils.getDataMap(stack));
-                    }
-                }
-                if (tileEntity instanceof ISustainedData data) {
-                    if (stack.getTagCompound() != null) {
-                        data.readSustainedData(stack);
-                    }
-                }
-                if (tileEntity instanceof IRedstoneControl redstoneControl) {
-                    if (ItemDataUtils.hasData(stack, "controlType")) {
-                        redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"), IRedstoneControl.RedstoneControl.DISABLED));
-                    }
-                }
-                addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
-            }
-            return true;
-        }
-        return false;
+        return place && super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state);
     }
 
+    @Override
+    public void restorePlacementData(@Nonnull ItemStack stack, @Nonnull EntityLivingBase placer, @Nonnull World world, @Nonnull BlockPos pos,
+          @Nonnull TileEntity tileEntity) {
+        if (tileEntity instanceof TileEntityBasicBlock basicBlock) {
+            prepareTileForDataLoad(stack, placer, world, pos, basicBlock);
+            MekanismPlacementData.restoreCommon(stack, placer, basicBlock);
+            restoreOtherPlacementData(stack, placer, world, pos, basicBlock);
+        }
+    }
 
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
+    protected void restoreOtherPlacementData(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
     }
 
     protected double getStoredEnergyForPlacement(ItemStack stack) {
@@ -97,8 +81,7 @@ public class ItemBlockMekceuMoreMachine extends ItemBlock {
         return StorageUtils.getMaxEnergy(stack);
     }
 
-    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
-          IBlockState state, TileEntityBasicBlock tileEntity) {
+    protected void prepareTileForDataLoad(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
     }
 
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {

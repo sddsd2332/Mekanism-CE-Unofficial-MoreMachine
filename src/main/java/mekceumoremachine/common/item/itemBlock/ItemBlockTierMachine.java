@@ -17,6 +17,7 @@ import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -52,74 +53,13 @@ public abstract class ItemBlockTierMachine extends ItemBlockMekceuMoreMachine im
     }
 
 
-    @Override
-    public boolean placeBlockAt(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY,
-                                float hitZ, @Nonnull IBlockState state) {
-        boolean place = true;
-        Block block = world.getBlockState(pos).getBlock();
-        if (!block.isReplaceable(world, pos)) {
-            return false;
-        }
-        if (canPlace(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
-            place = false;
-        }
-
-        if (place && super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
-            if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
-                if (tileEntity instanceof ITierMachine<?>) {
-                    setTierMachine(tileEntity, stack);
-                }
-                if (tileEntity instanceof ISecurityTile security) {
-                    security.getSecurity().setOwnerUUID(getOwnerUUID(stack));
-                    if (hasSecurity(stack)) {
-                        security.getSecurity().setMode(getSecurity(stack));
-                    }
-                    if (getOwnerUUID(stack) == null) {
-                        security.getSecurity().setOwnerUUID(player.getUniqueID());
-                    }
-                }
-                if (tileEntity instanceof IUpgradeTile upgradeTile) {
-                    if (Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
-                        upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
-                    }
-                }
-                if (tileEntity instanceof ISideConfiguration config) {
-                    if (ItemDataUtils.hasData(stack, "sideDataStored")) {
-                        config.getConfig().read(ItemDataUtils.getDataMap(stack));
-                        config.getEjector().read(ItemDataUtils.getDataMap(stack));
-                    }
-                }
-                if (tileEntity instanceof ISustainedData data) {
-                    if (stack.getTagCompound() != null) {
-                        data.readSustainedData(stack);
-                    }
-                }
-                if (tileEntity instanceof IRedstoneControl redstoneControl) {
-                    if (ItemDataUtils.hasData(stack, "controlType")) {
-                        redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"), IRedstoneControl.RedstoneControl.DISABLED));
-                    }
-                }
-                if (tileEntity instanceof ISustainedInventory inventory) {
-                    inventory.setInventory(getInventory(stack));
-                }
-                addOtherMachine(tileEntity, stack, world);
-            }
-            return true;
-        }
-        return false;
-    }
-
     abstract void setTierMachine(TileEntity tileEntity, ItemStack stack);
 
     @Override
-    protected void prepareTileForDataLoad(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ,
-          IBlockState state, TileEntityBasicBlock tileEntity) {
+    protected void prepareTileForDataLoad(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
         if (tileEntity instanceof ITierMachine<?>) {
             setTierMachine(tileEntity, stack);
         }
-    }
-
-    public void addOtherMachine(TileEntity tileEntity, ItemStack stack, World world) {
     }
 
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {

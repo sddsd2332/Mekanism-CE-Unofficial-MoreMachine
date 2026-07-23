@@ -30,16 +30,6 @@ public class ItemBlockTierElectricPump extends ItemBlockMekceuMoreMachineTier im
         }
     }
 
-    @Override
-    public void addOtherMachine(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, IBlockState state, TileEntity tileEntity) {
-        super.addOtherMachine(stack, player, world, pos, side, hitX, hitY, hitZ, state, tileEntity);
-        if (tileEntity instanceof ISustainedTank tank) {
-            if (hasTank(stack) && getFluidStack(stack) != null) {
-                tank.setFluidStack(getFluidStack(stack));
-            }
-        }
-    }
-
 
     @Override
     public void setFluidStack(FluidStack fluidStack, Object... data) {

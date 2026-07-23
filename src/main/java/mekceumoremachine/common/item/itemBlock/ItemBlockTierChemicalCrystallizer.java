@@ -111,41 +111,7 @@ public class ItemBlockTierChemicalCrystallizer extends ItemBlockMekceuMoreMachin
         if (MekanismConfig.current().general.destroyDisabledBlocks.val() && type != null && !type.isEnabled()) {
             return false;
         }
-        if (super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state)) {
-            if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
-                if (tileEntity instanceof ISecurityTile security) {
-                    security.getSecurity().setOwnerUUID(getOwnerUUID(stack));
-                    if (hasSecurity(stack)) {
-                        security.getSecurity().setMode(getSecurity(stack));
-                    }
-                    if (getOwnerUUID(stack) == null) {
-                        security.getSecurity().setOwnerUUID(player.getUniqueID());
-                    }
-                }
-                if (tileEntity instanceof IUpgradeTile upgradeTile && Upgrade.hasUpgradeData(ItemDataUtils.getDataMapIfPresent(stack))) {
-                    upgradeTile.readUpgrades(ItemDataUtils.getDataMap(stack));
-                }
-                if (tileEntity instanceof ISideConfiguration config && ItemDataUtils.hasData(stack, "sideDataStored")) {
-                    config.getConfig().read(ItemDataUtils.getDataMap(stack));
-                    config.getEjector().read(ItemDataUtils.getDataMap(stack));
-                }
-                if (tileEntity instanceof ISustainedData data && stack.getTagCompound() != null) {
-                    data.readSustainedData(stack);
-                }
-                if (tileEntity instanceof IRedstoneControl redstoneControl && ItemDataUtils.hasData(stack, "controlType")) {
-                    redstoneControl.setControlType(MekanismUtils.getByIndex(IRedstoneControl.RedstoneControl.values(), ItemDataUtils.getInt(stack, "controlType"),
-                          IRedstoneControl.RedstoneControl.DISABLED));
-                }
-                if (tileEntity instanceof ISustainedInventory inventory) {
-                    inventory.setInventory(getInventory(stack));
-                }
-                if (tileEntity instanceof TileEntityElectricBlock tile) {
-                    tile.setEnergy(getStoredEnergyForPlacement(stack));
-                }
-            }
-            return true;
-        }
-        return false;
+        return super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, state);
     }
 
     @Override
