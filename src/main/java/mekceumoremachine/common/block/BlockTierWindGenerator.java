@@ -17,6 +17,11 @@ public class BlockTierWindGenerator extends BlockTierMachine {
     }
 
     @Override
+    protected BlockPos[] getStructureOffsets() {
+        return MachineStructureOffsets.WIND_GENERATOR;
+    }
+
+    @Override
     public IBlockState AddActualState(@NotNull IBlockState state, IBlockAccess worldIn, BlockPos pos, TileEntity tile) {
         if (tile instanceof TileEntityTierWindGenerator tiers) {
             if (tiers.tier != null) {

@@ -86,7 +86,33 @@ public abstract class BlockTierMachine extends BlockMekanismContainer {
 
     @Override
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+        if (!canPlaceStructureAt(world, pos)) {
+            // Some placement tools bypass ItemBlock and Block#canPlaceBlockAt.
+            // Remove only the new controller so occupied structure positions remain untouched.
+            world.removeTileEntity(pos);
+            world.setBlockToAir(pos);
+            return;
+        }
         MEKCeuMoreMachineUtils.onBlockPlacedBy(world, pos, state, placer, stack);
+    }
+
+    @Override
+    public boolean canPlaceBlockAt(World world, BlockPos pos) {
+        return super.canPlaceBlockAt(world, pos) && canPlaceStructureAt(world, pos);
+    }
+
+    public final boolean canPlaceStructureAt(World world, BlockPos pos) {
+        for (BlockPos offset : getStructureOffsets()) {
+            BlockPos structurePos = pos.add(offset);
+            if (!MekanismUtils.isValidBoundingBlockPosition(world, structurePos, pos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected BlockPos[] getStructureOffsets() {
+        return new BlockPos[0];
     }
 
     @Override

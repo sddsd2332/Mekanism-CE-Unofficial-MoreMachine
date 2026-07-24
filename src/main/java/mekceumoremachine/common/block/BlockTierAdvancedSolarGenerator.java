@@ -17,6 +17,11 @@ public class BlockTierAdvancedSolarGenerator extends BlockTierMachine {
     }
 
     @Override
+    protected BlockPos[] getStructureOffsets() {
+        return MachineStructureOffsets.ADVANCED_SOLAR_GENERATOR;
+    }
+
+    @Override
     public IBlockState AddActualState(@NotNull IBlockState state, IBlockAccess worldIn, BlockPos pos, TileEntity tile) {
         if (tile instanceof TileEntityTierAdvancedSolarGenerator tiers) {
             if (tiers.tier != null) {

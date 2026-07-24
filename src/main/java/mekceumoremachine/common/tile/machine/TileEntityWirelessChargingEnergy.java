@@ -30,6 +30,7 @@ import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.attachments.component.ConnectionConfig;
+import mekceumoremachine.common.block.MachineStructureOffsets;
 import mekceumoremachine.common.capability.LinkTileEntity;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.config.WirelessConnectionDataManager;
@@ -1215,18 +1216,27 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
 
     @Override
+    public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
+        MachineStructureOffsets.collectTwoAbove(getPos(), consumer);
+    }
+
+    @Override
     public void onPlace() {
-        Coord4D current = Coord4D.get(this);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(2), current);
+        tryPlaceBoundingBlocks(world, Coord4D.get(this));
+    }
+
+    @Override
+    public boolean removeBoundingBlocks(@Nonnull World world, @Nonnull BlockPos main) {
+        boolean handled = IBoundingBlock.super.removeBoundingBlocks(world, main);
+        if (handled) {
+            removeConnectionData();
+        }
+        return handled;
     }
 
     @Override
     public void onBreak() {
-        removeConnectionData();
-        world.setBlockToAir(getPos().up());
-        world.setBlockToAir(getPos().up(2));
-        world.setBlockToAir(getPos());
+        removeBoundingBlocks(world, getPos());
     }
 
     @Nonnull

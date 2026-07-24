@@ -2,6 +2,7 @@ package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.Mekanism;
 import mekanism.common.tile.prefab.TileEntityBasicBlock;
+import mekceumoremachine.common.block.BlockTierMachine;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.machine.TileEntityWirelessChargingEnergy;
@@ -34,7 +35,7 @@ public class ItemBlockWirelessEnergy extends ItemBlockMekceuMoreMachineTier {
 
     @Override
     protected void restoreOtherPlacementData(ItemStack stack, EntityLivingBase placer, World world, BlockPos pos, TileEntityBasicBlock tileEntity) {
-        if (!world.isRemote && tileEntity instanceof TileEntityWirelessChargingEnergy tile && placer.isSneaking()) {
+        if (!world.isRemote && placer != null && tileEntity instanceof TileEntityWirelessChargingEnergy tile && placer.isSneaking()) {
             tile.setScanMachine();//通知机器进行首次扫描
         }
     }
@@ -42,13 +43,7 @@ public class ItemBlockWirelessEnergy extends ItemBlockMekceuMoreMachineTier {
 
     @Override
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {
-        for (int yPos = 1; yPos <= 2; yPos++) {
-            BlockPos abovePos = pos.up(yPos);
-            if (!world.isValid(abovePos) || !world.getBlockState(abovePos).getBlock().isReplaceable(world, abovePos)) {
-                return true;
-            }
-        }
-        return false;
+        return block instanceof BlockTierMachine machine && !machine.canPlaceStructureAt(world, pos);
     }
 
 

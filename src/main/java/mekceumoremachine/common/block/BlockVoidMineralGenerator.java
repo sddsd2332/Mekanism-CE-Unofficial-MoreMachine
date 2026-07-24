@@ -17,6 +17,11 @@ public class BlockVoidMineralGenerator extends BlockTierMachine {
     }
 
     @Override
+    protected BlockPos[] getStructureOffsets() {
+        return MachineStructureOffsets.ONE_ABOVE;
+    }
+
+    @Override
     public IBlockState AddActualState(@NotNull IBlockState state, IBlockAccess worldIn, BlockPos pos, TileEntity tile) {
         if (tile instanceof TileEntityVoidMineralGenerator tiers) {
             if (tiers.tier != null) {

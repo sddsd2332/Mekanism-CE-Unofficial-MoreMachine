@@ -16,6 +16,7 @@ import mekanism.common.config.MekanismConfig;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.generators.common.tile.TileEntityGenerator;
+import mekceumoremachine.common.block.MachineStructureOffsets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -158,15 +159,18 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     }
 
     @Override
-    public void onPlace() {
-        Coord4D current = Coord4D.get(this);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(2), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(3), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(4), current);
+    public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
+        MachineStructureOffsets.collectWindGenerator(getPos(), consumer);
+    }
 
-        // Check to see if the placement is happening in a blacklisted dimension
+    @Override
+    public void onBoundingBlocksPlaced() {
         isBlacklistDimension = MekanismConfig.current().generators.windGenerationDimBlacklist.val().contains(world.provider.getDimension());
+    }
+
+    @Override
+    public void onPlace() {
+        tryPlaceBoundingBlocks(world, Coord4D.get(this));
     }
 
 
@@ -182,11 +186,7 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
 
     @Override
     public void onBreak() {
-        world.setBlockToAir(getPos().up());
-        world.setBlockToAir(getPos().up(2));
-        world.setBlockToAir(getPos().up(3));
-        world.setBlockToAir(getPos().up(4));
-        world.setBlockToAir(getPos());
+        removeBoundingBlocks(world, getPos());
     }
 
 

@@ -1,6 +1,7 @@
 package mekceumoremachine.common.item.itemBlock;
 
 import mekanism.common.block.states.BlockStateMachine;
+import mekceumoremachine.common.block.BlockTierMachine;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.machine.TileEntityTierIsotopicCentrifuge;
 import net.minecraft.block.Block;
@@ -31,8 +32,7 @@ public class ItemBlockTierIsotopicCentrifuge extends ItemBlockMekceuMoreMachineT
 
     @Override
     public boolean canPlace(@Nonnull ItemStack stack, @Nonnull EntityPlayer player, World world, @Nonnull BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, @Nonnull IBlockState state) {
-        BlockPos abovePos = pos.up();
-        return !world.isValid(abovePos) || !world.getBlockState(abovePos).getBlock().isReplaceable(world, abovePos);
+        return block instanceof BlockTierMachine machine && !machine.canPlaceStructureAt(world, pos);
     }
 
     @Override

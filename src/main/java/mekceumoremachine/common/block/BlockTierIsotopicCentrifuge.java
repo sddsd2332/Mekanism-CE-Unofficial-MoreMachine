@@ -16,6 +16,11 @@ public class BlockTierIsotopicCentrifuge extends BlockTierMachine {
         super();
     }
 
+    @Override
+    protected BlockPos[] getStructureOffsets() {
+        return MachineStructureOffsets.ONE_ABOVE;
+    }
+
 
     @Override
     public IBlockState AddActualState(@NotNull IBlockState state, IBlockAccess worldIn, BlockPos pos, TileEntity tile) {

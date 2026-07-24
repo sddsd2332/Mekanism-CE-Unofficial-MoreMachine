@@ -23,10 +23,11 @@ public final class MEKCeuMoreMachineUpgradeUtils {
             upgradeable.prepareForUpgrade();
         }
         if (sourceTile instanceof IBoundingBlock boundingBlock) {
-            boundingBlock.onBreak();
-        } else {
-            world.setBlockToAir(pos);
+            if (!boundingBlock.removeBoundingBlocks(world, pos)) {
+                boundingBlock.onBreak();
+            }
         }
+        world.setBlockToAir(pos);
         if (!world.setBlockState(pos, targetState, 3)) {
             return false;
         }

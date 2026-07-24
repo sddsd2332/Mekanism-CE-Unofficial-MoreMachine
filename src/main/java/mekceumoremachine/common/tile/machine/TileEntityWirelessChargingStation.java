@@ -31,6 +31,7 @@ import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.block.MachineStructureOffsets;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
@@ -41,6 +42,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Optional;
@@ -429,17 +431,18 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
 
 
     @Override
+    public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
+        MachineStructureOffsets.collectTwoAbove(getPos(), consumer);
+    }
+
+    @Override
     public void onPlace() {
-        Coord4D current = Coord4D.get(this);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), current);
-        MekanismUtils.makeBoundingBlock(world, getPos().up(2), current);
+        tryPlaceBoundingBlocks(world, Coord4D.get(this));
     }
 
     @Override
     public void onBreak() {
-        world.setBlockToAir(getPos().up());
-        world.setBlockToAir(getPos().up(2));
-        world.setBlockToAir(getPos());
+        removeBoundingBlocks(world, getPos());
     }
 
     @Nonnull

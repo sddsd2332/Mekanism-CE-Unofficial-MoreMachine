@@ -26,6 +26,7 @@ import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityOperationalMachine;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.block.MachineStructureOffsets;
 import mekceumoremachine.common.config.MoreMachineConfig;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
@@ -37,6 +38,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -187,14 +189,18 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
 
 
     @Override
+    public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
+        MachineStructureOffsets.collectOneAbove(getPos(), consumer);
+    }
+
+    @Override
     public void onPlace() {
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), Coord4D.get(this));
+        tryPlaceBoundingBlocks(world, Coord4D.get(this));
     }
 
     @Override
     public void onBreak() {
-        world.setBlockToAir(getPos().up());
-        world.setBlockToAir(getPos());
+        removeBoundingBlocks(world, getPos());
     }
 
 

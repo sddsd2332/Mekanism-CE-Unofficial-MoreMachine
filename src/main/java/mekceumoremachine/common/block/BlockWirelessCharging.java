@@ -16,6 +16,11 @@ public class BlockWirelessCharging extends BlockTierMachine {
         super();
     }
 
+    @Override
+    protected BlockPos[] getStructureOffsets() {
+        return MachineStructureOffsets.TWO_ABOVE;
+    }
+
 
     @Override
     public IBlockState AddActualState(@NotNull IBlockState state, IBlockAccess worldIn, BlockPos pos, TileEntity tile) {

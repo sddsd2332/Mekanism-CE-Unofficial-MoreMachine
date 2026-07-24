@@ -38,6 +38,7 @@ import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.util.*;
 import mekceumoremachine.common.capability.ResizableGasTank;
 import mekceumoremachine.common.MEKCeuMoreMachine;
+import mekceumoremachine.common.block.MachineStructureOffsets;
 import mekceumoremachine.common.tier.MachineTier;
 import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import mekceumoremachine.common.upgrade.FirstIsotopicCentrifugeUpgradeData;
@@ -329,14 +330,18 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     }
 
     @Override
+    public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
+        MachineStructureOffsets.collectOneAbove(getPos(), consumer);
+    }
+
+    @Override
     public void onPlace() {
-        MekanismUtils.makeBoundingBlock(world, getPos().up(), Coord4D.get(this));
+        tryPlaceBoundingBlocks(world, Coord4D.get(this));
     }
 
     @Override
     public void onBreak() {
-        world.setBlockToAir(getPos().up());
-        world.setBlockToAir(getPos());
+        removeBoundingBlocks(world, getPos());
     }
 
     @Override
