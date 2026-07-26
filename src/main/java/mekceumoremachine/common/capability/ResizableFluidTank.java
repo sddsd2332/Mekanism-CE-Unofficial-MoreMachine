@@ -4,6 +4,8 @@ import mekanism.api.Action;
 import mekanism.api.AutomationType;
 import mekanism.api.IContentsListener;
 import mekanism.api.IContentsListenerRegistry;
+import mekanism.api.IContentsSnapshot;
+import mekanism.api.NBTConstants;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.functions.ConstantPredicates;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,7 +17,7 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank, IContentsListenerRegistry {
+public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank, IContentsListenerRegistry, IContentsSnapshot {
 
     public static final Predicate<FluidStack> ALWAYS_TRUE = ConstantPredicates.alwaysTrue();
     public static final BiPredicate<FluidStack, AutomationType> ALWAYS_TRUE_BI = ConstantPredicates.alwaysTrueBi();
@@ -72,6 +74,17 @@ public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank,
     public void setFluid(@Nullable FluidStack stack) {
         super.setFluid(stack);
         onContentsChanged();
+    }
+
+    @Override
+    public NBTTagCompound createContentsSnapshot() {
+        return serializeNBT();
+    }
+
+    @Override
+    public void restoreContentsSnapshot(NBTTagCompound snapshot) {
+        FluidStack stack = snapshot.hasKey(NBTConstants.STORED) ? FluidStack.loadFluidStackFromNBT(snapshot.getCompoundTag(NBTConstants.STORED)) : null;
+        super.setFluid(stack == null ? null : stack.copy());
     }
 
     @Override
@@ -139,6 +152,31 @@ public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank,
             }
         }
         return extracted;
+    }
+
+    @Override
+    public synchronized int fill(@Nullable FluidStack resource, boolean doFill) {
+        if (resource == null) {
+            return 0;
+        }
+        FluidStack remainder = insert(resource, Action.get(doFill), AutomationType.EXTERNAL);
+        return resource.amount - (remainder == null ? 0 : remainder.amount);
+    }
+
+    @Override
+    @Nullable
+    public synchronized FluidStack drain(@Nullable FluidStack resource, boolean doDrain) {
+        FluidStack stored = getFluid();
+        if (resource == null || stored == null || !stored.isFluidEqual(resource)) {
+            return null;
+        }
+        return extract(resource.amount, Action.get(doDrain), AutomationType.EXTERNAL);
+    }
+
+    @Override
+    @Nullable
+    public synchronized FluidStack drain(int maxDrain, boolean doDrain) {
+        return extract(maxDrain, Action.get(doDrain), AutomationType.EXTERNAL);
     }
 
     @Override

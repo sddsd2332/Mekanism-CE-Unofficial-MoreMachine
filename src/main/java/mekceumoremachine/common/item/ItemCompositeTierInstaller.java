@@ -1,6 +1,5 @@
 package mekceumoremachine.common.item;
 
-import mekanism.common.base.IUpgradeableTile;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.item.ItemMekanism;
 import mekanism.common.tier.BaseTier;
@@ -9,9 +8,6 @@ import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.UpgradeUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
-import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
-import mekceumoremachine.common.tile.interfaces.ITierFirstUpgrade;
-import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
@@ -30,129 +26,58 @@ import java.util.List;
 
 public class ItemCompositeTierInstaller extends ItemMekanism {
 
+    private static final BaseTier[] INSTALL_ORDER = {
+          BaseTier.BASIC, BaseTier.ADVANCED, BaseTier.ELITE, BaseTier.ULTIMATE
+    };
+
     public ItemCompositeTierInstaller() {
         super();
         setMaxStackSize(MekanismConfig.current().mekce.MAXTierSize.val());
         setCreativeTab(MEKCeuMoreMachine.tabMEKCeuMoreMachine);
     }
 
-
     @Nonnull
     @Override
-    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand) {
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
+          float hitY, float hitZ, EnumHand hand) {
         if (world.isRemote) {
             return EnumActionResult.PASS;
         }
-        ItemStack stack = player.getHeldItem(hand);
         TileEntity tile = world.getTileEntity(pos);
-
-        if (isBusy(tile)) {
-            return EnumActionResult.FAIL;
-        }
-        installBaseTierIfNeeded(tile);
-
-        // Upgrade may replace the tile, so fetch again.
-        tile = world.getTileEntity(pos);
-        if (isBusy(tile)) {
-            return EnumActionResult.FAIL;
+        if (isBusy(tile) || !UpgradeUtils.isUpgradeable(tile)) {
+            return isBusy(tile) ? EnumActionResult.FAIL : EnumActionResult.PASS;
         }
 
-        if (tile instanceof INeedRepeatTierUpgrade<?>) {
-            return upgradeFactory(player, world, pos, stack);
+        boolean upgraded = false;
+        for (BaseTier tier : INSTALL_ORDER) {
+            tile = world.getTileEntity(pos);
+            if (!UpgradeUtils.canInstallUpgrade(tile, tier)) {
+                continue;
+            }
+            if (!installUpgrade(tile, tier)) {
+                break;
+            }
+            upgraded = true;
         }
-        if (tile instanceof ITierMachine<?> machine) {
-            return upgradeMachine(player, machine, stack);
+        if (!upgraded) {
+            return EnumActionResult.PASS;
         }
-        return EnumActionResult.PASS;
+        if (!player.capabilities.isCreativeMode) {
+            player.getHeldItem(hand).shrink(1);
+        }
+        return EnumActionResult.SUCCESS;
     }
 
     private static boolean isBusy(TileEntity tile) {
         return tile instanceof TileEntityBasicBlock basicBlock && !basicBlock.playersUsing.isEmpty();
     }
 
-    private static void installBaseTierIfNeeded(TileEntity tile) {
-        if (tile instanceof ITierFirstUpgrade) {
-            installUpgrade(tile, BaseTier.BASIC);
-        }
-    }
-
-    private static EnumActionResult upgradeFactory(EntityPlayer player, World world, BlockPos pos, ItemStack stack) {
-        TileEntity tile = world.getTileEntity(pos);
-        if (!(tile instanceof INeedRepeatTierUpgrade<?> factory)) {
-            return EnumActionResult.PASS;
-        }
-
-        BaseTier tier = factory.getNowTier().getBaseTier();
-        if (tier == BaseTier.ULTIMATE || tier == BaseTier.CREATIVE) {
-            return EnumActionResult.PASS;
-        }
-
-        BaseTier lastTier = null;
-        while (world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine) {
-            BaseTier current = machine.getNowTier().getBaseTier();
-            if (current == BaseTier.ULTIMATE || current == BaseTier.CREATIVE || current == lastTier) {
-                break;
-            }
-            BaseTier next = getNextTier(current);
-            if (next == null) {
-                break;
-            }
-            lastTier = current;
-            installUpgrade((TileEntity) machine, next);
-        }
-
-        if (!player.capabilities.isCreativeMode
-                && world.getTileEntity(pos) instanceof INeedRepeatTierUpgrade<?> machine
-                && machine.getNowTier().getBaseTier() == BaseTier.ULTIMATE) {
-            stack.shrink(1);
-        }
-        return EnumActionResult.SUCCESS;
-    }
-
-    private static EnumActionResult upgradeMachine(EntityPlayer player, ITierMachine<?> machine, ItemStack stack) {
-        if (machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
-            return EnumActionResult.PASS;
-        }
-        BaseTier lastTier = null;
-        while (true) {
-            BaseTier current = machine.getTier().getBaseTier();
-            if (current == BaseTier.ULTIMATE || current == BaseTier.CREATIVE || current == lastTier) {
-                break;
-            }
-            BaseTier next = getNextTier(current);
-            if (next == null) {
-                break;
-            }
-            lastTier = current;
-            installUpgrade((TileEntity) machine, next);
-        }
-
-        if (!player.capabilities.isCreativeMode && machine.getTier().getBaseTier() == BaseTier.ULTIMATE) {
-            stack.shrink(1);
-        }
-        return EnumActionResult.SUCCESS;
-    }
-
-    private static BaseTier getNextTier(BaseTier tier) {
-        if (tier == BaseTier.BASIC) {
-            return BaseTier.ADVANCED;
-        } else if (tier == BaseTier.ADVANCED) {
-            return BaseTier.ELITE;
-        } else if (tier == BaseTier.ELITE) {
-            return BaseTier.ULTIMATE;
-        }
-        return null;
-    }
-
     private static boolean installUpgrade(TileEntity tile, BaseTier tier) {
-        if (tile instanceof IUpgradeableTile upgradeable) {
-            IUpgradeData upgradeData = upgradeable.getUpgradeData(tier);
-            IBlockState upgradeResult = upgradeable.getUpgradeResult(tier);
-            return upgradeData != null && (upgradeResult == null ? upgradeable.parseUpgradeData(upgradeData) : UpgradeUtils.replaceTileForUpgrade(tile, upgradeResult, upgradeData));
-        }
-        return false;
+        IUpgradeData upgradeData = UpgradeUtils.getUpgradeData(tile, tier);
+        IBlockState upgradeResult = UpgradeUtils.getUpgradeResult(tile, tier);
+        return upgradeData != null && (upgradeResult == null ? UpgradeUtils.parseUpgradeData(tile, upgradeData) :
+              UpgradeUtils.replaceTileForUpgrade(tile, upgradeResult, upgradeData));
     }
-
 
     @Nonnull
     @Override
@@ -165,5 +90,4 @@ public class ItemCompositeTierInstaller extends ItemMekanism {
     public void addInformation(@Nonnull ItemStack itemstack, World world, @Nonnull List<String> list, @Nonnull ITooltipFlag flag) {
         list.add(LangUtils.localize("tooltip.CompositeTierInstaller"));
     }
-
 }

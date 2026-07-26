@@ -132,21 +132,21 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
 
     private ResizableGasTank getOrCreateLeftTank(IContentsListener listener) {
         if (leftTank == null) {
-            leftTank = ResizableGasTank.input(MAX_GAS * tier.processes, this::isValidLeftGas, listener);
+            leftTank = ResizableGasTank.input(MAX_GAS * tier.processes, this::isValidLeftGas, getRecipeCacheListener());
         }
         return leftTank;
     }
 
     private ResizableGasTank getOrCreateRightTank(IContentsListener listener) {
         if (rightTank == null) {
-            rightTank = ResizableGasTank.input(MAX_GAS * tier.processes, this::isValidRightGas, listener);
+            rightTank = ResizableGasTank.input(MAX_GAS * tier.processes, this::isValidRightGas, getRecipeCacheListener());
         }
         return rightTank;
     }
 
     private ResizableGasTank getOrCreateCenterTank(IContentsListener listener) {
         if (centerTank == null) {
-            centerTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+            centerTank = ResizableGasTank.output(MAX_GAS * tier.processes, getRecipeCacheChangeListener(listener));
         }
         return centerTank;
     }

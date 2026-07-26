@@ -1,6 +1,8 @@
 package mekceumoremachine.common.tile.machine;
 
 import io.netty.buffer.ByteBuf;
+import mekanism.api.Action;
+import mekanism.api.AutomationType;
 import mekanism.api.EnumColor;
 import mekanism.api.IConfigCardAccess;
 import mekanism.api.IContentsListener;
@@ -164,21 +166,21 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     private ResizableFluidTank getOrCreateFluidTank(IContentsListener listener) {
         if (fluidTank == null) {
             fluidTank = ResizableFluidTank.input(MAX_GAS * 10 * tier.processes,
-                  fluid -> fluid != null && Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(fluid.getFluid()), listener);
+                  fluid -> fluid != null && Recipe.ELECTROLYTIC_SEPARATOR.containsRecipe(fluid.getFluid()), getRecipeCacheListener());
         }
         return fluidTank;
     }
 
     private ResizableGasTank getOrCreateLeftTank(IContentsListener listener) {
         if (leftTank == null) {
-            leftTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+            leftTank = ResizableGasTank.output(MAX_GAS * tier.processes, getRecipeCacheChangeListener(listener));
         }
         return leftTank;
     }
 
     private ResizableGasTank getOrCreateRightTank(IContentsListener listener) {
         if (rightTank == null) {
-            rightTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+            rightTank = ResizableGasTank.output(MAX_GAS * tier.processes, getRecipeCacheChangeListener(listener));
         }
         return rightTank;
     }
@@ -222,30 +224,30 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         }
     }
 
-    private void handleTank(GasTank tank, GasMode mode, Set<EnumFacing> side, int dumpAmount, int tankidx) {
+    private void handleTank(ResizableGasTank tank, GasMode mode, Set<EnumFacing> side, int dumpAmount, int tankidx) {
         if (tank.getGas() != null) {
             if (mode != GasMode.DUMPING) {
                 if (configComponent.isEjecting(TransmissionType.GAS)) {
                     ejectGas(side, tank, this.gasSpeedController, tankidx);
                 }
             } else {
-                tank.draw(dumpAmount, true);
+                tank.extract(dumpAmount, Action.EXECUTE, AutomationType.INTERNAL);
             }
             if (mode == GasMode.DUMPING_EXCESS) {
                 int target = getDumpingExcessTarget(tank);
                 int stored = tank.getStored();
                 if (target < stored) {
-                    tank.draw(Math.min(stored - target, tier.getGasTankTier().getBaseOutput()), true);
+                    tank.extract(Math.min(stored - target, tier.getGasTankTier().getBaseOutput()), Action.EXECUTE, AutomationType.INTERNAL);
                 }
             }
         }
     }
 
-    private int getDumpingExcessTarget(GasTank tank) {
+    private int getDumpingExcessTarget(ResizableGasTank tank) {
         return MathUtils.clampToInt(tank.getMaxGas() * MekanismConfig.current().general.dumpExcessKeepRatio.val());
     }
 
-    private void ejectGas(Set<EnumFacing> outputSides, GasTank tank, EjectSpeedController speedController, int tankIdx) {
+    private void ejectGas(Set<EnumFacing> outputSides, ResizableGasTank tank, EjectSpeedController speedController, int tankIdx) {
         speedController.record(tankIdx);
         if (tank.getGas() == null || tank.getStored() <= 0 || tank.getGas().getGas() == null) {
             return;
@@ -259,7 +261,7 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         if (emitted <= 0) {
             return;
         }
-        tank.draw(emitted, true);
+        tank.extract(emitted, Action.EXECUTE, AutomationType.INTERNAL);
     }
 
     public int getUpgradedUsage(SeparatorRecipe recipe) {

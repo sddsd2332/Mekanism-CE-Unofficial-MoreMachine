@@ -16,15 +16,20 @@ import mekanism.common.config.MekanismConfig;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import mekanism.generators.common.tile.TileEntityGenerator;
+import mekanism.generators.common.tile.TileEntityWindGenerator;
 import mekceumoremachine.common.block.MachineStructureOffsets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator implements IBoundingBlock, ISpecialSelectionWireframeTile {
 
@@ -161,6 +166,21 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     @Override
     public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
         MachineStructureOffsets.collectWindGenerator(getPos(), consumer);
+    }
+
+    @Nonnull
+    @Override
+    @SideOnly(Side.CLIENT)
+    public AxisAlignedBB getRenderBoundingBox() {
+        return TileEntityWindGenerator.getRenderBoundingBox(getPos());
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public List<Vec3d> computeOcclusionSamplePoints() {
+        List<Vec3d> samplePoints = new ArrayList<>(super.computeOcclusionSamplePoints());
+        samplePoints.addAll(cullingGetAabbOcclusionSamplePoints(getRenderBoundingBox()));
+        return samplePoints;
     }
 
     @Override

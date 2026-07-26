@@ -52,6 +52,14 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
     private EnergyInventorySlot energySlot;
     private OutputInventorySlot outputSlot;
 
+    public BasicInventorySlot getTemplateSlot() {
+        return inputSlot;
+    }
+
+    public OutputInventorySlot getRecipeOutputSlot() {
+        return outputSlot;
+    }
+
     public TileEntityReplicatorItemStack() {
         super("prc", "ReplicatorItemStack", MoreMachineConfig.current().config.ReplicatorItemStackEnergyStorge.val(), MoreMachineConfig.current().config.ReplicatorItemStackEnergyUsage.val(), 3, 200);
 

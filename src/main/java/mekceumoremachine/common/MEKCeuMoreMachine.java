@@ -14,9 +14,13 @@ import mekceumoremachine.common.config.WirelessConnectionDataManager;
 import mekceumoremachine.common.config.WirelessMachineTypeTableManager;
 import mekceumoremachine.common.config.WirelessStationRegistryManager;
 import mekceumoremachine.common.network.MEKCeuMoreMachinePacketHandler;
+import mekceumoremachine.common.processing.MoreMachineRecipeProviders;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineFluids;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
+import mekceumoremachine.common.upgrade.MoreMachineGeneratorUpgradeAdapters;
+import mekceumoremachine.common.upgrade.MoreMachineMultiblockUpgradeAdapters;
+import mekceumoremachine.common.upgrade.MoreMachineTileUpgradeAdapters;
 import mekceumoremachine.mekceumoremachine.Tags;
 import mekceumoremachine.common.util.VoidMineralGeneratorUitls;
 import mekceumoremachine.common.ui.MoreMachineWindowTypes;
@@ -31,6 +35,7 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -101,6 +106,14 @@ public class MEKCeuMoreMachine implements IModule {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
+        MoreMachineTileUpgradeAdapters.register();
+        MoreMachineRecipeProviders.register();
+        if (Loader.isModLoaded("mekanismgenerators")) {
+            MoreMachineGeneratorUpgradeAdapters.register();
+        }
+        if (Loader.isModLoaded("mekanismmultiblockmachine")) {
+            MoreMachineMultiblockUpgradeAdapters.register();
+        }
         //Add this module to the core list
         Mekanism.modulesLoaded.add(this);
         //Register this module's GUI handler in the simple packet protocol

@@ -47,6 +47,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier>, IBoundingBlock, ISpecialSelectionWireframeTile {
@@ -58,6 +59,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     private int currentRedstoneLevel;
     private final List<IInventorySlot> outputSlots = new ArrayList<>();
     private EnergyInventorySlot energySlot;
+
+    public List<IInventorySlot> getOutputSlots() {
+        return Collections.unmodifiableList(outputSlots);
+    }
 
     public TileEntityVoidMineralGenerator() {
         super("machine.smelter", "VoidMineralGenerator", MoreMachineConfig.current().config.VoidMineralGeneratorEnergyStorge.val(), MoreMachineConfig.current().config.VoidMineralGeneratorEnergyUsage.val(), 0, MoreMachineConfig.current().config.VoidMineralGeneratorTick.val());
@@ -321,7 +326,7 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        return INFINITE_EXTENT_AABB;
+        return super.getRenderBoundingBox();
     }
 
     @Nonnull

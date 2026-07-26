@@ -2,12 +2,11 @@ package mekceumoremachine.common.config;
 
 import mekanism.common.Mekanism;
 import mekanism.common.base.IFactory;
+import mekanism.common.base.IBaseTierProvider;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.factory.TileEntityFactory;
 import mekceumoremachine.common.attachments.component.MachineTypeDescriptor;
-import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
-import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import mekceumoremachine.common.util.MachineStackTypeResolver;
 import mekceumoremachine.common.util.MachineStackTypeResolver.MachineStackProbe;
 import net.minecraft.block.Block;
@@ -150,13 +149,7 @@ public final class WirelessMachineTypeTableManager {
     }
 
     private static BaseTier resolveBaseTier(TileEntity tileEntity) {
-        if (tileEntity instanceof ITierMachine<?> tierMachine && tierMachine.getTier() != null) {
-            return tierMachine.getTier().getBaseTier();
-        }
-        if (tileEntity instanceof INeedRepeatTierUpgrade<?> tierMachine && tierMachine.getNowTier() != null) {
-            return tierMachine.getNowTier().getBaseTier();
-        }
-        return null;
+        return tileEntity instanceof IBaseTierProvider tierProvider ? tierProvider.getBaseTier() : null;
     }
 
     private static final class MachineTypeTable {

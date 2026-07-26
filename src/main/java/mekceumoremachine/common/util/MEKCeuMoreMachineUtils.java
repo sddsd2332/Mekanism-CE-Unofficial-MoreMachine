@@ -17,7 +17,6 @@ import mekanism.common.util.StorageUtils;
 import mekceumoremachine.common.MEKCeuMoreMachine;
 import mekceumoremachine.common.item.itemBlock.ItemBlockMekceuMoreMachineEnergy;
 import mekceumoremachine.common.tier.MachineTier;
-import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
@@ -184,9 +183,9 @@ public class MEKCeuMoreMachineUtils {
             itemStack.setTagCompound(new NBTTagCompound());
         }
         if (world.getTileEntity(pos) instanceof TileEntityBasicBlock tileEntity) {
-            if (tileEntity instanceof ITierMachine<?> tierMachine) {
+            if (tileEntity instanceof IBaseTierProvider tierMachine) {
                 if (itemStack.getItem() instanceof ITierItem tierItem) {
-                    tierItem.setBaseTier(itemStack, tierMachine.getTier().getBaseTier());
+                    tierItem.setBaseTier(itemStack, tierMachine.getBaseTier());
                 }
             }
             if (tileEntity instanceof ISecurityTile securityTile) {

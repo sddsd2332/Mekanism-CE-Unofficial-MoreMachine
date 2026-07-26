@@ -2,12 +2,12 @@ package mekceumoremachine.common.util;
 
 import mekanism.common.Mekanism;
 import mekanism.common.base.IFactory;
+import mekanism.common.base.IBaseTierProvider;
 import mekanism.common.base.ITierItem;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.factory.TileEntityFactory;
 import mekanism.common.util.MekanismUtils;
 import mekceumoremachine.common.tile.interfaces.INeedRepeatTierUpgrade;
-import mekceumoremachine.common.tile.interfaces.ITierMachine;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
@@ -256,13 +256,7 @@ public final class MachineStackTypeResolver {
     }
 
     private static BaseTier resolveBaseTier(TileEntity tileEntity) {
-        if (tileEntity instanceof ITierMachine<?> tierMachine && tierMachine.getTier() != null) {
-            return tierMachine.getTier().getBaseTier();
-        }
-        if (tileEntity instanceof INeedRepeatTierUpgrade<?> tierMachine && tierMachine.getNowTier() != null) {
-            return tierMachine.getNowTier().getBaseTier();
-        }
-        return null;
+        return tileEntity instanceof IBaseTierProvider tierProvider ? tierProvider.getBaseTier() : null;
     }
 
     private static void removeStandardNonTypeTags(NBTTagCompound serialized) {

@@ -26,6 +26,7 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.TileComponentSecurity;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.multiblock.TileEntityInductionPort;
+import mekanism.common.tile.TileEntityEnergyCube;
 import mekanism.common.tile.prefab.TileEntityElectricBlock;
 import mekanism.common.util.*;
 import mekceumoremachine.common.MEKCeuMoreMachine;
@@ -268,6 +269,9 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return;
         }
         if (tileEntity instanceof INoWirelessChargingEnergy energy && energy.isChargingEnergy()) {
+            return;
+        }
+        if (tileEntity instanceof TileEntityEnergyCube energyCube && energyCube.getBaseTier() == BaseTier.CREATIVE) {
             return;
         }
         if (isBlacklistMachine(tileEntity)) {
@@ -1243,16 +1247,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        BlockPos pos = getPos();
-        int radius = getRang();
-        return new AxisAlignedBB(
-                pos.getX() - radius,
-                pos.getY() - radius,
-                pos.getZ() - radius,
-                pos.getX() + radius + 1,
-                pos.getY() + radius + 1,
-                pos.getZ() + radius + 1
-        );
+        return super.getRenderBoundingBox();
     }
 
     @Override

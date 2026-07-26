@@ -122,14 +122,14 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
 
     private ResizableGasTank getOrCreateInputTank(IContentsListener listener) {
         if (inputTank == null) {
-            inputTank = ResizableGasTank.input(MAX_GAS * tier.processes, gas -> RecipeHandler.Recipe.ISOTOPIC_CENTRIFUGE.containsRecipe(gas), listener);
+            inputTank = ResizableGasTank.input(MAX_GAS * tier.processes, gas -> RecipeHandler.Recipe.ISOTOPIC_CENTRIFUGE.containsRecipe(gas), getRecipeCacheListener());
         }
         return inputTank;
     }
 
     private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
-            outputTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+            outputTank = ResizableGasTank.output(MAX_GAS * tier.processes, getRecipeCacheChangeListener(listener));
         }
         return outputTank;
     }

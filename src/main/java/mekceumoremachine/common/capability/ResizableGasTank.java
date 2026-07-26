@@ -4,6 +4,8 @@ import mekanism.api.Action;
 import mekanism.api.AutomationType;
 import mekanism.api.IContentsListener;
 import mekanism.api.IContentsListenerRegistry;
+import mekanism.api.IContentsSnapshot;
+import mekanism.api.NBTConstants;
 import mekanism.api.functions.ConstantPredicates;
 import mekanism.api.gas.Gas;
 import mekanism.api.gas.GasStack;
@@ -16,7 +18,7 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class ResizableGasTank extends GasTank implements IExtendedGasTank, IContentsListenerRegistry {
+public class ResizableGasTank extends GasTank implements IExtendedGasTank, IContentsListenerRegistry, IContentsSnapshot {
 
     public static final Predicate<GasStack> ALWAYS_TRUE = ConstantPredicates.alwaysTrue();
     public static final BiPredicate<GasStack, AutomationType> ALWAYS_TRUE_BI = ConstantPredicates.alwaysTrueBi();
@@ -73,6 +75,17 @@ public class ResizableGasTank extends GasTank implements IExtendedGasTank, ICont
     public void setGas(@Nullable GasStack stack) {
         super.setGas(stack);
         onContentsChanged();
+    }
+
+    @Override
+    public NBTTagCompound createContentsSnapshot() {
+        return serializeNBT();
+    }
+
+    @Override
+    public void restoreContentsSnapshot(NBTTagCompound snapshot) {
+        GasStack stack = snapshot.hasKey(NBTConstants.STORED) ? GasStack.readFromNBT(snapshot.getCompoundTag(NBTConstants.STORED)) : null;
+        super.setGas(stack == null ? null : stack.copy());
     }
 
     @Override
@@ -143,6 +156,21 @@ public class ResizableGasTank extends GasTank implements IExtendedGasTank, ICont
             }
         }
         return extracted;
+    }
+
+    @Override
+    public synchronized int receive(@Nullable GasStack stack, boolean doTransfer) {
+        if (stack == null) {
+            return 0;
+        }
+        GasStack remainder = insert(stack, Action.get(doTransfer), AutomationType.EXTERNAL);
+        return stack.amount - (remainder == null ? 0 : remainder.amount);
+    }
+
+    @Override
+    @Nullable
+    public synchronized GasStack draw(int amount, boolean doTransfer) {
+        return extract(amount, Action.get(doTransfer), AutomationType.EXTERNAL);
     }
 
     @Override

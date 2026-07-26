@@ -1,14 +1,20 @@
 package mekceumoremachine.common.tile.interfaces;
 
 import mekanism.common.base.IUpgradeableTile;
+import mekanism.common.base.IBaseTierProvider;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.tier.ITier;
 import mekanism.common.upgrade.IUpgradeData;
 import mekanism.common.upgrade.TierUpgradeData;
 
-public interface ITierMachine<T extends ITier> extends IUpgradeableTile {
+public interface ITierMachine<T extends ITier> extends IUpgradeableTile, IBaseTierProvider {
 
     T getTier();
+
+    @Override
+    default BaseTier getBaseTier() {
+        return getTier().getBaseTier();
+    }
 
     @Override
     default boolean canInstallUpgrade(BaseTier upgradeTier) {

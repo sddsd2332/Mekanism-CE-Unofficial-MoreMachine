@@ -615,6 +615,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         return tier.processes;
     }
 
+    public int getGasUsagePerOperation() {
+        return Math.max(1, mekanism.api.math.MathUtils.clampToInt(baseTotalUsage));
+    }
+
     @Override
     public IInventorySlot getSorterInputSlot(int process) {
         return getProcessInputSlot(process);

@@ -151,16 +151,21 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
 
     private ResizableGasTank getOrCreateInputTank(IContentsListener listener) {
         if (inputTank == null) {
-            inputTank = ResizableGasTank.input(tier.processes * MAX_GAS, gas -> RecipeHandler.Recipe.SOLAR_NEUTRON_ACTIVATOR.containsRecipe(gas), listener);
+            inputTank = ResizableGasTank.input(tier.processes * MAX_GAS, gas -> RecipeHandler.Recipe.SOLAR_NEUTRON_ACTIVATOR.containsRecipe(gas), recipeCacheLookupMonitor);
         }
         return inputTank;
     }
 
     private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
-            outputTank = ResizableGasTank.output(tier.processes * MAX_GAS, listener);
+            outputTank = ResizableGasTank.output(tier.processes * MAX_GAS, this::onRecipeOutputContentsChanged);
         }
         return outputTank;
+    }
+
+    private void onRecipeOutputContentsChanged() {
+        onContentsChanged();
+        recipeCacheLookupMonitor.onChange();
     }
 
     @Override
@@ -440,7 +445,7 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        return INFINITE_EXTENT_AABB;
+        return super.getRenderBoundingBox();
     }
 
     @Override

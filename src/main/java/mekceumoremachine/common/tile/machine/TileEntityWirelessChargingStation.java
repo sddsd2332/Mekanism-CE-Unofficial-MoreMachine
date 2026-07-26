@@ -449,15 +449,7 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        int radius = getRang();
-        return new AxisAlignedBB(
-                getPos().getX() - radius,
-                getPos().getY() - radius,
-                getPos().getZ() - radius,
-                getPos().getX() + radius + 1,
-                getPos().getY() + radius + 1,
-                getPos().getZ() + radius + 1
-        );
+        return super.getRenderBoundingBox();
     }
 
     @Override

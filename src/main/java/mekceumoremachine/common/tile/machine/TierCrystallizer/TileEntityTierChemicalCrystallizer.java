@@ -427,6 +427,10 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         return isProcessIndex(process) && process < outputSlots.size() ? outputSlots.get(process) : null;
     }
 
+    public IInventorySlot getProcessingOutputSlot(int process) {
+        return getProcessOutputSlot(process);
+    }
+
     private boolean isProcessIndex(int process) {
         return process >= 0 && process < tier.processes;
     }

@@ -148,21 +148,21 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
     private ResizableFluidTank getOrCreateFluidTank(IContentsListener listener) {
         if (fluidTank == null) {
             fluidTank = ResizableFluidTank.input(MAX_FLUID * tier.processes,
-                  fluid -> fluid != null && fluid.getFluid() == FluidRegistry.WATER, listener);
+                  fluid -> fluid != null && fluid.getFluid() == FluidRegistry.WATER, getRecipeCacheListener());
         }
         return fluidTank;
     }
 
     private ResizableGasTank getOrCreateInputTank(IContentsListener listener) {
         if (inputTank == null) {
-            inputTank = ResizableGasTank.input(MAX_GAS * tier.processes, gas -> RecipeHandler.Recipe.CHEMICAL_WASHER.containsRecipe(gas), listener);
+            inputTank = ResizableGasTank.input(MAX_GAS * tier.processes, gas -> RecipeHandler.Recipe.CHEMICAL_WASHER.containsRecipe(gas), getRecipeCacheListener());
         }
         return inputTank;
     }
 
     private ResizableGasTank getOrCreateOutputTank(IContentsListener listener) {
         if (outputTank == null) {
-            outputTank = ResizableGasTank.output(MAX_GAS * tier.processes, listener);
+            outputTank = ResizableGasTank.output(MAX_GAS * tier.processes, getRecipeCacheChangeListener(listener));
         }
         return outputTank;
     }

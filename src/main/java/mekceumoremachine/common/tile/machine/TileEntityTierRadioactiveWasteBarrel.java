@@ -5,6 +5,7 @@ import mekanism.api.Action;
 import mekanism.api.AutomationType;
 import mekanism.api.IConfigurable;
 import mekanism.api.IContentsListener;
+import mekanism.api.NBTConstants;
 import mekanism.api.RelativeSide;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.GasStack;
@@ -20,6 +21,7 @@ import mekanism.common.tier.BaseTier;
 import mekanism.common.tile.TileEntityRadioactiveWasteBarrel;
 import mekanism.common.tile.prefab.TileEntityContainerBlock;
 import mekanism.common.upgrade.IUpgradeData;
+import mekanism.common.lib.radiation.RadiationUtil;
 import mekanism.common.util.GasUtils;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
@@ -93,9 +95,11 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
         if (getWorld().getTotalWorldTime() > lastProcessTick) {
             lastProcessTick = getWorld().getTotalWorldTime();
             GasStack stored = gasTank.getGas();
-            if (stored != null && stored.getGas() != null && stored.getGas().isRadiation() && ++processTicks >= 20) {
+            int decayAmount = getTierDecayAmount(RadiationUtil.getWasteBarrelDecayAmount(), tier.processes);
+            if (decayAmount > 0 && RadiationUtil.canDecayInWasteBarrel(stored) &&
+                ++processTicks >= RadiationUtil.getWasteBarrelProcessTicks()) {
                 processTicks = 0;
-                gasTank.extract(tier.processes * 10, Action.EXECUTE, AutomationType.INTERNAL);
+                gasTank.extract(decayAmount, Action.EXECUTE, AutomationType.INTERNAL);
             }
             if (getActive()) {
                 GasUtils.emit(Collections.singleton(EnumFacing.DOWN), gasTank, this, getDownOutputLimit());
@@ -113,6 +117,13 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
             return Math.min(barrel.gasTank.getNeeded(), gasTank.getCapacity());
         }
         return gasTank.getCapacity();
+    }
+
+    static int getTierDecayAmount(int configuredAmount, int processes) {
+        if (configuredAmount <= 0 || processes <= 0) {
+            return 0;
+        }
+        return (int) Math.min(Integer.MAX_VALUE, (long) configuredAmount * processes * 10L);
     }
 
     @Override
@@ -199,6 +210,7 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
         clientActive = isActive = nbtTags.getBoolean("isActive");
+        processTicks = Math.max(0, nbtTags.getInteger(NBTConstants.PROGRESS));
         if (!hasStoredGasTanks(nbtTags) && nbtTags.hasKey("gasTank")) {
             gasTank.read(nbtTags.getCompoundTag("gasTank"));
         }
@@ -210,6 +222,7 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
         super.writeCustomNBT(nbtTags);
         nbtTags.setInteger("tier", tier.ordinal());
         nbtTags.setBoolean("isActive", isActive);
+        nbtTags.setInteger(NBTConstants.PROGRESS, processTicks);
     }
 
     @Override
