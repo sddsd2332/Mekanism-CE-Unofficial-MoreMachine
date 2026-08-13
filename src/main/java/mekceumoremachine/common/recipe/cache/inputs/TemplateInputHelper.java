@@ -27,7 +27,8 @@ public final class TemplateInputHelper {
             @Override
             public ItemStack getRecipeInput(ItemStack recipeIngredient) {
                 ItemStack input = getInput();
-                return !input.isEmpty() && MachineInput.inputContains(input, recipeIngredient) ? recipeIngredient.copy() : ItemStack.EMPTY;
+                return !input.isEmpty() && !recipeIngredient.isEmpty() &&
+                      MachineInput.inputItemMatches(input, recipeIngredient) ? recipeIngredient.copy() : ItemStack.EMPTY;
             }
 
             @Override
@@ -39,7 +40,7 @@ public final class TemplateInputHelper {
                 if (usageMultiplier <= 0) {
                     return;
                 }
-                if (!recipeInput.isEmpty() && getInput().getCount() >= recipeInput.getCount() * usageMultiplier) {
+                if (!recipeInput.isEmpty() && !getInput().isEmpty()) {
                     return;
                 }
                 tracker.resetProgress(notEnoughError);
@@ -71,7 +72,7 @@ public final class TemplateInputHelper {
                 if (usageMultiplier <= 0) {
                     return;
                 }
-                if (recipeInput != null && recipeInput.amount > 0 && tank.getStored() >= recipeInput.amount * usageMultiplier) {
+                if (recipeInput != null && recipeInput.amount > 0 && tank.getStored() >= 1) {
                     return;
                 }
                 tracker.resetProgress(notEnoughError);
@@ -103,7 +104,7 @@ public final class TemplateInputHelper {
                 if (usageMultiplier <= 0) {
                     return;
                 }
-                if (recipeInput != null && recipeInput.amount > 0 && tank.getFluidAmount() >= recipeInput.amount * usageMultiplier) {
+                if (recipeInput != null && recipeInput.amount > 0 && tank.getFluidAmount() >= 1) {
                     return;
                 }
                 tracker.resetProgress(notEnoughError);

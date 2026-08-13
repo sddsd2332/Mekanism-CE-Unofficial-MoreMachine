@@ -150,7 +150,14 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
 
     @Override
     public boolean canOperate(ReplicatorGasStackRecipe recipe) {
-        return recipe != null && recipe.canOperate(inputTank, uuTank, outputTank);
+        if (recipe == null || inputTank.getGas() == null ||
+            !inputTank.getGas().isGasEqual(recipe.getInput().input)) {
+            return false;
+        }
+        GasStack required = recipe.getInput().uu;
+        GasStack stored = uuTank.getGas();
+        return required != null && stored != null && stored.isGasEqual(required) && stored.amount >= required.amount &&
+              recipe.getOutput().applyOutputs(outputTank, false, 1);
     }
 
     @Override

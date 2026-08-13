@@ -157,7 +157,13 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
 
     @Override
     public boolean canOperate(ReplicatorItemStackRecipe recipe) {
-        return recipe != null && recipe.canOperate(inputSlot, outputSlot, inputGasTank);
+        if (recipe == null || !recipe.getInput().containsType(inputSlot.getStack())) {
+            return false;
+        }
+        GasStack required = recipe.getInput().getGas();
+        GasStack stored = inputGasTank.getGas();
+        return required != null && stored != null && stored.isGasEqual(required) && stored.amount >= required.amount &&
+              recipe.getOutput().applyOutputs(outputSlot, false);
     }
 
     @Override
@@ -172,7 +178,7 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
               InputHelper.getGasInputHandler(inputGasTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT),
               OutputHelper.getOutputHandler(outputSlot, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
               () -> recipe.getInput().getSolid(), () -> recipe.getInput().getGas(),
-              (item, gas) -> recipe.getInput().meets(new NucleosynthesizerInput(item, gas)),
+              (item, gas) -> recipe.getInput().containsType(item) && recipe.getInput().containsType(gas),
               (item, gas) -> recipe.getOutput().output.copy(),
               ItemStack::isEmpty, gas -> gas == null || gas.amount <= 0, ItemStack::isEmpty)
               .setCanHolderFunction(() -> MekanismUtils.canFunction(this))

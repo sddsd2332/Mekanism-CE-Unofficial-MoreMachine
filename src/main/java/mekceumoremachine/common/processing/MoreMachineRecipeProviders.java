@@ -1,13 +1,17 @@
 package mekceumoremachine.common.processing;
 
 import mekanism.api.processing.MachinePort;
+import mekanism.api.processing.MachinePresentationDescriptor;
 import mekanism.api.processing.MachineRecipeProvider;
 import mekanism.api.processing.MachineRecipeProviderRegistry;
 import mekanism.api.processing.MachineRecipeRoute;
 import mekanism.api.processing.MachineResourceStack;
+import mekanism.api.processing.ProviderConformanceDescriptor;
+import mekanism.api.processing.QIOAutomationMode;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.common.MekanismFluids;
 import mekanism.common.base.IBaseTierProvider;
+import mekanism.common.base.ITierItem;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.processing.MachineRecipeRouteCollectors;
 import mekceumoremachine.common.MEKCeuMoreMachine;
@@ -27,6 +31,9 @@ import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemical
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorItemStack;
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 
@@ -40,6 +47,14 @@ import java.util.function.ToIntFunction;
 public final class MoreMachineRecipeProviders {
 
     private static boolean registered;
+    private static final ProviderConformanceDescriptor PROCESSING_CONFORMANCE =
+          ProviderConformanceDescriptor.builder(MEKCeuMoreMachine.MODID, "processing")
+                .supports(QIOAutomationMode.SCHEDULED, QIOAutomationMode.PASSIVE, QIOAutomationMode.OUTPUT_ONLY)
+                .build();
+    private static final ProviderConformanceDescriptor OUTPUT_CONFORMANCE =
+          ProviderConformanceDescriptor.builder(MEKCeuMoreMachine.MODID, "output")
+                .supports(QIOAutomationMode.OUTPUT_ONLY)
+                .build();
 
     private MoreMachineRecipeProviders() {
     }
@@ -113,36 +128,38 @@ public final class MoreMachineRecipeProviders {
                     tile.getGasUsagePerOperation()), tile.getSorterProcessCount(), "gas_input"),
               MoreMachineRecipeProviders::dissolutionPorts, TileEntityTierChemicalDissolutionChamber::getGasUsagePerOperation);
 
-        register("tier_ambient_accumulator", TileEntityTierAmbientAccumulator.class, ignored -> null,
+        registerOutput("tier_ambient_accumulator", TileEntityTierAmbientAccumulator.class, ignored -> null,
               ignored -> Collections.emptyList(),
               tile -> ports(MachinePort.gas("gas_output", MachinePort.Role.OUTPUT, tile.outputTank)));
-        register("tier_electric_pump", TileEntityTierElectricPump.class, ignored -> null,
+        registerOutput("tier_electric_pump", TileEntityTierElectricPump.class, ignored -> null,
               ignored -> Collections.emptyList(),
               tile -> ports(MachinePort.fluid("fluid_output", MachinePort.Role.OUTPUT, tile.fluidTank)));
 
         register("replicator_item", TileEntityReplicatorItemStack.class, TileEntityReplicatorItemStack::getRecipes,
-              tile -> MachineRecipeRouteCollectors.collectReplicatorItemTemplate(tile.getRecipes(),
-                    tile.getTemplateSlot().getStack()),
+              tile -> MachineRecipeRouteCollectors.collectConfigurableReplicatorItems(tile.getRecipes()),
               tile -> ports(
+                    MachinePort.configurationItem("template", tile.getTemplateSlot(), "template", 0),
                     MachinePort.gas("uu_input", MachinePort.Role.INPUT, tile.inputGasTank),
                     MachinePort.item("item_output", MachinePort.Role.OUTPUT, tile.getRecipeOutputSlot())),
               tile -> resourceRevision(tile.getTemplateSlot().isEmpty() ? null :
                     MachineResourceStack.item("template", tile.getTemplateSlot().getStack())));
         register("replicator_gas", TileEntityReplicatorGases.class, TileEntityReplicatorGases::getRecipes,
-              tile -> MachineRecipeRouteCollectors.collectReplicatorGasTemplate(tile.getRecipes(), tile.inputTank.getGas()),
+              tile -> MachineRecipeRouteCollectors.collectConfigurableReplicatorGases(tile.getRecipes()),
               tile -> ports(
+                    MachinePort.configurationGas("template", tile.inputTank, "template", 0),
                     MachinePort.gas("uu_input", MachinePort.Role.INPUT, tile.uuTank),
                     MachinePort.gas("gas_output", MachinePort.Role.OUTPUT, tile.outputTank)),
               tile -> resourceRevision(tile.inputTank.getGas() == null ? null :
                     MachineResourceStack.gas("template", tile.inputTank.getGas())));
         register("replicator_fluid", TileEntityReplicatorFluidStack.class, TileEntityReplicatorFluidStack::getRecipes,
-              tile -> MachineRecipeRouteCollectors.collectReplicatorFluidTemplate(tile.getRecipes(), tile.inputTank.getFluid()),
+              tile -> MachineRecipeRouteCollectors.collectConfigurableReplicatorFluids(tile.getRecipes()),
               tile -> ports(
+                    MachinePort.configurationFluid("template", tile.inputTank, "template", 0),
                     MachinePort.gas("uu_input", MachinePort.Role.INPUT, tile.uuTank),
                     MachinePort.fluid("fluid_output", MachinePort.Role.OUTPUT, tile.outputTank)),
               tile -> resourceRevision(tile.inputTank.getFluid() == null ? null :
                     MachineResourceStack.fluid("template", tile.inputTank.getFluid())));
-        register("void_mineral_generator", TileEntityVoidMineralGenerator.class, ignored -> null,
+        registerOutput("void_mineral_generator", TileEntityVoidMineralGenerator.class, ignored -> null,
               ignored -> Collections.emptyList(), MoreMachineRecipeProviders::voidMineralGeneratorPorts);
         registered = true;
     }
@@ -151,9 +168,9 @@ public final class MoreMachineRecipeProviders {
         List<MachinePort> ports = new ArrayList<>();
         for (int process = 0; process < tile.getGasSorterProcessCount(); process++) {
             add(ports, MachinePort.gas("gas_input_" + process, MachinePort.Role.INPUT,
-                  tile.getGasSorterInputTank(process)));
+                  tile.getGasSorterInputTank(process), "gas_input", process));
             add(ports, MachinePort.item("item_output_" + process, MachinePort.Role.OUTPUT,
-                  tile.getProcessingOutputSlot(process)));
+                  tile.getProcessingOutputSlot(process), "item_output", process));
         }
         return ports;
     }
@@ -162,8 +179,9 @@ public final class MoreMachineRecipeProviders {
         List<MachinePort> ports = new ArrayList<>();
         for (int process = 0; process < tile.getSorterProcessCount(); process++) {
             add(ports, MachinePort.item("item_input_" + process, MachinePort.Role.INPUT,
-                  tile.getSorterInputSlot(process)));
-            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT, tile.outPutTanks[process]));
+                  tile.getSorterInputSlot(process), "item_input", process));
+            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT,
+                  tile.outPutTanks[process], "gas_output", process));
         }
         return ports;
     }
@@ -172,19 +190,22 @@ public final class MoreMachineRecipeProviders {
         List<MachinePort> ports = new ArrayList<>();
         for (int process = 0; process < tile.getSorterProcessCount(); process++) {
             add(ports, MachinePort.item("item_input_" + process, MachinePort.Role.INPUT,
-                  tile.getSorterInputSlot(process)));
-            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT, tile.outPutTanks[process]));
+                  tile.getSorterInputSlot(process), "item_input", process));
+            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT,
+                  tile.outPutTanks[process], "gas_output", process));
         }
         return ports;
     }
 
     private static List<MachinePort> dissolutionPorts(TileEntityTierChemicalDissolutionChamber tile) {
         List<MachinePort> ports = new ArrayList<>();
-        add(ports, MachinePort.gas("gas_input", MachinePort.Role.INPUT, tile.injectTank));
+        add(ports, MachinePort.gas("gas_input", MachinePort.Role.INPUT, tile.injectTank,
+              "gas_input", MachinePort.SHARED_LANE));
         for (int process = 0; process < tile.getSorterProcessCount(); process++) {
             add(ports, MachinePort.item("item_input_" + process, MachinePort.Role.INPUT,
-                  tile.getSorterInputSlot(process)));
-            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT, tile.outPutTanks[process]));
+                  tile.getSorterInputSlot(process), "item_input", process));
+            add(ports, MachinePort.gas("gas_output_" + process, MachinePort.Role.OUTPUT,
+                  tile.outPutTanks[process], "gas_output", process));
         }
         return ports;
     }
@@ -200,6 +221,21 @@ public final class MoreMachineRecipeProviders {
 
     private static int resourceRevision(MachineResourceStack stack) {
         return stack == null ? 0 : stack.hashCode();
+    }
+
+    private static MachinePresentationDescriptor presentation(TileEntity tile) {
+        MachinePresentationDescriptor fallback = MachinePresentationDescriptor.fallback(tile);
+        if (!(tile instanceof IBaseTierProvider tierProvider) || tierProvider.getBaseTier() == null) {
+            return fallback;
+        }
+        Block block = tile.getBlockType();
+        Item item = block == null ? null : Item.getItemFromBlock(block);
+        if (!(item instanceof ITierItem tierItem)) {
+            return fallback;
+        }
+        ItemStack stack = new ItemStack(item, 1, fallback.getItemMetadata());
+        tierItem.setBaseTier(stack, tierProvider.getBaseTier());
+        return MachinePresentationDescriptor.fromStack(stack);
     }
 
     private static List<MachinePort> ports(MachinePort... values) {
@@ -219,12 +255,25 @@ public final class MoreMachineRecipeProviders {
     private static <TILE extends TileEntity> void register(String path, Class<TILE> tileClass,
           Function<TILE, Object> recipeSource, Function<TILE, List<MachineRecipeRoute>> routes,
           Function<TILE, List<MachinePort>> ports) {
-        register(path, tileClass, recipeSource, routes, ports, ignored -> 0);
+        register(path, tileClass, recipeSource, routes, ports, ignored -> 0, PROCESSING_CONFORMANCE);
     }
 
     private static <TILE extends TileEntity> void register(String path, Class<TILE> tileClass,
           Function<TILE, Object> recipeSource, Function<TILE, List<MachineRecipeRoute>> routes,
           Function<TILE, List<MachinePort>> ports, ToIntFunction<TILE> additionalRevision) {
+        register(path, tileClass, recipeSource, routes, ports, additionalRevision, PROCESSING_CONFORMANCE);
+    }
+
+    private static <TILE extends TileEntity> void registerOutput(String path, Class<TILE> tileClass,
+          Function<TILE, Object> recipeSource, Function<TILE, List<MachineRecipeRoute>> routes,
+          Function<TILE, List<MachinePort>> ports) {
+        register(path, tileClass, recipeSource, routes, ports, ignored -> 0, OUTPUT_CONFORMANCE);
+    }
+
+    private static <TILE extends TileEntity> void register(String path, Class<TILE> tileClass,
+          Function<TILE, Object> recipeSource, Function<TILE, List<MachineRecipeRoute>> routes,
+          Function<TILE, List<MachinePort>> ports, ToIntFunction<TILE> additionalRevision,
+          ProviderConformanceDescriptor conformance) {
         MachineRecipeProviderRegistry.register(new ResourceLocation(MEKCeuMoreMachine.MODID, path), tileClass,
               new MachineRecipeProvider<TILE>() {
                   @Override
@@ -247,6 +296,16 @@ public final class MoreMachineRecipeProviders {
                   @Override
                   public List<MachinePort> getPorts(TILE tile) {
                       return ports.apply(tile);
+                  }
+
+                  @Override
+                  public MachinePresentationDescriptor getPresentation(TILE tile) {
+                      return presentation(tile);
+                  }
+
+                  @Override
+                  public ProviderConformanceDescriptor getQIOConformance(TILE tile) {
+                      return conformance;
                   }
               });
     }

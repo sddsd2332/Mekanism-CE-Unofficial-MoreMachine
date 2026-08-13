@@ -160,7 +160,14 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
 
     @Override
     public boolean canOperate(ReplicatorFluidStackRecipe recipe) {
-        return recipe != null && recipe.canOperate(uuTank, inputTank, outputTank);
+        if (recipe == null || inputTank.getFluid() == null ||
+            !inputTank.getFluid().isFluidEqual(recipe.getInput().ingredientFluid)) {
+            return false;
+        }
+        GasStack required = recipe.getInput().ingredientGas;
+        GasStack stored = uuTank.getGas();
+        return required != null && stored != null && stored.isGasEqual(required) && stored.amount >= required.amount &&
+              recipe.getOutput().applyOutputs(outputTank, false);
     }
 
     @Override
