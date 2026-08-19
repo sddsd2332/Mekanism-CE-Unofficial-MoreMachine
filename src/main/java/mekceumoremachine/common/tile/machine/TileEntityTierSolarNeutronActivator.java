@@ -92,6 +92,7 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     private long lastActive = -1;
     private boolean needsRainCheck;
     private boolean seesSunThisTick;
+    private long serverWorldTime;
     public TileComponentEjector ejectorComponent;
     public TileComponentConfig configComponent;
     public int operatingTicks;
@@ -193,23 +194,13 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         super.onAsyncUpdateServer();
         inputSlot.fillTank();
         outputSlot.drainTank();
-        // TODO: Ideally the neutron activator should use the sky brightness to determine throughput; but
-        // changing this would dramatically affect a lot of setups with Fusion reactors which can take
-        // a long time to relight. I don't want to be chased by a mob right now, so just doing basic
-        // rain checks.
-        boolean seesSun = world.isDaytime() && world.canSeeSky(getPos().up()) && !world.provider.isNether();
-        if (needsRainCheck) {
-            seesSun &= !(world.isRaining() || world.isThundering());
-        }
-
-        seesSunThisTick = seesSun;
         if (!recipeCacheLookupMonitor.updateAndProcess()) {
             setActive(false);
         }
 
         // Every 20 ticks (once a second), send update to client. Note that this is a 50% reduction in network
         // traffic from previous implementation that send the update every 10 ticks.
-        if (world.getTotalWorldTime() % 20 == 0) {
+        if (serverWorldTime % 20 == 0) {
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
 
@@ -218,6 +209,26 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
             updateComparatorOutputLevelSync();
             currentRedstoneLevel = newRedstoneLevel;
         }
+    }
+
+    @Override
+    public void onUpdateServer() {
+        super.onUpdateServer();
+        serverWorldTime = world.getTotalWorldTime();
+        // TODO: Ideally the neutron activator should use the sky brightness to determine throughput; but
+        // changing this would dramatically affect a lot of setups with Fusion reactors which can take
+        // a long time to relight. I don't want to be chased by a mob right now, so just doing basic
+        // rain checks.
+        boolean seesSun = world.isDaytime() && world.canSeeSky(getPos().up()) && !world.provider.isNether();
+        if (needsRainCheck) {
+            seesSun &= !(world.isRaining() || world.isThundering());
+        }
+        seesSunThisTick = seesSun;
+    }
+
+    @Override
+    public boolean supportsAsync() {
+        return true;
     }
 
     public int getUpgradedUsage(SolarNeutronRecipe recipe) {

@@ -73,13 +73,26 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
             return;
         }
 
-        if (ticker % 20 == 0) {
-            currentMultiplier = getMultiplier();
-            setActive(MekanismUtils.canFunction(this) && currentMultiplier > 0);
-        }
         if (currentMultiplier > 0 && MekanismUtils.canFunction(this) && getEnergyContainer().getNeeded() > 0) {
             getEnergyContainer().insert(getEnergyAdd(), Action.EXECUTE, AutomationType.INTERNAL);
         }
+    }
+
+    @Override
+    public void onUpdateServer() {
+        super.onUpdateServer();
+        if (isBlacklistDimension) {
+            setActive(false);
+        } else if (ticker % 20 == 0) {
+            // canSeeSky reads chunk state; sample it before the async phase.
+            currentMultiplier = getMultiplier();
+            setActive(MekanismUtils.canFunction(this) && currentMultiplier > 0);
+        }
+    }
+
+    @Override
+    public boolean supportsAsync() {
+        return true;
     }
 
     public double getEnergyAdd() {

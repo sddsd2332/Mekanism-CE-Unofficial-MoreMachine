@@ -19,11 +19,12 @@ public class RenderTierChemicalDissolutionChamber extends TileEntitySpecialRende
 
     private static GasRenderMap<MekanismRenderer.DisplayInteger[]> cachedCenterGas = new GasRenderMap<>();
 
-    private static final int stages = 500;
+    private static final int stages = 64;
 
     private ModelTierChemicalDissolutionChamber model = new ModelTierChemicalDissolutionChamber();
 
     public static void resetDisplayInts() {
+        cachedCenterGas.values().forEach(MekanismRenderer.DisplayInteger::deleteAll);
         cachedCenterGas.clear();
     }
 

@@ -67,6 +67,7 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         registry(registry, MEKCeuMoreMachineBlocks.TierSolarGenerator);
         registry(registry, MEKCeuMoreMachineBlocks.TierAdvancedSolarGenerator);
         registry(registry, MEKCeuMoreMachineBlocks.VoidMineralGenerator);
+        registry(registry, MEKCeuMoreMachineBlocks.TierOrganicFarm);
     }
 
 
@@ -96,6 +97,7 @@ public class MEKCeuMoreMachineJEI implements IModPlugin {
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierNutritionalLiquifier(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalOxidizer(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerTierChemicalCrystallizer(registry);
+        MEKCeuMoreMachineRecipeRegistryHelper.registerTierOrganicFarm(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerGasStackFlueToEnergyRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorItemStackRecipe(registry);
         MEKCeuMoreMachineRecipeRegistryHelper.registerReplicatorGasesRecipe(registry);

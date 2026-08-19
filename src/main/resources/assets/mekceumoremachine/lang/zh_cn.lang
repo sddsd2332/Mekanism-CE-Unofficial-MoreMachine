@@ -204,3 +204,10 @@ tooltip.VoidMineralGenerator=能够虚空中生成矿物的机器,可生成的�
 tooltip.connector.preview_mode=预览模式
 tooltip.connector.preview_nearest=最近
 tooltip.connector.preview_all=全部
+
+tile.TierOrganicFarm.Basic.name=基础种植工厂
+tile.TierOrganicFarm.Advanced.name=高级种植工厂
+tile.TierOrganicFarm.Elite.name=精英种植工厂
+tile.TierOrganicFarm.Ultimate.name=终极种植工厂
+tooltip.TierOrganicFarm=共享混合罐和 64 个输出槽的多线程种植工厂
+gui.mekceumoremachine.organic_farm_output=种植工厂输出

@@ -24,11 +24,12 @@ public class RenderTierNutritionalLiquifier extends TileEntitySpecialRenderer<Ti
 
     private static GasRenderMap<MekanismRenderer.DisplayInteger[]> cachedCenterGas = new GasRenderMap<>();
 
-    private static final int stages = 1000;
+    private static final int stages = 64;
 
     private ModelTierNutritionalLiquifier model = new ModelTierNutritionalLiquifier();
 
     public static void resetDisplayInts() {
+        cachedCenterGas.values().forEach(MekanismRenderer.DisplayInteger::deleteAll);
         cachedCenterGas.clear();
     }
 

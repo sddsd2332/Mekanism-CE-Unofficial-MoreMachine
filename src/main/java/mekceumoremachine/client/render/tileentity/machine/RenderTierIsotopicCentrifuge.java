@@ -24,9 +24,10 @@ public class RenderTierIsotopicCentrifuge extends TileEntitySpecialRenderer<Tile
 
     private ModelTierIsotopicCentrifuge model = new ModelTierIsotopicCentrifuge();
 
-    private static final int stages = 1200;
+    private static final int stages = 64;
 
     public static void resetDisplayInts() {
+        cachedCenterGas.values().forEach(MekanismRenderer.DisplayInteger::deleteAll);
         cachedCenterGas.clear();
     }
 

@@ -203,3 +203,10 @@ tile.VoidMineralGenerator.Advanced.name=Advanced Void Mineral Excavator
 tile.VoidMineralGenerator.Elite.name=Elite Void Mineral Excavator
 tile.VoidMineralGenerator.Ultimate.name=Ultimate Void Mineral Excavator
 tooltip.VoidMineralGenerator=A machine that can generate minerals in the void. The list of minerals that can be generated can be viewed in the recipe interface of this machine in JEI.
+
+tile.TierOrganicFarm.Basic.name=Basic Organic Farm Factory
+tile.TierOrganicFarm.Advanced.name=Advanced Organic Farm Factory
+tile.TierOrganicFarm.Elite.name=Elite Organic Farm Factory
+tile.TierOrganicFarm.Ultimate.name=Ultimate Organic Farm Factory
+tooltip.TierOrganicFarm=A multi-lane Organic Farm with a shared merged tank and 64 output slots.
+gui.mekceumoremachine.organic_farm_output=Organic Farm Output

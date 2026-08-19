@@ -26,6 +26,8 @@ import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalOxidizer.tierChemicalOxidizerBlockStateMapper;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer;
 import mekceumoremachine.common.block.states.BlockStateTierChemicalCrystallizer.tierChemicalCrystallizerBlockStateMapper;
+import mekceumoremachine.common.block.states.BlockStateTierOrganicFarm;
+import mekceumoremachine.common.block.states.BlockStateTierOrganicFarm.TierOrganicFarmBlockStateMapper;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineBlocks;
 import mekceumoremachine.common.registries.MEKCeuMoreMachineItems;
 import mekceumoremachine.common.tier.MachineTier;
@@ -35,6 +37,7 @@ import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemi
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
 import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemicalOxidizer;
 import mekceumoremachine.common.tile.machine.*;
+import mekceumoremachine.common.tile.machine.TierOrganicFarm.TileEntityTierOrganicFarm;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorItemStack;
@@ -69,8 +72,10 @@ public class ClientProxy extends CommonProxy {
 
     private static final IStateMapper tierChemicalOxidizerMapper = new tierChemicalOxidizerBlockStateMapper();
     private static final IStateMapper tierChemicalCrystallizerMapper = new tierChemicalCrystallizerBlockStateMapper();
+    private static final IStateMapper tierOrganicFarmMapper = new TierOrganicFarmBlockStateMapper();
     public static Map<String, ModelResourceLocation> tierChemicalOxidizerResources = new Object2ObjectOpenHashMap<>();
     public static Map<String, ModelResourceLocation> tierChemicalCrystallizerResources = new Object2ObjectOpenHashMap<>();
+    public static Map<String, ModelResourceLocation> tierOrganicFarmResources = new Object2ObjectOpenHashMap<>();
 
     @Override
     public void registerTESRs() {
@@ -146,6 +151,7 @@ public class ClientProxy extends CommonProxy {
         }
         registerTierChemicalOxidizerRenders();
         registerTierChemicalCrystallizerRenders();
+        registerTierOrganicFarmRenders();
 
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorItemStack), 0, getInventoryMRL("ReplicatorItemStack"));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.ReplicatorGases), 0, getInventoryMRL("ReplicatorGases"));
@@ -345,6 +351,7 @@ public class ClientProxy extends CommonProxy {
             case 19 -> new GuiSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             case 20 -> new GuiVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
             case 21 -> new GuiTierChemicalCrystallizer(player.inventory, (TileEntityTierChemicalCrystallizer) tileEntity);
+            case 22 -> new GuiTierOrganicFarm(player.inventory, (TileEntityTierOrganicFarm) tileEntity);
             default -> null;
         };
     }
@@ -354,5 +361,19 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new ConnectorPreviewRenderingHandler());
         MinecraftForge.EVENT_BUS.register(new WirelessChargingRangeWorldRenderHandler());
         MinecraftForge.EVENT_BUS.register(WirelessConnectionHighlightHandler.INSTANCE);
+    }
+
+    private void registerTierOrganicFarmRenders() {
+        ModelLoader.setCustomStateMapper(MEKCeuMoreMachineBlocks.TierOrganicFarm, tierOrganicFarmMapper);
+        for (BlockStateTierOrganicFarm.MachineType type : BlockStateTierOrganicFarm.MachineType.values()) {
+            String resource = MEKCeuMoreMachine.MODID + ":" + type.getName();
+            ModelResourceLocation model = new ModelResourceLocation(resource, "active=false,facing=north");
+            tierOrganicFarmResources.put(resource, model);
+            ModelLoader.registerItemVariants(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierOrganicFarm), model);
+        }
+        ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(MEKCeuMoreMachineBlocks.TierOrganicFarm), stack -> {
+            BlockStateTierOrganicFarm.MachineType type = BlockStateTierOrganicFarm.MachineType.get(stack);
+            return type == null ? null : tierOrganicFarmResources.get(MEKCeuMoreMachine.MODID + ":" + type.getName());
+        });
     }
 }

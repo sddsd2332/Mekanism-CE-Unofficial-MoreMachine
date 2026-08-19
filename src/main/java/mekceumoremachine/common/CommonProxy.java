@@ -8,6 +8,7 @@ import mekceumoremachine.common.tile.generator.*;
 import mekceumoremachine.common.tile.machine.TierDissolution.*;
 import mekceumoremachine.common.tile.machine.TierNutritional.*;
 import mekceumoremachine.common.tile.machine.TierOxidizer.*;
+import mekceumoremachine.common.tile.machine.TierOrganicFarm.*;
 import mekceumoremachine.common.tile.machine.*;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
@@ -63,6 +64,10 @@ public class CommonProxy implements IGuiProvider {
         registerTileEntity(TileEntityTierSolarGenerator.class, "tier_solar_generator");
         registerTileEntity(TileEntityTierAdvancedSolarGenerator.class, "tier_advanced_solar_generator");
         registerTileEntity(TileEntityVoidMineralGenerator.class, "void_mineral_generator");
+        registerTileEntity(TileEntityTierOrganicFarmBasic.class, "tier_organic_farm_basic");
+        registerTileEntity(TileEntityTierOrganicFarmAdvanced.class, "tier_organic_farm_advanced");
+        registerTileEntity(TileEntityTierOrganicFarmElite.class, "tier_organic_farm_elite");
+        registerTileEntity(TileEntityTierOrganicFarmUltimate.class, "tier_organic_farm_ultimate");
     }
 
 
@@ -115,6 +120,7 @@ public class CommonProxy implements IGuiProvider {
             case 19 -> new ContainerSolarGenerator(player.inventory, (TileEntityTierAdvancedSolarGenerator) tileEntity);
             case 20 -> new ContainerVoidMineralGenerator(player.inventory, (TileEntityVoidMineralGenerator) tileEntity);
             case 21 -> new ContainerTierChemicalCrystallizer(player.inventory, (TileEntityTierChemicalCrystallizer) tileEntity);
+            case 22 -> new ContainerTierOrganicFarm(player.inventory, (TileEntityTierOrganicFarm) tileEntity);
             default -> null;
         };
     }

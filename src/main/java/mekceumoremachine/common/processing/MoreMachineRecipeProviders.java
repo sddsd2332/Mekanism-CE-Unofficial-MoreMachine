@@ -28,6 +28,7 @@ import mekceumoremachine.common.tile.machine.TierCrystallizer.TileEntityTierChem
 import mekceumoremachine.common.tile.machine.TierDissolution.TileEntityTierChemicalDissolutionChamber;
 import mekceumoremachine.common.tile.machine.TierNutritional.TileEntityTierNutritionalLiquifier;
 import mekceumoremachine.common.tile.machine.TierOxidizer.TileEntityTierChemicalOxidizer;
+import mekceumoremachine.common.tile.machine.TierOrganicFarm.TileEntityTierOrganicFarm;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorFluidStack;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorGases;
 import mekceumoremachine.common.tile.machine.replicator.TileEntityReplicatorItemStack;
@@ -127,6 +128,12 @@ public final class MoreMachineRecipeProviders {
                     RecipeHandler.Recipe.CHEMICAL_DISSOLUTION_CHAMBER.get(), MekanismFluids.SulfuricAcid,
                     tile.getGasUsagePerOperation()), tile.getSorterProcessCount(), "gas_input"),
               MoreMachineRecipeProviders::dissolutionPorts, TileEntityTierChemicalDissolutionChamber::getGasUsagePerOperation);
+        register("tier_organic_farm", TileEntityTierOrganicFarm.class,
+              TileEntityTierOrganicFarm::getRecipes,
+              tile -> MachineRecipeRouteCollectors.expandLanes(
+                    MachineRecipeRouteCollectors.collectFarmGasToItem(tile.getRecipes(), tile.getRecipeGasUsagePerOperation()),
+                    tile.threadCount, "gas_input", "fluid_input", "item_output"),
+              MoreMachineRecipeProviders::organicFarmPorts, TileEntityTierOrganicFarm::getRecipeGasUsagePerOperation);
 
         registerOutput("tier_ambient_accumulator", TileEntityTierAmbientAccumulator.class, ignored -> null,
               ignored -> Collections.emptyList(),
@@ -216,6 +223,21 @@ public final class MoreMachineRecipeProviders {
         for (int index = 0; index < slots.size(); index++) {
             add(ports, MachinePort.item("item_output_" + index, MachinePort.Role.OUTPUT, slots.get(index)));
         }
+        return ports;
+    }
+
+    private static List<MachinePort> organicFarmPorts(TileEntityTierOrganicFarm tile) {
+        List<MachinePort> ports = new ArrayList<>();
+        for (int lane = 0; lane < tile.threadCount; lane++) {
+            add(ports, MachinePort.item("item_input_" + lane, MachinePort.Role.INPUT,
+                  tile.inputSlots[lane], "item_input", lane));
+        }
+        add(ports, MachinePort.gas("gas_input", MachinePort.Role.INPUT, tile.mergedTank.getGasTank(),
+              "gas_input", MachinePort.SHARED_LANE));
+        add(ports, MachinePort.fluid("fluid_input", MachinePort.Role.INPUT, tile.mergedTank.getFluidTank(),
+              "fluid_input", MachinePort.SHARED_LANE));
+        add(ports, MachinePort.itemGroup("item_output", MachinePort.Role.OUTPUT, tile.outputSlots,
+              "item_output", MachinePort.SHARED_LANE));
         return ports;
     }
 

@@ -1,6 +1,7 @@
 package mekceumoremachine.client.render;
 
 import mekceumoremachine.client.render.tileentity.machine.RenderTierChemicalDissolutionChamber;
+import mekceumoremachine.client.render.tileentity.machine.RenderTierIsotopicCentrifuge;
 import mekceumoremachine.client.render.tileentity.machine.RenderTierNutritionalLiquifier;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -18,6 +19,7 @@ public class MEKCeuMoreMachineRenderer {
     @SubscribeEvent
     public void onStitch(TextureStitchEvent.Pre event) {
         RenderTierChemicalDissolutionChamber.resetDisplayInts();
+        RenderTierIsotopicCentrifuge.resetDisplayInts();
         RenderTierNutritionalLiquifier.resetDisplayInts();
     }
 }

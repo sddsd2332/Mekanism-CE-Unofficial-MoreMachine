@@ -74,6 +74,12 @@ public class MEKCeuMoreMachineRecipeRegistryHelper {
         }
     }
 
+    public static void registerTierOrganicFarm(IModRegistry registry) {
+        for (MachineTier tier : MachineTier.values()) {
+            registry.addRecipeCatalyst(getTierFactory(MEKCeuMoreMachineBlocks.TierOrganicFarm, tier), Recipe.ORGANIC_FARM.getJEICategory());
+        }
+    }
+
     public static void registerGasStackFlueToEnergyRecipe(IModRegistry registry) {
         registerRecipeMachineTierItem(registry, MEKCeuMoreMachineBlocks.TierGasGenerator, Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getJEICategory());
     }

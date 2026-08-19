@@ -49,6 +49,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine implements ISideConfiguration, IConfigCardAccess, ITierMachine<MachineTier>, IBoundingBlock, ISpecialSelectionWireframeTile {
 
@@ -135,7 +136,9 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     }
 
     public void GenerateItem(List<ItemStack> available) {
-        int idx = getWorldNN().rand.nextInt(available.size());
+        // World.rand is owned by the main-thread world tick; use a local RNG
+        // so this inventory-only async update does not touch World state.
+        int idx = ThreadLocalRandom.current().nextInt(available.size());
         ItemStack template = available.get(idx);
         if (template == null || template.isEmpty()) return;
         List<ItemStack> stacks = new ArrayList<>();

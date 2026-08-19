@@ -14,10 +14,12 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.ArrayList;
-
 @SideOnly(Side.CLIENT)
 public class WirelessChargingRangeWorldRenderHandler {
+
+    private World cachedWorld;
+    private long cachedWorldTime = Long.MIN_VALUE;
+    private TileEntity cachedNearestTarget;
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -25,6 +27,7 @@ public class WirelessChargingRangeWorldRenderHandler {
         EntityPlayer player = minecraft.player;
         World world = minecraft.world;
         if (player == null || world == null || world.loadedTileEntityList.isEmpty()) {
+            clearCachedTarget();
             return;
         }
 
@@ -83,36 +86,50 @@ public class WirelessChargingRangeWorldRenderHandler {
         return false;
     }
 
-    private static RenderTarget findNearestTarget(World world, EntityPlayer player, float partialTick) {
+    private RenderTarget findNearestTarget(World world, EntityPlayer player, float partialTick) {
+        long worldTime = world.getTotalWorldTime();
+        if (cachedWorld == world && cachedWorldTime == worldTime) {
+            return createRenderTarget(cachedNearestTarget, partialTick);
+        }
+
+        cachedWorld = world;
+        cachedWorldTime = worldTime;
+        cachedNearestTarget = null;
         RenderTarget nearest = null;
         double nearestDistanceSq = Double.MAX_VALUE;
-        for (TileEntity tileEntity : new ArrayList<>(world.loadedTileEntityList)) {
-            if (tileEntity == null || tileEntity.isInvalid()) {
-                continue;
-            }
-            if (tileEntity instanceof TileEntityWirelessChargingEnergy energy) {
-                float scale = RenderWirelessChargingEnergy.getAnimatedScale(energy, partialTick);
-                if (scale <= 0) {
-                    continue;
-                }
-                double distanceSq = player.getDistanceSq(energy.getPos());
+        for (TileEntity tileEntity : world.loadedTileEntityList) {
+            RenderTarget candidate = createRenderTarget(tileEntity, partialTick);
+            if (candidate != null) {
+                double distanceSq = player.getDistanceSq(tileEntity.getPos());
                 if (distanceSq < nearestDistanceSq) {
                     nearestDistanceSq = distanceSq;
-                    nearest = RenderTarget.forEnergy(energy, scale);
-                }
-            } else if (tileEntity instanceof TileEntityWirelessChargingStation station) {
-                float scale = RenderWirelessChargingStation.getAnimatedScale(station, partialTick);
-                if (scale <= 0) {
-                    continue;
-                }
-                double distanceSq = player.getDistanceSq(station.getPos());
-                if (distanceSq < nearestDistanceSq) {
-                    nearestDistanceSq = distanceSq;
-                    nearest = RenderTarget.forStation(station, scale);
+                    nearest = candidate;
+                    cachedNearestTarget = tileEntity;
                 }
             }
         }
         return nearest;
+    }
+
+    private static RenderTarget createRenderTarget(TileEntity tileEntity, float partialTick) {
+        if (tileEntity == null || tileEntity.isInvalid()) {
+            return null;
+        }
+        if (tileEntity instanceof TileEntityWirelessChargingEnergy energy) {
+            float scale = RenderWirelessChargingEnergy.getAnimatedScale(energy, partialTick);
+            return scale > 0 ? RenderTarget.forEnergy(energy, scale) : null;
+        }
+        if (tileEntity instanceof TileEntityWirelessChargingStation station) {
+            float scale = RenderWirelessChargingStation.getAnimatedScale(station, partialTick);
+            return scale > 0 ? RenderTarget.forStation(station, scale) : null;
+        }
+        return null;
+    }
+
+    private void clearCachedTarget() {
+        cachedWorld = null;
+        cachedWorldTime = Long.MIN_VALUE;
+        cachedNearestTarget = null;
     }
 
     private static class RenderTarget {

@@ -53,12 +53,12 @@ import net.minecraftforge.items.IItemHandler;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
         ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, IHasVisualization, ISpecialSelectionWireframeTile {
 
     private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> entity.isEntityAlive() && !entity.isDead && ((entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit);
-
     public MachineTier tier = MachineTier.BASIC;
 
     public int currentRedstoneLevel;
@@ -107,56 +107,66 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         super.onUpdateServer();
         chargeSlot.drainContainer();
         dischargeSlot.fillContainerOrConvert();
-        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, getChargeBox(), CHARGE_PREDICATE);
-        if (MekanismUtils.canFunction(this)) {
-            List<EntityLivingBase> addeEtities = new ArrayList<>();
-            //如果机器的安全选项不是公开的，只充能该机器对应的所有者
-            if (getSecurity().getMode() != SecurityMode.PUBLIC) {
-                for (EntityLivingBase entity : entities) {
-                    if (entity instanceof EntityRobit robit && robit.getOwnerUUID().equals(getSecurity().getOwnerUUID())) {
-                        addeEtities.add(entity);
-                    }
-                    if (entity instanceof EntityPlayer player && player.getUniqueID().equals(getSecurity().getOwnerUUID())) {
-                        addeEtities.add(entity);
-                    }
-                }
-            } else {
-                addeEtities.addAll(entities);
-            }
-
-            if (!addeEtities.isEmpty()) {
-                for (EntityLivingBase entity : addeEtities) {
-                    if (chargeRobit && entity instanceof EntityRobit robit) {
-                        provideEnergy(robit, 1_000);
-                    } else if (entity instanceof EntityPlayer player) {
-                        List<ItemStack> stacks = new ArrayList<>();
-                        if (playerArmor) {
-                            stacks.addAll(player.inventory.armorInventory);
-                        }
-                        if (playerInventory) {
-                            stacks.addAll(player.inventory.offHandInventory);
-                            stacks.addAll(player.inventory.mainInventory);
-                            if (Mekanism.hooks.Baubles) {
-                                stacks.addAll(chargeBaublesInventory(player));
-                            }
-                        }
-                        if (!stacks.isEmpty()) {
-                            for (ItemStack stack : stacks) {
-                                if (getEnergy() <= 0) {
-                                    break;
-                                }
-                                provideEnergy(EnergyCompatUtils.getStrictEnergyHandler(stack), getMaxOutput());
-                            }
-                        }
-                    }
-                }
-            }
+        if (getEnergy() > 0 && MekanismUtils.canFunction(this) && (chargeRobit || playerArmor || playerInventory)) {
+            chargeNearbyEntities();
         }
         int newScale = getScaledEnergyLevel(20);
         if (newScale != prevScale) {
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         prevScale = newScale;
+    }
+
+    private void chargeNearbyEntities() {
+        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, getChargeBox(), CHARGE_PREDICATE);
+        SecurityMode securityMode = getSecurity().getMode();
+        double maxTransfer = getMaxOutput();
+        for (EntityLivingBase entity : entities) {
+            if (getEnergy() <= 0) {
+                break;
+            }
+            if (securityMode != SecurityMode.PUBLIC && !isOwnedBySecurityOwner(entity)) {
+                continue;
+            }
+            if (chargeRobit && entity instanceof EntityRobit robit) {
+                provideEnergy(robit, 1_000D);
+            } else if (entity instanceof EntityPlayer player) {
+                if (playerArmor) {
+                    chargeItems(player.inventory.armorInventory, maxTransfer);
+                }
+                if (playerInventory && getEnergy() > 0) {
+                    chargeItems(player.inventory.offHandInventory, maxTransfer);
+                    chargeItems(player.inventory.mainInventory, maxTransfer);
+                    if (Mekanism.hooks.Baubles && getEnergy() > 0) {
+                        chargeBaubles(player, maxTransfer);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isOwnedBySecurityOwner(EntityLivingBase entity) {
+        if (entity instanceof EntityRobit robit) {
+            return Objects.equals(robit.getOwnerUUID(), getSecurity().getOwnerUUID());
+        }
+        return entity instanceof EntityPlayer player && Objects.equals(player.getUniqueID(), getSecurity().getOwnerUUID());
+    }
+
+    private void chargeItems(Iterable<ItemStack> stacks, double maxTransfer) {
+        for (ItemStack stack : stacks) {
+            if (getEnergy() <= 0) {
+                return;
+            }
+            provideEnergy(EnergyCompatUtils.getStrictEnergyHandler(stack), maxTransfer);
+        }
+    }
+
+    @Optional.Method(modid = MekanismHooks.Baubles_MOD_ID)
+    private void chargeBaubles(EntityPlayer player, double maxTransfer) {
+        IItemHandler baubles = BaublesApi.getBaublesHandler(player);
+        for (int slot = 0; slot < baubles.getSlots() && getEnergy() > 0; slot++) {
+            provideEnergy(EnergyCompatUtils.getStrictEnergyHandler(baubles.getStackInSlot(slot)), maxTransfer);
+        }
     }
 
     private boolean provideEnergy(EntityRobit robit, double maxTransfer) {

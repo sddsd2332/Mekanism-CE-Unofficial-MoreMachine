@@ -13,6 +13,7 @@ import mekanism.common.tile.machine.TileEntityElectrolyticSeparator;
 import mekanism.common.tile.machine.TileEntityIsotopicCentrifuge;
 import mekanism.common.tile.machine.TileEntityNutritionalLiquifier;
 import mekanism.common.tile.machine.TileEntityRotaryCondensentrator;
+import mekanism.common.tile.machine.TileEntityOrganicFarm;
 import mekanism.common.tile.machine.TileEntitySolarNeutronActivator;
 import mekanism.common.upgrade.ITileUpgradeAdapter;
 import mekanism.common.upgrade.IUpgradeData;
@@ -85,6 +86,9 @@ public final class MoreMachineTileUpgradeAdapters {
               () -> MEKCeuMoreMachineBlocks.TierSolarNeutronActivator.getDefaultState(),
               (tile, tier) -> new FirstSolarNeutronActivatorUpgradeData(tier, tile, tile.operatingTicks,
                     tile.configComponent, tile.ejectorComponent, tile.inputTank, tile.outputTank));
+        registerFirst("organic_farm", TileEntityOrganicFarm.class,
+              () -> MEKCeuMoreMachineBlocks.TierOrganicFarm.getStateFromMeta(0),
+              (tile, tier) -> new OrganicFarmUpgradeData(tier, tile));
     }
 
     private static <TILE extends TileEntity> void registerFirst(String path, Class<TILE> tileClass,

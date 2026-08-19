@@ -98,6 +98,16 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
     }
 
     @Override
+    public void onLoad() {
+        super.onLoad();
+        if (world != null) {
+            // The dimension is stable for a tile's lifetime. Capture it on
+            // the server thread before recipe lookup can run asynchronously.
+            cachedDimensionId = world.provider.getDimension();
+        }
+    }
+
+    @Override
     protected IGasTankHolder getInitialGasTanks(IContentsListener listener) {
         GasTankHelper builder = createGasTankHelper();
         builder.addTank(getOrCreateOutputTank(listener));
@@ -155,8 +165,7 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
 
     public IntegerInput getInput() {
         refreshRecipeLookupCache();
-        if (cachedRecipe == null || world.provider.getDimension() != cachedDimensionId) {
-            cachedDimensionId = world.provider.getDimension();
+        if (cachedRecipe == null) {
             cachedRecipe = RecipeHandler.getDimensionGas(new IntegerInput(cachedDimensionId));
         }
         return new IntegerInput(cachedDimensionId);
