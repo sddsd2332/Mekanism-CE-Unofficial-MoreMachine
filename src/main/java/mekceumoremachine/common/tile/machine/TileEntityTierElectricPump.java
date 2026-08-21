@@ -150,6 +150,15 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     }
 
     @Override
+    protected void onUpdateServerPreComponents() {
+        super.onUpdateServerPreComponents();
+        if (!fluidTank.isEmpty() && !isContainerExtractionGuarded(fluidTank)) {
+            FluidUtils.emit(Collections.singleton(EnumFacing.UP), fluidTank, this,
+                  Math.min(256 * tier.processes * (upgradeComponent.getUpgrades(Upgrade.SPEED) + 1), fluidTank.getFluidAmount()));
+        }
+    }
+
+    @Override
     public void onUpdateServer() {
         super.onUpdateServer();
         energySlot.fillContainerOrConvert();
@@ -176,10 +185,6 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
         }
         usedEnergy = clientEnergyUsed > 0;
 
-        if (!fluidTank.isEmpty()) {
-            FluidUtils.emit(Collections.singleton(EnumFacing.UP), fluidTank, this,
-                  Math.min(256 * tier.processes * (upgradeComponent.getUpgrades(Upgrade.SPEED) + 1), fluidTank.getFluidAmount()));
-        }
         int newRedstoneLevel = getRedstoneLevel();
         if (newRedstoneLevel != currentRedstoneLevel) {
             updateComparatorOutputLevelSync();

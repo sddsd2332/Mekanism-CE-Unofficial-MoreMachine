@@ -213,10 +213,15 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     @Override
-    public void addTileSyncTask() {
-        this.gasSpeedController.ensureSize(2, () -> Arrays.asList(new TankProvider.Gas(leftTank), new TankProvider.Gas(rightTank)));
+    protected void onUpdateServerPreComponents() {
+        super.onUpdateServerPreComponents();
+        gasSpeedController.ensureSize(2, () -> Arrays.asList(new TankProvider.Gas(leftTank), new TankProvider.Gas(rightTank)));
         handleTank(leftTank, dumpLeft, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_1), dumpAmount, 0);
         handleTank(rightTank, dumpRight, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_2), dumpAmount, 1);
+    }
+
+    @Override
+    public void addTileSyncTask() {
         int newRedstoneLevel = getRedstoneLevel();
         if (newRedstoneLevel != currentRedstoneLevel) {
             updateComparatorOutputLevelSync();
@@ -225,6 +230,9 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     }
 
     private void handleTank(ResizableGasTank tank, GasMode mode, Set<EnumFacing> side, int dumpAmount, int tankidx) {
+        if (isContainerExtractionGuarded(tank)) {
+            return;
+        }
         if (tank.getGas() != null) {
             if (mode != GasMode.DUMPING) {
                 if (configComponent.isEjecting(TransmissionType.GAS)) {

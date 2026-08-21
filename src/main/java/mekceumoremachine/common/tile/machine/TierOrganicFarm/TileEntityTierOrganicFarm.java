@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import mekanism.api.Action;
 import mekanism.api.Coord4D;
 import mekanism.api.IContentsListener;
+import mekanism.api.RelativeSide;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.Gas;
 import mekanism.api.gas.GasStack;
@@ -160,6 +161,8 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
         configComponent.addItemSlotInfo(DataType.EXTRA, Collections.singletonList(mergedTankSlot));
         configComponent.addFluidSlotInfo(DataType.INPUT, mergedTank.getFluidTank());
         configComponent.addGasSlotInfo(DataType.INPUT, mergedTank.getGasTank());
+        // The upper block is a bounding block and has no automation capability.
+        configComponent.addDisabledSides(RelativeSide.TOP);
         configComponent.setEjecting(TransmissionType.ITEM, true);
         ejectorComponent = new TileComponentEjector(this);
         ejectorComponent.setOutputData(configComponent, TransmissionType.ITEM);
