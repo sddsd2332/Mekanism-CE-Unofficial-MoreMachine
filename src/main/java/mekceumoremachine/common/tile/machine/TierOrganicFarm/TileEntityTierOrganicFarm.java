@@ -154,13 +154,18 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
         setSupportedUpgrade(Upgrade.SPEED);
         setSupportedUpgrade(Upgrade.ENERGY);
         setSupportedUpgrade(Upgrade.GAS);
-        configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.FLUID,
-              TransmissionType.GAS, TransmissionType.ENERGY);
+        configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.FLUID, TransmissionType.GAS, TransmissionType.ENERGY);
         initializeInventorySlots();
         configComponent.setupItemIOConfig(Arrays.asList(inputSlots), new ArrayList<>(outputSlots), energySlot, false);
         configComponent.addItemSlotInfo(DataType.EXTRA, Collections.singletonList(mergedTankSlot));
-        configComponent.addFluidSlotInfo(DataType.INPUT, mergedTank.getFluidTank());
-        configComponent.addGasSlotInfo(DataType.INPUT, mergedTank.getGasTank());
+        configComponent.setConfig(TransmissionType.ITEM, DataType.ENERGY, DataType.EMPTY, DataType.NONE, DataType.EXTRA, DataType.INPUT, DataType.OUTPUT);
+
+        configComponent.setupInputConfig(TransmissionType.FLUID, mergedTank.getFluidTank());
+        configComponent.setupInputConfig(TransmissionType.GAS, mergedTank.getGasTank());
+
+        // Register the actual ENERGY transmission configuration. The energy slot above is
+        // also exposed through ITEM for container automation, but that does not enable cable input.
+        configComponent.setInputConfig(TransmissionType.ENERGY);
         // The upper block is a bounding block and has no automation capability.
         configComponent.addDisabledSides(RelativeSide.TOP);
         configComponent.setEjecting(TransmissionType.ITEM, true);
