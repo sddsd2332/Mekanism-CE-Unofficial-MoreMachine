@@ -9,8 +9,8 @@ repositories {
     exclusiveContent {
         forRepository {
             maven {
-                name 'CurseMaven'
-                url 'https://cursemaven.com'
+                name 'CleanroomMC CurseMaven'
+                url 'https://curse.cleanroommc.com'
             }
         }
         filter {
@@ -31,7 +31,17 @@ repositories {
     mavenLocal() // Must be last for caching to work
 }
 
+configurations {
+    shade
+    implementation.extendsFrom shade
+}
+
 dependencies {
+    // Include StripLatestForgeRequirements by default for the dev env, saves everyone a hassle
+    runtimeOnly 'com.cleanroommc:strip-latest-forge-requirements:1.0'
+    // Include OSXNarratorBlocker by default for the dev env, for M1+ Macs
+    // runtimeOnly 'com.cleanroommc:osxnarratorblocker:1.0'
+
     // Example - Dependency descriptor:
     // 'com.google.code.gson:gson:2.8.6' << group: com.google.code.gson, name:gson, version:2.8.6
     // 'group:name:version:classifier' where classifier is optional
@@ -40,6 +50,11 @@ dependencies {
     // rfg.deobf('curse.maven:had-enough-items-557549:4543375')
     // By wrapping a dependency descriptor in rfg.deobf() method call, the dependency is queued for deobfuscation
     // When deobfuscating, RFG respects the mapping_channel + mapping_version stated in gradle.properties
+
+    // Example - Shading dependencies:
+    // Using the shadow plugin, by using the "shade" configuration, the dependency will be shaded into your output jar
+    // shade 'mezz:jei:4.31.2' << will shade HadEnoughItems 4.31.2 directly into your jar
+    // For more configuration options: see the bottom of this file and: https://gradleup.com/shadow/configuration/
 
     // Example - CurseMaven dependencies:
     // 'curse.maven:had-enough-items-557549:4543375' << had-enough-items = project slug, 557549 = project id, 4543375 = file id
@@ -54,6 +69,7 @@ dependencies {
     // runtimeOnly = runtime dependency
     // compileOnly = compile time dependency
     // annotationProcessor = annotation processing dependencies
+    // shade = includes dependency in output
 
     // Transitive dependencies:
     // (Dependencies that your dependency depends on)
@@ -62,28 +78,27 @@ dependencies {
     // implementation ('com.google.code.gson:gson:2.8.6') {
     //     transitive = false
     // }
-    compileOnly "org.jetbrains:annotations:17.0.0"
 
     implementation rfg.deobf('curse.maven:had-enough-items-557549:8081514')
     implementation 'curse.maven:tesla-244651:2487959'
     implementation 'curse.maven:inventory-tweaks-API-223094:2923461'
     implementation 'curse.maven:hwyla-253449:2568751'
     implementation 'curse.maven:redstone-flux-270789:2920436'
-    implementation rfg.deobf('curse.maven:CTM-267602:2915363')
-    implementation 'curse.maven:industrial-craft-242638:3838713'
-    implementation rfg.deobf('curse.maven:the-one-probe-245211:2667280')
+    implementation rfg.deobf('curse.maven:industrial-craft-242638:3838713')
+    implementation 'curse.maven:the-one-probe-245211:2667280'
     implementation 'curse.maven:flux-networks-248020:3178199'
     runtimeOnly 'curse.maven:ftb-library-237167:2985811'
     runtimeOnly 'curse.maven:ftb-utilities-237102:3157548'
     runtimeOnly 'curse.maven:had-enough-characters-640802:4035773'
     runtimeOnly 'curse.maven:better-advancements-272515:2685984'
-    implementation 'curse.maven:crafttweaker-239197:4534504'
+    implementation 'curse.maven:crafttweaker-239197:8051578'
    
     implementation rfg.deobf(files('libs/Mekanism-CE-Unofficial-All-10.0.3.550-dev.jar'))
     implementation rfg.deobf(files('libs/MekanismMixinHelp-1.2.0-dev.jar'))
     implementation rfg.deobf(files('libs/MekanismMoreMekaSuitModules-1.1.1-dev.jar'))
-     
-    implementation rfg.deobf('curse.maven:ae2-extended-life-570458:6302098')
+
+    implementation rfg.deobf(files("libs/ae2-uel-v0.56.8-novaeng_ver.jar"))
+   // implementation rfg.deobf('curse.maven:ae2-extended-life-570458:6302098')
     implementation rfg.deobf('curse.maven:ae2-fluid-crafting-rework-623955:5405482')
     implementation rfg.deobf('curse.maven:mekanism-energistics-1027681:5775101')
 
@@ -98,5 +113,24 @@ dependencies {
 
     implementation rfg.deobf("curse.maven:dme-737252:5985530")
     implementation rfg.deobf("curse.maven:patchouli-rofl-edition-905159:6178311")
+
+    implementation rfg.deobf('curse.maven:immersive-engineering-231951:2974106')
+    implementation rfg.deobf('curse.maven:immersive-petroleum-268250:3382321')
+
+    implementation rfg.deobf("curse.maven:tweaked-lib-687632:5814153")
+    implementation rfg.deobf("curse.maven:tweaked-petroleum-653506:6243556")
+
+    implementation rfg.deobf("curse.maven:nuclearcraft-overhauled-336895:6605808")
+
+    implementation rfg.deobf("curse.maven:better-builders-wands-238403:2691084")
+    implementation rfg.deobf("curse.maven:betterbuilderswandsfix-1198068:7493228")
+
+    runtimeOnly(rfg.deobf("curse.maven:supermartijn642s-core-lib-454372:7521738"))
+    runtimeOnly(rfg.deobf("curse.maven:supermartijn642s-config-lib-438332:4715393"))
+    runtimeOnly(rfg.deobf("curse.maven:trash-cans-394535:4606884"))
     implementation rfg.deobf("curse.maven:catalogue-vintage-1465746:7652301")
+    
+    implementation rfg.deobf(files("libs/StellarCore-1.6.0-dev.jar"))
+    implementation rfg.deobf("curse.maven:configanytime-870276:5212709")
+    implementation rfg.deobf(files("libs/Thaumcraft-1.12.2-6.1.BETA26.jar"))
 }
