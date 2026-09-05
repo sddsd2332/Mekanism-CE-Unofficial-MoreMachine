@@ -25,6 +25,14 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
+import mekanism.common.recipe.cache.IAsyncRecipeMachine;
+import mekanism.common.recipe.cache.RecipeLaneSnapshot;
+import mekanism.common.recipe.cache.ImmutableResourceSnapshot;
+import mekanism.common.recipe.cache.RecipeRandomContext;
+import mekanism.common.recipe.cache.RecipeLaneCommitTarget;
+import mekanism.common.recipe.cache.RecipeRunSnapshot;
+import mekanism.common.recipe.cache.RecipeExecutionPlan;
+import mekanism.common.recipe.cache.RecipeLanePlan;
 import mekanism.common.recipe.cache.OneInputCachedRecipe;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.inputs.InputHelper;
@@ -62,8 +70,10 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
-public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting, IRecipeLookupHandler<OxidationRecipe>, TierProcessInputSorter.Context {
+public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting, IRecipeLookupHandler<OxidationRecipe>, TierProcessInputSorter.Context, IAsyncRecipeMachine {
 
     public static final int MAX_GAS = 10000;
     public ResizableGasTank outputTank1;
@@ -257,7 +267,11 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         if (updateDelay > 0) {
             updateDelay--;
             if (updateDelay == 0) {
@@ -274,12 +288,14 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
             markSortingNeeded();
         }
 
-        Arrays.fill(activeProcesses, false);
-        for (int process = 0; process < tier.processes; process++) {
-            if (!processRecipe(process)) {
-                progress[process] = 0;
-            }
-        }
+    }
+
+    @Override
+    public void commitAsyncRecipeTick() {
+        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    }
+
+    private void finishRecipeTick() {
         markRecipeCachesObserved();
         updateActiveState();
 
@@ -288,6 +304,58 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         needsPacket = false;
+    }
+
+    @Override
+    public Object getAsyncRecipeSnapshotSource() {
+        List<OxidationRecipe> recipes = new ArrayList<>(tier.processes);
+        for (int process = 0; process < tier.processes; process++) {
+            recipes.add(getRecipe(process));
+        }
+        return recipes;
+    }
+
+    @Override
+    public Map<Integer, RecipeLaneSnapshot> getAsyncRecipeLaneSnapshots() {
+        Map<Integer, RecipeLaneSnapshot> lanes = new LinkedHashMap<>();
+        for (int lane = 0; lane < tier.processes; lane++) {
+            RecipeLaneSnapshot.Builder builder = RecipeLaneSnapshot.builder(lane)
+                  .operatingTicks(progress[lane]).requiredTicks(Math.max(1, ticksRequired))
+                  .baselineMaxOperations(MekanismUtils.canFunction(this) ? getMaxOperationsPerTick() : 0)
+                  .energyPerTick(energyPerTick).active(activeProcesses[lane])
+                  .errors(mekanism.common.recipe.cache.AsyncMachinePlanSupport.captureErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane)))
+                  .pausedForErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) != null && recipeCacheLookupMonitors[lane].getCachedRecipe(lane).isPausedForErrors())
+                  .input("item.0", ImmutableResourceSnapshot.of(getProcessInputSlot(lane).getStack()))
+                  .output("gas.0", ImmutableResourceSnapshot.of(outPutTanks[lane].getGas()), outPutTanks[lane].getCapacity());
+            lanes.put(lane, builder.build());
+        }
+        return lanes;
+    }
+
+    @Override
+    public Map<Integer, RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
+        Map<Integer, RecipeLaneCommitTarget> targets = new LinkedHashMap<>();
+        for (int lane = 0; lane < tier.processes; lane++) {
+            recipeCacheLookupMonitors[lane].unpause();
+            RecipeLaneCommitTarget target = new RecipeLaneCommitTarget(recipeCacheLookupMonitors[lane].prepareCache())
+                  .input("item.0", getProcessInputSlot(lane)).output("gas.0", outPutTanks[lane]);
+            targets.put(lane, target);
+        }
+        return targets;
+    }
+
+    @Override
+    public void afterAsyncRecipeCommit(RecipeRunSnapshot snapshot, RecipeExecutionPlan plan) {
+        for (RecipeLanePlan lane : plan.getLanes().values()) {
+            progress[lane.getLaneIndex()] = lane.getNewOperatingTicks();
+            activeProcesses[lane.getLaneIndex()] = lane.isActive();
+        }
+        finishRecipeTick();
+    }
+
+    @Override
+    public long getAsyncRecipeCategoryGeneration() {
+        return RecipeHandler.Recipe.CHEMICAL_OXIDIZER.getRecipeGeneration();
     }
 
     private IInventorySlot getProcessInputSlot(int process) {
@@ -332,12 +400,6 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
 
     private boolean isProcessIndex(int process) {
         return process >= 0 && process < tier.processes;
-    }
-
-    private boolean processRecipe(int process) {
-        RecipeCacheLookupMonitor<OxidationRecipe> monitor = recipeCacheLookupMonitors[process];
-        monitor.unpause();
-        return monitor.updateAndProcess();
     }
 
     private boolean shouldSortInventory() {

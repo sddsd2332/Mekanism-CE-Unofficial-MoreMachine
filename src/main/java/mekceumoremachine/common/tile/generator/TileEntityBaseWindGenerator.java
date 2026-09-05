@@ -92,7 +92,9 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
 
     @Override
     public boolean supportsAsync() {
-        return true;
+        // Wind generation is simple world-dependent arithmetic and stays entirely
+        // on the server thread under the explicit planner model.
+        return false;
     }
 
     public double getEnergyAdd() {

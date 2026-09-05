@@ -23,6 +23,9 @@ import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.inventory.slot.gas.GasInventorySlot;
 import mekanism.common.recipe.GasStackFuelToEnergyRecipe;
 import mekanism.common.recipe.RecipeHandler;
+import mekanism.common.recipe.cache.GasFuelPlan;
+import mekanism.common.recipe.cache.GasFuelState;
+import mekanism.common.recipe.cache.IAsyncGasFuelMachine;
 import mekanism.common.recipe.inputs.GasInput;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.upgrade.IUpgradeData;
@@ -56,7 +59,8 @@ import javax.annotation.Nonnull;
 @InterfaceList({
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
-public class TileEntityTierGasGenerator extends TileEntityGenerator implements ISustainedData, IComparatorSupport, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
+public class TileEntityTierGasGenerator extends TileEntityGenerator implements ISustainedData, IComparatorSupport,
+      ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile, IAsyncGasFuelMachine {
 
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getGas", "getGasNeeded"};
     /**
@@ -111,41 +115,58 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         energySlot.drainContainer();
         fuelSlot.fillTank();
-        GasStackFuelToEnergyRecipe recipe = getRecipe();
-        boolean operate = recipe != null && canOperate();
-        if (operate && getEnergyContainer().insert(generationRate, Action.SIMULATE, AutomationType.INTERNAL) == 0) {
-            setActive(true);
-            if (!fuelTank.isEmpty()) {
-                maxBurnTicks = Math.max(1, recipe.getInput().ingredient.amount);
-                generationRate = recipe.getOutput().energyOutput;
-            }
+    }
 
-            int toUse = getToUse();
+    @Override
+    public Object getAsyncRecipeSnapshotSource() {
+        return getRecipe();
+    }
 
-            int total = burnTicks + fuelTank.getStored() * maxBurnTicks;
-            total -= toUse;
-            getEnergyContainer().insert(generationRate * toUse, Action.EXECUTE, AutomationType.INTERNAL);
+    @Override
+    public mekanism.api.gas.IExtendedGasTank getAsyncFuelTank() {
+        return fuelTank;
+    }
 
-            if (!fuelTank.isEmpty()) {
-                fuelTank.setStackSize(total / maxBurnTicks, Action.EXECUTE);
-            }
-            burnTicks = total % maxBurnTicks;
-            clientUsed = toUse / (double) maxBurnTicks;
-        } else {
-            if (!operate) {
-                reset();
-            }
-            clientUsed = 0;
-            setActive(false);
-        }
-        int newRedstoneLevel = getRedstoneLevel();
-        if (newRedstoneLevel != currentRedstoneLevel) {
+    @Override
+    public GasFuelState getAsyncFuelState() {
+        return captureFuelState(burnTicks, maxBurnTicks, generationRate, clientUsed,
+              tier.processes, false, MekanismConfig.current().general.FROM_H2.val() * 2 * tier.processes);
+    }
+
+    @Override
+    public void applyAsyncFuelState(int burnTicks, int maxBurnTicks, double generationRate, double output, double clientUsed) {
+        this.burnTicks = burnTicks;
+        this.maxBurnTicks = maxBurnTicks;
+        this.generationRate = generationRate;
+        this.output = output;
+        this.clientUsed = clientUsed;
+    }
+
+    @Override
+    public void afterAsyncFuelCommit(GasFuelPlan plan) {
+        setActive(plan.isActive());
+        int redstone = getRedstoneLevel();
+        if (redstone != currentRedstoneLevel) {
             updateComparatorOutputLevelSync();
-            currentRedstoneLevel = newRedstoneLevel;
+            currentRedstoneLevel = redstone;
         }
+    }
+
+    @Override
+    public long getAsyncRecipeCategoryGeneration() {
+        return RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getRecipeGeneration();
+    }
+
+    @Override
+    public void commitAsyncRecipeTick() {
+        IAsyncGasFuelMachine.super.commitAsyncRecipeTick();
     }
 
     public void reset() {

@@ -101,10 +101,18 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         energySlot.fillContainerOrConvert();
-        processRecipe(getMainEnergyContainer());
-        prevEnergy = getEnergy();
+    }
+
+    @Override
+    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorItemStackRecipe> cache) {
+        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
+              .templateInput("item.0", inputSlot).input("gas.1", inputGasTank).output("item.0", outputSlot);
     }
 
     @Override

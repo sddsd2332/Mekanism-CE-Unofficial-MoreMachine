@@ -83,6 +83,11 @@ public class ResizableGasTank extends GasTank implements IExtendedGasTank, ICont
     }
 
     @Override
+    public void setStackUncheckedNoUpdate(@Nullable GasStack stack) {
+        super.setGas(stack == null ? null : stack.copy());
+    }
+
+    @Override
     public void restoreContentsSnapshot(NBTTagCompound snapshot) {
         GasStack stack = snapshot.hasKey(NBTConstants.STORED) ? GasStack.readFromNBT(snapshot.getCompoundTag(NBTConstants.STORED)) : null;
         super.setGas(stack == null ? null : stack.copy());

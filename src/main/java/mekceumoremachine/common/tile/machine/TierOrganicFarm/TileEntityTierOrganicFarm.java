@@ -39,6 +39,14 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
+import mekanism.common.recipe.cache.IAsyncRecipeMachine;
+import mekanism.common.recipe.cache.RecipeLaneSnapshot;
+import mekanism.common.recipe.cache.ImmutableResourceSnapshot;
+import mekanism.common.recipe.cache.RecipeRandomContext;
+import mekanism.common.recipe.cache.RecipeLaneCommitTarget;
+import mekanism.common.recipe.cache.RecipeRunSnapshot;
+import mekanism.common.recipe.cache.RecipeExecutionPlan;
+import mekanism.common.recipe.cache.RecipeLanePlan;
 import mekanism.common.recipe.cache.ItemStackConstantFarmCachedRecipe;
 import mekanism.common.recipe.cache.ItemStackConstantGasCachedRecipe.GasUsageMultiplier;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
@@ -94,7 +102,7 @@ import java.util.function.BiConsumer;
 public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITierMachine<MachineTier>,
       ISideConfiguration, ITankManager, ITierSorting, ISustainedData, IComparatorSupport, IBoundingBlock,
       IRecipeLookupHandler<FarmRecipe>, IRecipeLookupHandler.ConstantUsageRecipeLookupHandler,
-      TierProcessInputSorter.Context {
+      TierProcessInputSorter.Context, IAsyncRecipeMachine {
 
     public static final int BASE_TICKS_REQUIRED = 200;
     public static final int BASE_SECONDARY_PER_TICK = 1;
@@ -395,7 +403,11 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         if (energySlot != null) {
             energySlot.fillContainerOrConvert();
         }
@@ -406,17 +418,67 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
         } else if (!sortingNeeded && areRecipeCachesInvalid()) {
             sortingNeeded = true;
         }
-        Arrays.fill(activeProcesses, false);
-        for (int lane = 0; lane < threadCount; lane++) {
-            if (!processLane(lane)) {
-                progress[lane] = 0;
-                errorProcesses[lane] = false;
-            }
-        }
+    }
+
+    @Override
+    public void commitAsyncRecipeTick() {
+        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    }
+
+    private void finishRecipeTick() {
         observedRecipeVersion = RecipeHandler.getGlobalRecipeVersion();
         recipeCachesInvalid = false;
         setActive(anyLaneActive());
         prevEnergy = getEnergy();
+    }
+
+    @Override
+    public Object getAsyncRecipeSnapshotSource() {
+        List<FarmRecipe> recipes = new ArrayList<>(threadCount);
+        for (int lane = 0; lane < threadCount; lane++) {
+            recipes.add(getRecipe(lane));
+        }
+        return recipes;
+    }
+
+    @Override
+    public long getAsyncRecipeCategoryGeneration() {
+        return RecipeHandler.Recipe.ORGANIC_FARM.getRecipeGeneration();
+    }
+
+    @Override
+    public Map<Integer, RecipeLaneSnapshot> getAsyncRecipeLaneSnapshots() {
+        Map<Integer, RecipeLaneSnapshot> lanes = new java.util.LinkedHashMap<>();
+        for (int lane = 0; lane < threadCount; lane++) {
+            FarmRecipe recipe = getRecipe(lane);
+            RecipeLaneSnapshot.Builder builder = RecipeLaneSnapshot.builder(lane)
+                  .operatingTicks(progress[lane]).requiredTicks(Math.max(1, ticksRequired))
+                  .baselineMaxOperations(MekanismUtils.canFunction(this) ? 1 : 0)
+                  .energyPerTick(energyPerTick).active(activeProcesses[lane]).pooledOutputs(true)
+                  .errors(mekanism.common.recipe.cache.AsyncMachinePlanSupport.captureErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane)))
+                  .pausedForErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) != null && recipeCacheLookupMonitors[lane].getCachedRecipe(lane).isPausedForErrors())
+                  .input("item.0", ImmutableResourceSnapshot.of(inputSlots[lane].getStack()));
+            if (recipe != null) {
+                String medium = recipe.getInput().isGasInput() ? "gas.1" : "fluid.1";
+                builder.input(medium, recipe.getInput().isGasInput() ?
+                      ImmutableResourceSnapshot.of(mergedTank.getGasTank().getGas()) :
+                      ImmutableResourceSnapshot.of(mergedTank.getFluidTank().getFluid()), true)
+                      .perTickInputMultipliers(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) == null ?
+                            Collections.emptyMap() : recipeCacheLookupMonitors[lane].getCachedRecipe(lane).getPlanInputMultipliers());
+            }
+            for (int index = 0; index < outputSlots.size(); index++) {
+                FarmOutputInventorySlot slot = outputSlots.get(index);
+                String key = "item." + index;
+                builder.output(key, ImmutableResourceSnapshot.of(slot.getStack()), slot.getLimit(ItemStack.EMPTY), true);
+                if (recipe != null) {
+                    for (ItemStack output : recipe.getOutput().getMaxOutputs()) {
+                        builder.outputLimit(key, ImmutableResourceSnapshot.of(output), slot.getLimit(output));
+                    }
+                }
+            }
+            lanes.put(lane, builder.build());
+        }
+        return lanes;
     }
 
     private boolean anyLaneActive() {
@@ -426,6 +488,34 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
             }
         }
         return false;
+    }
+
+    @Override
+    public Map<Integer, RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
+        Map<Integer, RecipeLaneCommitTarget> targets = new java.util.LinkedHashMap<>();
+        for (int lane = 0; lane < threadCount; lane++) {
+            RecipeLaneCommitTarget target = new RecipeLaneCommitTarget(recipeCacheLookupMonitors[lane].prepareCache())
+                  .input("item.0", inputSlots[lane]);
+            FarmRecipe recipe = getRecipe(lane);
+            if (recipe != null) {
+                if (recipe.getInput().isGasInput()) target.input("gas.1", mergedTank.getGasTank());
+                else target.input("fluid.1", mergedTank.getFluidTank());
+            }
+            for (int index = 0; index < outputSlots.size(); index++) target.output("item." + index, outputSlots.get(index));
+            targets.put(lane, target);
+        }
+        return targets;
+    }
+
+    @Override
+    public void afterAsyncRecipeCommit(RecipeRunSnapshot snapshot, RecipeExecutionPlan plan) {
+        for (RecipeLanePlan lane : plan.getLanes().values()) {
+            int index = lane.getLaneIndex();
+            progress[index] = lane.getNewOperatingTicks();
+            activeProcesses[index] = lane.isActive();
+            errorProcesses[index] = snapshot.getLane(index).isRecipePresent() && !lane.getErrors().isEmpty();
+        }
+        finishRecipeTick();
     }
 
     private boolean hasItemInput() {

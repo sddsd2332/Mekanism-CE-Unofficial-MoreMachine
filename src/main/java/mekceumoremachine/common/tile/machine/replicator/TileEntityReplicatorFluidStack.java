@@ -115,10 +115,18 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         energySlot.fillContainerOrConvert();
-        processRecipe(getMainEnergyContainer());
-        prevEnergy = getEnergy();
+    }
+
+    @Override
+    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorFluidStackRecipe> cache) {
+        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
+              .input("gas.0", uuTank).templateInput("fluid.1", inputTank).output("fluid.0", outputTank);
     }
 
     @Override

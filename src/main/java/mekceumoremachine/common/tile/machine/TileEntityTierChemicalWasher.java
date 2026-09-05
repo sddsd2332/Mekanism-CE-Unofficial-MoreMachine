@@ -169,12 +169,32 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
 
 
     @Override
+    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<WasherRecipe> cache) {
+        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
+              .input("gas.0", inputTank).input("fluid.1", fluidTank).output("gas.0", outputTank);
+    }
+
+    @Override
+    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
+          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
+        super.afterAsyncRecipeCommit(snapshot, plan);
+        clientEnergyUsed = plan.getEnergyAsDouble();
+        finishRecipeTick();
+    }
+
+    @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         energySlot.fillContainerOrConvert();
         inputSlot.fillTank(outputSlot);
         gasSlot.drainTank();
-        clientEnergyUsed = processRecipe(getMainEnergyContainer());
+    }
+
+    private void finishRecipeTick() {
         prevEnergy = getEnergy();
         int newRedstoneLevel = getRedstoneLevel();
         if (newRedstoneLevel != currentRedstoneLevel) {

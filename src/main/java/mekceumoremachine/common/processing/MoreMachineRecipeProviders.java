@@ -305,7 +305,8 @@ public final class MoreMachineRecipeProviders {
 
                   @Override
                   public int getConfigurationRevision(TILE tile) {
-                      int revision = RecipeHandler.getGlobalRecipeVersion();
+                      int revision = RecipeHandler.foldRecipeGeneration(
+                            RecipeHandler.getGlobalRecipeGeneration(), 0);
                       revision = 31 * revision + (tile instanceof IBaseTierProvider tierProvider ? tierProvider.getBaseTier().ordinal() : 0);
                       return 31 * revision + additionalRevision.applyAsInt(tile);
                   }

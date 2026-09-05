@@ -27,6 +27,9 @@ public class TierProcessInputSorter {
     }
 
     public void sort() {
+        // The sorter performs a live validation immediately before applying its
+        // distribution. Keep that narrow server-side mutation window atomic with
+        // external insert/extract calls; no worker thread invokes this method.
         context.runContainerTransaction(this::sortInTransaction);
     }
 

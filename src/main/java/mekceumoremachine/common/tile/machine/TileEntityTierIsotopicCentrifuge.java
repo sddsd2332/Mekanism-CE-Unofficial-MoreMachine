@@ -136,8 +136,26 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
 
 
     @Override
+    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<IsotopicRecipe> cache) {
+        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
+              .input("gas.0", inputTank).output("gas.0", outputTank);
+    }
+
+    @Override
+    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
+          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
+        super.afterAsyncRecipeCommit(snapshot, plan);
+        clientEnergyUsed = plan.getEnergyAsDouble();
+        finishRecipeTick();
+    }
+
+    @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         if (updateDelay > 0) {
             updateDelay--;
             if (updateDelay == 0) {
@@ -147,7 +165,9 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         energySlot.fillContainerOrConvert();
         inputSlot.fillTank();
         outputSlot.drainTank();
-        clientEnergyUsed = processRecipe(getMainEnergyContainer());
+    }
+
+    private void finishRecipeTick() {
         prevEnergy = getEnergy();
         int newRedstoneLevel = getRedstoneLevel();
         if (newRedstoneLevel != currentRedstoneLevel) {

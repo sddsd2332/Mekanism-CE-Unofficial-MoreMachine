@@ -105,10 +105,18 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
 
     @Override
     public void onAsyncUpdateServer() {
-        super.onAsyncUpdateServer();
+        commitAsyncRecipeTick();
+    }
+
+    @Override
+    public void prepareAsyncRecipeTick() {
         energySlot.fillContainerOrConvert();
-        processRecipe(getMainEnergyContainer());
-        prevEnergy = getEnergy();
+    }
+
+    @Override
+    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorGasStackRecipe> cache) {
+        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
+              .templateInput("gas.0", inputTank).input("gas.1", uuTank).output("gas.0", outputTank);
     }
 
     @Override

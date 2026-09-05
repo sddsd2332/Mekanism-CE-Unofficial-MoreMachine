@@ -82,6 +82,11 @@ public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank,
     }
 
     @Override
+    public void setStackUncheckedNoUpdate(@Nullable FluidStack stack) {
+        super.setFluid(stack == null ? null : stack.copy());
+    }
+
+    @Override
     public void restoreContentsSnapshot(NBTTagCompound snapshot) {
         FluidStack stack = snapshot.hasKey(NBTConstants.STORED) ? FluidStack.loadFluidStackFromNBT(snapshot.getCompoundTag(NBTConstants.STORED)) : null;
         super.setFluid(stack == null ? null : stack.copy());
