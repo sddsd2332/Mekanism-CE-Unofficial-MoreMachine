@@ -1,0 +1,212 @@
+# Creative tab
+itemGroup.tabmekaceumoremachine=Mekanism:MoreMachine
+
+gui.mekceumoremachine.chargeRobit=Заряжать Робита
+gui.mekceumoremachine.playerArmor=Заряжать броню игрока
+gui.mekceumoremachine.playerInventory=Заряжать инвентарь игрока
+gui.mekceumoremachine.chargeMachine=Заряжать машины
+
+tile.WirelessChargingStation.Basic.name=Базовая беспроводная зарядная станция
+tile.WirelessChargingStation.Advanced.name=Продвинутая беспроводная зарядная станция
+tile.WirelessChargingStation.Elite.name=Элитная беспроводная зарядная станция
+tile.WirelessChargingStation.Ultimate.name=Совершенная беспроводная зарядная станция
+tooltip.WirelessChargingStation=Предметы в радиусе, которые могут быть заряжены для игроков, роботов MEK
+
+tile.TierElectricPump.Basic.name=Базовый электрический насос
+tile.TierElectricPump.Advanced.name=Продвинутый электрический насос
+tile.TierElectricPump.Elite.name=Элитный электрический насос
+tile.TierElectricPump.Ultimate.name=Совершенный электрический насос
+tooltip.TierElectricPump=Более быстрый и лучший электрический насос
+
+tile.TierIsotopicCentrifuge.Basic.name=Базовая изотопная центрифуга
+tile.TierIsotopicCentrifuge.Advanced.name=Продвинутая изотопная центрифуга
+tile.TierIsotopicCentrifuge.Elite.name=Элитная изотопная центрифуга
+tile.TierIsotopicCentrifuge.Ultimate.name=Совершенная изотопная центрифуга
+tooltip.TierIsotopicCentrifuge=Более быстро вращающаяся изотопная центрифуга
+
+tile.TierRotaryCondensentrator.Basic.name=Базовый роторный сгуститель
+tile.TierRotaryCondensentrator.Advanced.name=Продвинутый роторный сгуститель
+tile.TierRotaryCondensentrator.Elite.name=Элитный роторный сгуститель
+tile.TierRotaryCondensentrator.Ultimate.name=Совершенный роторный сгуститель
+tooltip.TierRotaryCondensentrator=Машина, которая быстро преобразует газ и его жидкую форму друг в друга
+
+tile.TierElectrolyticSeparator.Basic.name=Базовый электролитический сепаратор
+tile.TierElectrolyticSeparator.Advanced.name=Продвинутый электролитический сепаратор
+tile.TierElectrolyticSeparator.Elite.name=Элитный электролитический сепаратор
+tile.TierElectrolyticSeparator.Ultimate.name=Совершенный электролитический сепаратор
+tooltip.TierElectrolyticSeparator=Машина, которая быстрее разделяет определённую жидкость на два различных газа путём электролиза
+
+tile.TierSolarNeutronActivator.Basic.name=Базовый солнечный нейтронный активатор
+tile.TierSolarNeutronActivator.Advanced.name=Продвинутый солнечный нейтронный активатор
+tile.TierSolarNeutronActivator.Elite.name=Элитный солнечный нейтронный активатор
+tile.TierSolarNeutronActivator.Ultimate.name=Совершенный солнечный нейтронный активатор
+tooltip.TierSolarNeutronActivator=Машина, которая вводит нейтронное излучение Солнца в собственную камеру, может производить различные изотопы быстрее
+
+tile.TierChemicalInfuser.Basic.name=Базовый химический наполнитель
+tile.TierChemicalInfuser.Advanced.name=Продвинутый химический наполнитель
+tile.TierChemicalInfuser.Elite.name=Элитный химический наполнитель
+tile.TierChemicalInfuser.Ultimate.name=Совершенный химический наполнитель
+tooltip.TierChemicalInfuser=Машина, которая может производить новые газы быстрее путём впрыскивания двух других газов
+
+tile.TierAmbientAccumulator.Basic.name=Базовый сборщик окружающего газа (электрический)
+tile.TierAmbientAccumulator.Advanced.name=Продвинутый сборщик окружающего газа (электрический)
+tile.TierAmbientAccumulator.Elite.name=Элитный сборщик окружающего газа (электрический)
+tile.TierAmbientAccumulator.Ultimate.name=Совершенный сборщик окружающего газа (электрический)
+tooltip.TierAmbientAccumulator=Машина, которая может быстрее собирать газы в текущем измерении, используя энергию
+
+tile.TierRadioactiveWasteBarrel.Basic.name=Базовая бочка для радиоактивных отходов
+tile.TierRadioactiveWasteBarrel.Advanced.name=Продвинутая бочка для радиоактивных отходов
+tile.TierRadioactiveWasteBarrel.Elite.name=Элитная бочка для радиоактивных отходов
+tile.TierRadioactiveWasteBarrel.Ultimate.name=Совершенная бочка для радиоактивных отходов
+tooltip.TierRadioactiveWasteBarrel=Бочка, которая может использоваться для хранения радиоактивных отходов «более безопасно»
+
+tile.TierChemicalWasher.Basic.name=Базовый химический мойщик
+tile.TierChemicalWasher.Advanced.name=Продвинутый химический мойщик
+tile.TierChemicalWasher.Elite.name=Элитный химический мойщик
+tile.TierChemicalWasher.Ultimate.name=Совершенный химический мойщик
+tooltip.TierChemicalWasher=Супермашина, которая быстро промывает необработанную суспензию, подготавливая всё к кристаллизации
+
+tile.TierWindGenerator.Basic.name=Базовая ветровая турбина
+tile.TierWindGenerator.Advanced.name=Продвинутая ветровая турбина
+tile.TierWindGenerator.Elite.name=Элитная ветровая турбина
+tile.TierWindGenerator.Ultimate.name=Совершенная ветровая турбина
+tooltip.TierWindGenerator=Турбина, использующая силу ветра для производства энергии, с большей эффективностью на более высоких уровнях
+
+tile.TierChemicalDissolutionChamber.Basic.name=Базовая химическая камера растворения
+tile.TierChemicalDissolutionChamber.Advanced.name=Продвинутая химическая камера растворения
+tile.TierChemicalDissolutionChamber.Elite.name=Элитная химическая камера растворения
+tile.TierChemicalDissolutionChamber.Ultimate.name=Совершенная химическая камера растворения
+tooltip.TierChemicalDissolutionChamber=Совершенная машина, используемая для химического растворения всех примесей руды, оставляя необработанную суспензию
+
+tile.TierNutritionalLiquifier.Basic.name=Базовый питательный сжижитель
+tile.TierNutritionalLiquifier.Advanced.name=Продвинутый питательный сжижитель
+tile.TierNutritionalLiquifier.Elite.name=Элитный питательный сжижитель
+tile.TierNutritionalLiquifier.Ultimate.name=Совершенный питательный сжижитель
+tooltip.TierNutritionalLiquifier=Машина, которая перерабатывает любую еду в безвредную, легко усваиваемую питательную пасту
+
+tile.TierChemicalOxidizer.Basic.name=Базовый химический окислитель
+tile.TierChemicalOxidizer.Advanced.name=Продвинутый химический окислитель
+tile.TierChemicalOxidizer.Elite.name=Элитный химический окислитель
+tile.TierChemicalOxidizer.Ultimate.name=Совершенный химический окислитель
+tooltip.TierChemicalOxidizer=Машина, способная окислять твёрдые материалы в газовую фазу
+tile.TierChemicalCrystallizer.Basic.name=Базовый химический кристаллизатор
+tile.TierChemicalCrystallizer.Advanced.name=Продвинутый химический кристаллизатор
+tile.TierChemicalCrystallizer.Elite.name=Элитный химический кристаллизатор
+tile.TierChemicalCrystallizer.Ultimate.name=Совершенный химический кристаллизатор
+tooltip.TierChemicalCrystallizer=Машина, способная кристаллизовать газы в твёрдые материалы
+
+tile.TierGasGenerator.Basic.name=Базовый газовый генератор
+tile.TierGasGenerator.Advanced.name=Продвинутый газовый генератор
+tile.TierGasGenerator.Elite.name=Элитный газовый генератор
+tile.TierGasGenerator.Ultimate.name=Совершенный газовый генератор
+tooltip.TierGasGenerator=Генератор, использующий молекулярно изменяемые газы для производства энергии
+
+gas.uu_matter=UU-материя (газ)
+item.UUMatter.name=UU-материя (предмет)
+tile.ReplicatorItemStack.name=Репликатор (предмет)
+tile.ReplicatorGases.name=Репликатор (газ)
+tile.ReplicatorFluidStack.name=Репликатор (жидкость)
+
+tile.WirelessChargingEnergy.Basic.name=Базовая беспроводная станция энергоснабжения
+tile.WirelessChargingEnergy.Advanced.name=Продвинутая беспроводная станция энергоснабжения
+tile.WirelessChargingEnergy.Elite.name=Элитная беспроводная станция энергоснабжения
+tile.WirelessChargingEnergy.Ultimate.name=Совершенная беспроводная станция энергоснабжения
+tile.WirelessChargingEnergy.name=Беспроводная станция энергоснабжения
+tooltip.WirelessChargingEnergy=Машины, которые могут быть заряжены в радиусе действия
+gui.WirelessChargingEnergy.scan=Сканировать машины в радиусе и подключаться автоматически
+gui.WirelessChargingEnergy.quantity=Количество подключённых устройств
+gui.WirelessChargingEnergy.MaxLinks=Достигнуто максимальное количество подключённых устройств
+gui.WirelessChargingEnergy.connections=Подключения беспроводной зарядки
+gui.WirelessChargingEnergy.machineTypes=Тип машины
+gui.WirelessChargingEnergy.coordinatesStatus=Координаты и статус
+gui.WirelessChargingEnergy.search=Поиск
+gui.WirelessChargingEnergy.statusAll=Все
+gui.WirelessChargingEnergy.statusEnabled=Включены
+gui.WirelessChargingEnergy.statusDisabled=Отключены
+gui.WirelessChargingEnergy.enableAll=Включить зарядку всех машин
+gui.WirelessChargingEnergy.disableAll=Отключить зарядку всех машин
+gui.WirelessChargingEnergy.enableMachine=Включить зарядку машины
+gui.WirelessChargingEnergy.disableMachine=Отключить зарядку машины
+gui.WirelessChargingEnergy.moveUp=Переместить вверх
+gui.WirelessChargingEnergy.moveDown=Переместить вниз
+gui.WirelessChargingEnergy.moveTop=Переместить наверх
+gui.WirelessChargingEnergy.moveBottom=Переместить в самый низ
+gui.WirelessChargingEnergy.enabled=Включено
+gui.WirelessChargingEnergy.disabled=Отключено
+gui.WirelessChargingEnergy.unloaded=Чанк назначения не загружен
+gui.WirelessChargingEnergy.empty=Нет подключённых машин
+gui.WirelessChargingEnergy.noMatch=Нет совпадающих машин
+gui.WirelessChargingEnergy.machineSearchTooltip=Поиск типов машин по названию
+gui.WirelessChargingEnergy.targetSearchTooltip=Поиск координат в выбранном типе машин
+gui.WirelessChargingEnergy.statusFilterTooltip=Фильтрация координат по состоянию зарядки
+gui.WirelessChargingEnergy.allButtonTooltip=Клик: включить все машины; зажать Shift и клик: отключить все машины
+gui.WirelessChargingEnergy.selectedButtonTooltip=Клик: включить выбранный тип или машину; зажать Shift и клик: отключить
+gui.WirelessChargingEnergy.moveUpButtonTooltip=Переместить выбор на одну позицию приоритета вверх; зажать Shift и клик: переместить наверх
+gui.WirelessChargingEnergy.moveDownButtonTooltip=Переместить выбор на одну позицию приоритета вниз; зажать Shift и клик: переместить в самый низ
+gui.WirelessChargingEnergy.selectTypeTooltip=ЛКМ: выбрать этот тип машин
+gui.WirelessChargingEnergy.typeToggleTooltip=Клик по маркеру статуса или Shift + ПКМ: переключить зарядку для этого типа машин
+gui.WirelessChargingEnergy.typeHighlightTooltip=Ctrl + ПКМ: подсветить все подключённые машины этого типа
+gui.WirelessChargingEnergy.loadedCount=Загружено: %1$s/%2$s
+gui.WirelessChargingEnergy.selectTargetTooltip=ЛКМ: выбрать эту машину
+gui.WirelessChargingEnergy.targetToggleTooltip=Клик по маркеру статуса или Shift + ПКМ: переключить зарядку для этой машины
+gui.WirelessChargingEnergy.targetHighlightTooltip=Ctrl + ПКМ: подсветить эту машину в мире
+gui.WirelessChargingEnergy.dynamicChargingMode=Динамический режим
+gui.WirelessChargingEnergy.allChargingMode=Режим «Все»
+gui.WirelessChargingEnergy.chargingModeTooltip=Динамический режим заряжает машины поочерёдными группами; режим «Все» пытается зарядить каждую включённую машину каждый тик
+gui.WirelessChargingEnergy.deleteSelection=Удалить
+gui.WirelessChargingEnergy.deleteList=Список удаления
+gui.WirelessChargingEnergy.deleteButtonTooltip=Удалить выбор; зажать Shift + Ctrl для удаления всех записей в активном списке
+
+item.connector.name=Беспроводной коннектор
+tooltip.connector.detail=Координаты привязки
+tooltip.connector.dimension=ID измерения
+tooltip.connector.pos=Позиция
+tooltip.connector.got=Блок привязан
+tooltip.connector.no_energy=Недостаточно энергии
+tooltip.connector.no_got=Не привязан
+tooltip.connector.across_dimension=Невозможно привязать между измерениями
+tooltip.connector.self=Невозможно привязать к самому себе
+tooltip.connector.fail_chunk=Чанк назначения не загружен
+tooltip.connector.fail_machine=Блок не найден, или блок больше не соответствует цели привязки
+tooltip.connector.disconnect=Отключено
+tooltip.connector.to=Привязан
+tooltip.connector.maxlinks=Достигнуто максимальное количество привязанных блоков
+tooltip.connector.fail=Неподдерживаемая машина
+tooltip.connector.fail_pos=Цель привязки слишком далеко
+tooltip.connector.cleared=Данные привязки очищены
+tooltip.connector.preview_mode=Режим предпросмотра
+tooltip.connector.preview_nearest=Ближайший
+tooltip.connector.preview_all=Все
+
+item.CompositeTierInstaller.name=Комплект установки составного улучшения
+tooltip.CompositeTierInstaller=Компонент установки, способный напрямую улучшить машину до её финального уровня
+item.LargeMachineryUpgradeComponents.name=Компоненты улучшения крупной машины
+tooltip.LargeMachineryUpgradeComponents=Компоненты установки, способные улучшить машину до крупной модели
+tooltip.largeMachineUpgrade.pos=Невозможно улучшить, так как в месте установки находится блок
+tooltip.mekceumoremachine.remove=Эта машина не рекомендована к использованию. Пожалуйста, используйте соответствующую машину из Mekanism:MoreMachine
+
+tile.TierSolarGenerator.Basic.name=Базовый солнечный генератор
+tile.TierSolarGenerator.Advanced.name=Продвинутый солнечный генератор
+tile.TierSolarGenerator.Elite.name=Элитный солнечный генератор
+tile.TierSolarGenerator.Ultimate.name=Совершенный солнечный генератор
+tooltip.TierSolarGenerator=Генератор, использующий силу солнца для производства энергии
+
+tile.TierAdvancedSolarGenerator.Basic.name=Средний базовый солнечный генератор
+tile.TierAdvancedSolarGenerator.Advanced.name=Средний продвинутый солнечный генератор
+tile.TierAdvancedSolarGenerator.Elite.name=Средний элитный солнечный генератор
+tile.TierAdvancedSolarGenerator.Ultimate.name=Средний совершенный солнечный генератор
+tooltip.TierAdvancedSolarGenerator=Продвинутый генератор, который напрямую поглощает солнечные лучи с минимальными потерями для производства энергии
+
+gui.canOre=Типы добываемой руды
+tile.VoidMineralGenerator.Basic.name=Базовый пустотный минеральный экскаватор
+tile.VoidMineralGenerator.Advanced.name=Продвинутый пустотный минеральный экскаватор
+tile.VoidMineralGenerator.Elite.name=Элитный пустотный минеральный экскаватор
+tile.VoidMineralGenerator.Ultimate.name=Совершенный пустотный минеральный экскаватор
+tooltip.VoidMineralGenerator=Машина, которая может генерировать минералы в пустоте. Список минералов, которые могут быть сгенерированы, можно посмотреть в интерфейсе рецептов этой машины в JEI
+
+tile.TierOrganicFarm.Basic.name=Базовая фабрика органической фермы
+tile.TierOrganicFarm.Advanced.name=Продвинутая фабрика органической фермы
+tile.TierOrganicFarm.Elite.name=Элитная фабрика органической фермы
+tile.TierOrganicFarm.Ultimate.name=Совершенная фабрика органической фермы
+tooltip.TierOrganicFarm=Многорядная органическая ферма с общим объединённым баком и 64 слотами вывода
+gui.mekceumoremachine.organic_farm_output=Вывод органической фермы
