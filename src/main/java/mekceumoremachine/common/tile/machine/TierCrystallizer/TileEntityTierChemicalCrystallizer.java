@@ -35,14 +35,6 @@ import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.FactoryRecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
-import mekanism.common.recipe.cache.RecipeLaneSnapshot;
-import mekanism.common.recipe.cache.ImmutableResourceSnapshot;
-import mekanism.common.recipe.cache.RecipeRandomContext;
-import mekanism.common.recipe.cache.RecipeLaneCommitTarget;
-import mekanism.common.recipe.cache.RecipeRunSnapshot;
-import mekanism.common.recipe.cache.RecipeExecutionPlan;
-import mekanism.common.recipe.cache.RecipeLanePlan;
 import mekanism.common.recipe.cache.OneInputCachedRecipe;
 import mekanism.common.recipe.cache.inputs.InputHelper;
 import mekanism.common.recipe.cache.outputs.OutputHelper;
@@ -85,11 +77,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 
 public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData,
       IComparatorSupport, ISideConfiguration, ISpecialSelectionWireframeTile, INeedRepeatTierUpgrade<MachineTier>, IRecipeLookupHandler<CrystallizerRecipe>,
-      ITierSorting, TierGasInputSorter.Context, IAsyncRecipeMachine {
+      ITierSorting, TierGasInputSorter.Context {
 
     public static final int MAX_GAS = 10000;
     public static final int BASE_TICKS_REQUIRED = 200;
@@ -352,6 +343,9 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
 
     @Override
     public void setActive(boolean active) {
+        if (getActive() == active) {
+            return;
+        }
         super.setActive(active);
         if (updateDelay == 0) {
             Mekanism.packetHandler.sendUpdatePacket(this);
@@ -361,35 +355,61 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         if (updateDelay > 0) {
-            updateDelay--;
-            if (updateDelay == 0) {
+            if (--updateDelay == 0) {
                 needsPacket = true;
             }
         }
-
         energySlot.fillContainerOrConvert();
+        if (areRecipeCachesInvalid()) {
+            Arrays.fill(cachedRecipe, null);
+            markSortingNeeded();
+        }
         if (shouldSortGasTanks()) {
             markSortingNotNeeded();
             sortInputGasTanks();
-        } else if (!sortingNeeded && areRecipeCachesInvalid()) {
-            markSortingNeeded();
         }
-
+        for (int process = 0; process < tier.processes; process++) {
+            if (!recipeCacheLookupMonitors[process].updateAndProcess()) {
+                progress[process] = 0;
+                activeProcesses[process] = false;
+                cachedRecipe[process] = null;
+            }
+        }
+        finishRecipeTick();
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        Class<?> type = getClass();
+        return type == TileEntityTierChemicalCrystallizer.class || type == TileEntityTierChemicalCrystallizerBasic.class ||
+              type == TileEntityTierChemicalCrystallizerAdvanced.class || type == TileEntityTierChemicalCrystallizerElite.class ||
+              type == TileEntityTierChemicalCrystallizerUltimate.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        if (getActive() || prevEnergy != getEnergy() || !energySlot.isEmpty() || updateDelay != 0 || needsPacket ||
+              sortingNeeded || recipeCachesInvalid || observedRecipeVersion != RecipeHandler.getGlobalRecipeVersion() ||
+              CommonWorldTickHandler.flushTagAndRecipeCaches) {
+            return false;
+        }
+        for (int process = 0; process < recipeCacheLookupMonitors.length; process++) {
+            if (!inputTanks[process].isEmpty() || !getProcessOutputSlot(process).isEmpty() ||
+                  progress[process] != 0 || activeProcesses[process] ||
+                  !recipeCacheLookupMonitors[process].canSkipProcessing()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void finishRecipeTick() {
         markRecipeCachesObserved();
+        if (!hasInputGas()) {
+            markSortingNotNeeded();
+        }
         updateActiveState();
 
         prevEnergy = getEnergy();
@@ -397,61 +417,6 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         needsPacket = false;
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        List<CrystallizerRecipe> recipes = new ArrayList<>(tier.processes);
-        for (int process = 0; process < tier.processes; process++) {
-            recipes.add(getRecipe(process));
-        }
-        return recipes;
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneSnapshot> getAsyncRecipeLaneSnapshots() {
-        Map<Integer, RecipeLaneSnapshot> lanes = new LinkedHashMap<>();
-        for (int lane = 0; lane < tier.processes; lane++) {
-            RecipeLaneSnapshot.Builder builder = RecipeLaneSnapshot.builder(lane)
-                  .operatingTicks(progress[lane]).requiredTicks(Math.max(1, ticksRequired))
-                  .baselineMaxOperations(MekanismUtils.canFunction(this) ? getMaxOperationsPerTick() : 0)
-                  .energyPerTick(energyPerTick).active(activeProcesses[lane])
-                  .errors(mekanism.common.recipe.cache.AsyncMachinePlanSupport.captureErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane)))
-                  .pausedForErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) != null && recipeCacheLookupMonitors[lane].getCachedRecipe(lane).isPausedForErrors())
-                  .input("gas.0", ImmutableResourceSnapshot.of(inputTanks[lane].getGas()));
-            CrystallizerRecipe recipe = getRecipe(lane);
-            ItemStack output = recipe == null ? ItemStack.EMPTY : recipe.getOutput().output;
-            IInventorySlot slot = getProcessOutputSlot(lane);
-            builder.output("item.0", ImmutableResourceSnapshot.of(slot.getStack()), slot.getLimit(output));
-            lanes.put(lane, builder.build());
-        }
-        return lanes;
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        Map<Integer, RecipeLaneCommitTarget> targets = new LinkedHashMap<>();
-        for (int lane = 0; lane < tier.processes; lane++) {
-            recipeCacheLookupMonitors[lane].unpause();
-            RecipeLaneCommitTarget target = new RecipeLaneCommitTarget(recipeCacheLookupMonitors[lane].prepareCache())
-                  .input("gas.0", inputTanks[lane]).output("item.0", getProcessOutputSlot(lane));
-            targets.put(lane, target);
-        }
-        return targets;
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(RecipeRunSnapshot snapshot, RecipeExecutionPlan plan) {
-        for (RecipeLanePlan lane : plan.getLanes().values()) {
-            progress[lane.getLaneIndex()] = lane.getNewOperatingTicks();
-            activeProcesses[lane.getLaneIndex()] = lane.isActive();
-        }
-        finishRecipeTick();
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.CHEMICAL_CRYSTALLIZER.getRecipeGeneration();
     }
 
     private boolean shouldSortGasTanks() {
@@ -570,7 +535,11 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
               .setRequiredTicks(() -> ticksRequired)
               .setBaselineMaxOperations(this::getMaxOperationsPerTick)
               .setOperatingTicksChanged(ticks -> progress[cacheIndex] = ticks)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  // Core omits the progress callback for one-tick recipes.
+                  progress[cacheIndex] = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override

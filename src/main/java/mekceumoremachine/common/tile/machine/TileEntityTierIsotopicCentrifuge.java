@@ -134,37 +134,29 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         return outputTank;
     }
 
-
-    @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<IsotopicRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .input("gas.0", inputTank).output("gas.0", outputTank);
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        super.afterAsyncRecipeCommit(snapshot, plan);
-        clientEnergyUsed = plan.getEnergyAsDouble();
-        finishRecipeTick();
-    }
-
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
-        if (updateDelay > 0) {
-            updateDelay--;
-            if (updateDelay == 0) {
-                needsPacket = true;
-            }
+        super.onAsyncUpdateServer();
+        if (updateDelay > 0 && --updateDelay == 0) {
+            needsPacket = true;
         }
         energySlot.fillContainerOrConvert();
         inputSlot.fillTank();
         outputSlot.drainTank();
+        clientEnergyUsed = processRecipe(getMainEnergyContainer());
+        finishRecipeTick();
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierIsotopicCentrifuge.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return inputTank.isEmpty() && outputTank.isEmpty() && inputSlot.isEmpty() && outputSlot.isEmpty() &&
+              energySlot.isEmpty() && updateDelay == 0 && !needsPacket && clientEnergyUsed == 0 &&
+              currentRedstoneLevel == getRedstoneLevel() && isEmptyRecipeStateSettled();
     }
 
     private void finishRecipeTick() {
@@ -190,7 +182,6 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         }
     }
 
-
     @Override
     public void onUpdateClient() {
         if (updateDelay > 0) {
@@ -204,7 +195,6 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
             prevScale = (9 * prevScale + targetScale) / 10;
         }
     }
-
 
     @Override
     public IsotopicRecipe getRecipe() {
@@ -255,7 +245,10 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
               .setBaselineMaxOperations(() -> getUpgradedUsage(recipe))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override
@@ -376,6 +369,9 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
 
     @Override
     public void setActive(boolean active) {
+        if (getActive() == active) {
+            return;
+        }
         super.setActive(active);
         if (updateDelay == 0) {
             Mekanism.packetHandler.sendUpdatePacket(this);
@@ -430,12 +426,10 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
         return ITierMachine.super.parseUpgradeData(upgradeData);
     }
 
-
     @Override
     public double getMaxEnergy() {
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
     }
-
 
     @Nonnull
     @Override
@@ -447,7 +441,6 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     public MachineTier getTier() {
         return tier;
     }
-
 
     @Override
     public boolean shouldDumpRadiation() {

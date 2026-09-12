@@ -83,11 +83,9 @@ import java.util.Set;
 public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<FluidInput, ChemicalPairOutput, SeparatorRecipe>
         implements ISustainedData, IUpgradeInfoHandler, ITankManager, IConfigCardAccess.ISpecialConfigData, ITierMachine<MachineTier>, ILargeMachine {
 
-
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getWater", "getWaterNeeded", "getHydrogen", "getHydrogenNeeded", "getOxygen", "getOxygenNeeded"};
     private static final GasMode[] GAS_MODES = GasMode.values();
     private final EjectSpeedController gasSpeedController = new EjectSpeedController();
-
 
     public ResizableFluidTank fluidTank;
 
@@ -185,7 +183,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         return rightTank;
     }
 
-
     @Override
     public void onCachedRecipeChanged(CachedRecipe<SeparatorRecipe> cachedRecipe, int cacheIndex) {
         super.onCachedRecipeChanged(cachedRecipe, cacheIndex);
@@ -200,30 +197,33 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     public int dumpAmount;
 
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<SeparatorRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .input("fluid.0", fluidTank).output("gas.0", leftTank).output("gas.1", rightTank).interchangeableOutputs();
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        super.afterAsyncRecipeCommit(snapshot, plan);
-        clientEnergyUsed = plan.getEnergyAsDouble();
-        finishRecipeTick();
-    }
-
-    @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
         inputSlot.fillTank();
         leftSlot.drainTank();
         rightSlot.drainTank();
+        clientEnergyUsed = processRecipe(getMainEnergyContainer());
+        finishRecipeTick();
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierElectrolyticSeparator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return fluidTank.isEmpty() && leftTank.isEmpty() && rightTank.isEmpty() && inputSlot.isEmpty() &&
+              leftSlot.isEmpty() && rightSlot.isEmpty() && energySlot.isEmpty() && clientEnergyUsed == 0 &&
+              currentRedstoneLevel == getRedstoneLevel() && isEmptyRecipeStateSettled();
+    }
+
+    @Override
+    protected void onAsyncUpdateSkipped() {
+        // Keep the core's post-worker comparator callback and upgrade-dependent dump rate current.
+        finishRecipeTick();
+        Mekanism.EXECUTE_MANAGER.addSyncTask(this::addTileSyncTask);
     }
 
     private void finishRecipeTick() {
@@ -345,7 +345,10 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
               .setBaselineMaxOperations(() -> getUpgradedUsage(recipe))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override
@@ -412,7 +415,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         dumpRight = getGasMode(nbtTags.getInteger("dumpRight"), dumpRight);
     }
 
-
     @Override
     public void writeCustomNBT(NBTTagCompound nbtTags) {
         super.writeCustomNBT(nbtTags);
@@ -460,7 +462,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         }
     }
 
-
     @Override
     public void readSustainedData(ItemStack itemStack) {
         fluidTank.setFluid(FluidStack.loadFluidStackFromNBT(ItemDataUtils.getCompound(itemStack, "fluidTank")));
@@ -505,12 +506,10 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
         }
     }
 
-
     @Override
     public double getMaxEnergy() {
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
     }
-
 
     public double getTierEnergy() {
         return MachineType.ELECTROLYTIC_SEPARATOR.getStorage() * tier.processes;
@@ -530,7 +529,6 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     public IGuiProvider guiProvider() {
         return MEKCeuMoreMachine.proxy;
     }
-
 
     @Override
     public boolean applyTierUpgrade(BaseTier upgradeTier) {

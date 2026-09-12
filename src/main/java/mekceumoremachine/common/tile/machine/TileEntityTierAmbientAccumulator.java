@@ -23,7 +23,6 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
 import mekanism.common.recipe.cache.NoInputCachedRecipe;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.outputs.OutputHelper;
@@ -55,10 +54,11 @@ import java.util.List;
 
 public class TileEntityTierAmbientAccumulator extends TileEntityMachine implements ISustainedData,
         Upgrade.IUpgradeInfoHandler, ITankManager, IComparatorSupport, ISideConfiguration, IConfigCardAccess,
-        ITierMachine<MachineTier>, IRecipeLookupHandler<AmbientGasRecipe>, IAsyncRecipeMachine {
+        ITierMachine<MachineTier>, IRecipeLookupHandler<AmbientGasRecipe> {
 
     public static final int MAX_GAS = GasTankTier.BASIC.getBaseStorage();
     private final RecipeCacheLookupMonitor<AmbientGasRecipe> recipeCacheLookupMonitor = new RecipeCacheLookupMonitor<>(this);
+    private java.util.Random outputRandom;
     public ResizableGasTank outputTank;
     public AmbientGasRecipe cachedRecipe;
     public double clientEnergyUsed;
@@ -136,18 +136,28 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
         outputSlot.drainTank();
+        clientEnergyUsed = recipeCacheLookupMonitor.updateAndProcess(getMainEnergyContainer());
+        if (recipeCacheLookupMonitor.getCachedRecipe(0) == null && prevEnergy >= getEnergy()) {
+            setActive(false);
+        }
+        finishRecipeTick();
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierAmbientAccumulator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        // This machine has no recipe input: the dimension recipe and energy decide whether it can run.
+        return energySlot.isEmpty() && outputSlot.isEmpty() && outputTank.isEmpty() && !getActive() &&
+              clientEnergyUsed == 0 && prevEnergy == getEnergy() && currentRedstoneLevel == getRedstoneLevel() &&
+              recipeCacheLookupMonitor.canSkipProcessing() &&
+              (cachedRecipe == null || energyPerTick > 0 && getEnergy() < energyPerTick);
     }
 
     private void finishRecipeTick() {
@@ -157,36 +167,6 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
             updateComparatorOutputLevelSync();
             currentRedstoneLevel = newRedstoneLevel;
         }
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        return getRecipe();
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.AMBIENT_ACCUMULATOR.getRecipeGeneration();
-    }
-
-    @Override
-    public java.util.Map<Integer, mekanism.common.recipe.cache.RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        return java.util.Collections.singletonMap(0,
-              new mekanism.common.recipe.cache.RecipeLaneCommitTarget(recipeCacheLookupMonitor.prepareCache())
-                    .output("gas.0", outputTank));
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        clientEnergyUsed = plan.getEnergyAsDouble();
-        if (!snapshot.getLane(0).isRecipePresent() && prevEnergy >= getEnergy()) setActive(false);
-        finishRecipeTick();
-    }
-
-    @Override
-    public String getAsyncMode() {
-        return Integer.toString(world == null ? cachedDimensionId : world.provider.getDimension());
     }
 
     public AmbientGasRecipe getRecipe() {
@@ -248,9 +228,12 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
 
     @Override
     public CachedRecipe<AmbientGasRecipe> createNewCachedRecipe(AmbientGasRecipe recipe, int cacheIndex) {
+        if (outputRandom == null) {
+            outputRandom = mekanism.common.recipe.cache.RecipeRandom.forLane(getPos().toLong(), cacheIndex);
+        }
         return new NoInputCachedRecipe<>(recipe, () -> false,
               () -> recipe.getInput().ingredient == cachedDimensionId,
-              OutputHelper.getChanceGasOutputHandler(outputTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
+              OutputHelper.getChanceGasOutputHandler(outputTank, RecipeError.NOT_ENOUGH_OUTPUT_SPACE, outputRandom),
               () -> recipe.getOutput().copy(),
               output -> output == null || output.getMaxOutput() == null)
               .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
@@ -352,7 +335,6 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return upgrade == Upgrade.SPEED ? upgrade.getExpScaledInfo(this) : upgrade.getMultScaledInfo(this);
     }
 
-
     @Override
     public Object[] getManagedTanks() {
         return new Object[]{outputTank};
@@ -388,7 +370,6 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return ejectorComponent;
     }
 
-
     @Override
     public int getBlockGuiID(Block block, int metadata) {
         return 7;
@@ -398,7 +379,6 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
     public IGuiProvider guiProvider() {
         return MEKCeuMoreMachine.proxy;
     }
-
 
     @Override
     public boolean applyTierUpgrade(BaseTier upgradeTier) {
@@ -444,7 +424,6 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
     public double getMaxEnergy() {
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
     }
-
 
     public double getTierEnergy() {
         return BlockStateMachine.MachineType.AMBIENT_ACCUMULATOR_ENERGY.getStorage() * tier.processes;

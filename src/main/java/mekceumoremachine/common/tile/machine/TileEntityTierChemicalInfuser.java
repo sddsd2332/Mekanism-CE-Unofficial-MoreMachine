@@ -72,7 +72,6 @@ import java.util.Map;
 public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<ChemicalPairInput, GasOutput, ChemicalInfuserRecipe> implements ISustainedData, Upgrade.IUpgradeInfoHandler,
         ITankManager, ITierMachine<MachineTier>, ILargeMachine {
 
-
     public static final int MAX_GAS = 10000;
     public ResizableGasTank leftTank;
     public ResizableGasTank rightTank;
@@ -152,33 +151,26 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
     }
 
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ChemicalInfuserRecipe> cache) {
-        boolean normal = cache == null || leftTank.getGas() != null && rightTank.getGas() != null &&
-              leftTank.getGas().isGasEqual(cache.getRecipe().getInput().leftGas) && rightTank.getGas().isGasEqual(cache.getRecipe().getInput().rightGas);
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .input("gas.0", normal ? leftTank : rightTank).input("gas.1", normal ? rightTank : leftTank).output("gas.0", centerTank);
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        super.afterAsyncRecipeCommit(snapshot, plan);
-        clientEnergyUsed = plan.getEnergyAsDouble();
-        finishRecipeTick();
-    }
-
-    @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
         leftSlot.fillTank();
         rightSlot.fillTank();
         centerSlot.drainTank();
+        clientEnergyUsed = processRecipe(getMainEnergyContainer());
+        finishRecipeTick();
+    }
 
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierChemicalInfuser.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return leftTank.isEmpty() && rightTank.isEmpty() && centerTank.isEmpty() && leftSlot.isEmpty() &&
+              rightSlot.isEmpty() && centerSlot.isEmpty() && energySlot.isEmpty() && clientEnergyUsed == 0 &&
+              isEmptyRecipeStateSettled();
     }
 
     private void finishRecipeTick() {
@@ -190,7 +182,6 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         possibleProcess *= tier.processes;
         return Math.max(possibleProcess, 1);
     }
-
 
     @Override
     public ChemicalPairInput getInput() {
@@ -240,7 +231,10 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
               .setBaselineMaxOperations(() -> getUpgradedUsage(recipe))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override
@@ -348,12 +342,10 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         return upgrade == Upgrade.SPEED ? upgrade.getExpScaledInfo(this) : upgrade.getMultScaledInfo(this);
     }
 
-
     @Override
     public Object[] getManagedTanks() {
         return new Object[]{leftTank, rightTank, centerTank};
     }
-
 
     @Override
     public String[] getMethods() {
@@ -364,7 +356,6 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
     public Object[] invoke(int method, Object[] args) throws NoSuchMethodException {
         return new Object[0];
     }
-
 
     @Override
     public boolean applyTierUpgrade(BaseTier upgradeTier) {
@@ -407,11 +398,9 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
     }
 
-
     public double getTierEnergy() {
         return BlockStateMachine.MachineType.CHEMICAL_INFUSER.getStorage() * tier.processes;
     }
-
 
     public boolean isUpgrade = true;
 
@@ -488,7 +477,6 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         return ILargeMachine.super.applyLargeMachineUpgrade();
     }
 
-
     /**
      * @author sddsd2332
      * @reason 取消在升级的时候进行辐射判断
@@ -498,5 +486,4 @@ public class TileEntityTierChemicalInfuser extends TileEntityBasicMachine<Chemic
         return isUpgrade;
     }
 }
-
 

@@ -76,7 +76,6 @@ import java.util.Map;
 })
 public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndFluidInput, GasOutput, WasherRecipe> implements ISustainedData, Upgrade.IUpgradeInfoHandler, ITankManager, ITierMachine<MachineTier>, ILargeMachine {
 
-
     public static final int MAX_GAS = 10000;
     public static final int MAX_FLUID = 10000;
     //TODO
@@ -167,31 +166,26 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
         return outputTank;
     }
 
-
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<WasherRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .input("gas.0", inputTank).input("fluid.1", fluidTank).output("gas.0", outputTank);
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        super.afterAsyncRecipeCommit(snapshot, plan);
-        clientEnergyUsed = plan.getEnergyAsDouble();
+    public void onAsyncUpdateServer() {
+        super.onAsyncUpdateServer();
+        energySlot.fillContainerOrConvert();
+        inputSlot.fillTank(outputSlot);
+        gasSlot.drainTank();
+        clientEnergyUsed = processRecipe(getMainEnergyContainer());
         finishRecipeTick();
     }
 
     @Override
-    public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierChemicalWasher.class;
     }
 
     @Override
-    public void prepareAsyncRecipeTick() {
-        energySlot.fillContainerOrConvert();
-        inputSlot.fillTank(outputSlot);
-        gasSlot.drainTank();
+    protected boolean isAsyncUpdateIdle() {
+        return inputTank.isEmpty() && fluidTank.isEmpty() && outputTank.isEmpty() && inputSlot.isEmpty() &&
+              outputSlot.isEmpty() && gasSlot.isEmpty() && energySlot.isEmpty() && clientEnergyUsed == 0 &&
+              currentRedstoneLevel == getRedstoneLevel() && isEmptyRecipeStateSettled();
     }
 
     private void finishRecipeTick() {
@@ -256,7 +250,10 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
               .setBaselineMaxOperations(this::getUpgradedUsage)
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override
@@ -402,7 +399,6 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
         return MEKCeuMoreMachine.proxy;
     }
 
-
     @Override
     public double getMaxEnergy() {
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
@@ -485,7 +481,6 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
     public boolean applyLargeMachineUpgrade() {
         return ILargeMachine.super.applyLargeMachineUpgrade();
     }
-
 
     /**
      * @author sddsd2332

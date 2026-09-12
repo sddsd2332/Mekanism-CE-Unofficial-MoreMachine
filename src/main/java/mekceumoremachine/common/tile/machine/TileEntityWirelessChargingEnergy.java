@@ -13,7 +13,6 @@ import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.base.*;
 import mekanism.common.capabilities.Capabilities;
-import mekanism.common.content.network.distribution.EnergyAcceptorTarget;
 import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
 import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.integration.computer.IComputerIntegration;
@@ -90,6 +89,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     private EnergyInventorySlot dischargeSlot;
     private int emitCursor;
     private int validationCursor;
+    private final Map<ConnectionConfig, DemandBackoff> demandBackoff = new IdentityHashMap<>();
+    private int demandBackoffLimit = -1;
     private boolean dynamicWirelessCharging;
     private boolean scanInProgress;
     private int scanMinChunkX;
@@ -378,6 +379,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 disconnectConnection(current);
             }
             if (changed) {
+                demandBackoff.remove(current);
                 connections.set(index, refreshed);
             }
             claimConnection(refreshedMachineTile, refreshedLink);
@@ -423,6 +425,11 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     //充能机器
     public void emitMachine() {
+        int backoffLimit = Math.max(0, Math.min(20, MoreMachineConfig.current().config.WirelessChargingDemandBackoffMaxTicks.val()));
+        if (demandBackoffLimit != backoffLimit) {
+            demandBackoffLimit = backoffLimit;
+            demandBackoff.clear();
+        }
         if (getWorld().isRemote || !MekanismUtils.canFunction(this) || connections.isEmpty()) {
             return;
         }
@@ -435,6 +442,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     private void emitAllMachines() {
         boolean changed = false;
+        long tick = getWorldNN().getTotalWorldTime();
         int index = 0;
         while (index < connections.size()) {
             if (getEnergy() <= 0) {
@@ -442,11 +450,16 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             }
             ConnectionConfig machine = connections.get(index);
             if (!machine.isChargingEnabled()) {
+                demandBackoff.remove(machine);
                 index++;
                 continue;
             }
-            double energyToSend = Math.min(getEnergy(), getMaxOutput());
+            if (!shouldProbeDemand(machine, tick)) {
+                index++;
+                continue;
+            }
             if (!isConnectionChunkLoaded(machine)) {
+                demandBackoff.remove(machine);
                 index++;
                 continue;
             }
@@ -457,18 +470,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 continue;
             }
 
-            EnumFacing targetSide = machine.getFacing();
             try {
-                EnergyAcceptorTarget target = new EnergyAcceptorTarget();
-                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, targetSide);
-                if (acceptor != null && acceptor.canReceiveEnergy(targetSide) && acceptor.needsEnergy(targetSide)) {
-                    target.addHandler(targetSide, acceptor);
-                }
-                int curHandlers = target.getHandlerCount();
-                if (curHandlers > 0) {
-                    double sent = EmitUtils.sendToAcceptors(target, energyToSend);
-                    getMainEnergyContainer().extract(sent, Action.EXECUTE, AutomationType.INTERNAL);
-                }
+                chargeMachine(machine, tile, tick);
                 index++;
             } catch (Exception e) {
                 markMachineError(machine, tile, e);
@@ -487,6 +490,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     private void emitDynamicMachine() {
         int visited = 0;
         boolean changed = false;
+        long tick = getWorldNN().getTotalWorldTime();
         int visitLimit = Math.min(getEmitTargetsPerTick(), connections.size());
         while (visited < visitLimit && !connections.isEmpty() && getEnergy() > 0) {
             if (emitCursor >= connections.size()) {
@@ -495,10 +499,16 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             ConnectionConfig machine = connections.get(emitCursor);
             visited++;
             if (!machine.isChargingEnabled()) {
+                demandBackoff.remove(machine);
+                emitCursor++;
+                continue;
+            }
+            if (!shouldProbeDemand(machine, tick)) {
                 emitCursor++;
                 continue;
             }
             if (!isConnectionChunkLoaded(machine)) {
+                demandBackoff.remove(machine);
                 emitCursor++;
                 continue;
             }
@@ -509,19 +519,8 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
                 continue;
             }
 
-            EnumFacing targetSide = machine.getFacing();
             try {
-                double energyToSend = Math.min(getEnergy(), getMaxOutput());
-                EnergyAcceptorTarget target = new EnergyAcceptorTarget();
-                EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, targetSide);
-                if (acceptor != null && acceptor.canReceiveEnergy(targetSide) && acceptor.needsEnergy(targetSide)) {
-                    target.addHandler(targetSide, acceptor);
-                }
-                int curHandlers = target.getHandlerCount();
-                if (curHandlers > 0) {
-                    double sent = EmitUtils.sendToAcceptors(target, energyToSend);
-                    getMainEnergyContainer().extract(sent, Action.EXECUTE, AutomationType.INTERNAL);
-                }
+                chargeMachine(machine, tile, tick);
                 emitCursor++;
             } catch (Exception e) {
                 markMachineError(machine, tile, e);
@@ -538,8 +537,76 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
 
+    private boolean shouldProbeDemand(ConnectionConfig machine, long tick) {
+        DemandBackoff state = demandBackoff.get(machine);
+        if (state == null) {
+            return true;
+        }
+        if (tick < state.lastProbeTick) {
+            demandBackoff.remove(machine);
+            return true;
+        }
+        return tick - state.lastProbeTick >= state.retryTicks;
+    }
+
+    private void deferDemandProbe(ConnectionConfig machine, long tick) {
+        if (demandBackoffLimit <= 0) {
+            return;
+        }
+        DemandBackoff state = demandBackoff.computeIfAbsent(machine, ignored -> new DemandBackoff());
+        state.lastProbeTick = tick;
+        state.retryTicks = Math.min(demandBackoffLimit, state.retryTicks == 0 ? 1 : state.retryTicks * 2);
+    }
+
+    private void chargeMachine(ConnectionConfig machine, TileEntity tile, long tick) {
+        double offered = Math.min(getEnergy(), getMaxOutput());
+        if (!Double.isFinite(offered) || offered <= 0) {
+            return;
+        }
+        EnumFacing side = machine.getFacing();
+        EnergyAcceptorWrapper acceptor = EnergyAcceptorWrapper.get(tile, side);
+        if (acceptor == null || !acceptor.canReceiveEnergy(side)) {
+            deferDemandProbe(machine, tick);
+            return;
+        }
+        // There is only one recipient: one demand simulation is enough, with no distribution objects.
+        double requested = checkedAcceptedEnergy(acceptor.acceptEnergy(side, offered, true), offered);
+        if (requested == 0) {
+            deferDemandProbe(machine, tick);
+            return;
+        }
+        double reserved = getMainEnergyContainer().extract(requested, Action.EXECUTE, AutomationType.INTERNAL);
+        if (reserved <= 0) {
+            return;
+        }
+        // Reserve local energy before invoking a foreign handler so a successful target commit
+        // cannot create energy when the source changes during the callback.
+        double accepted = checkedAcceptedEnergy(acceptor.acceptEnergy(side, reserved, false), reserved);
+        if (accepted < reserved) {
+            getMainEnergyContainer().insert(reserved - accepted, Action.EXECUTE, AutomationType.INTERNAL);
+        }
+        if (accepted > 0) {
+            demandBackoff.remove(machine);
+        } else {
+            deferDemandProbe(machine, tick);
+        }
+    }
+
+    private static double checkedAcceptedEnergy(double accepted, double offered) {
+        if (!Double.isFinite(accepted) || accepted < 0 || accepted > offered && accepted - offered > Math.ulp(offered) * 4) {
+            throw new IllegalStateException("Invalid wireless energy acceptance: " + accepted + " for " + offered);
+        }
+        return Math.min(accepted, offered);
+    }
+
+    private static final class DemandBackoff {
+        private long lastProbeTick;
+        private int retryTicks;
+    }
+
     @Override
     public void invalidate() {
+        demandBackoff.clear();
         if (!isRemote() && connectionsLoaded && !connectionDataRemoved) {
             flushConnectionData();
         }
@@ -548,6 +615,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public void onChunkUnload() {
+        demandBackoff.clear();
         if (!isRemote() && connectionsLoaded && !connectionDataRemoved) {
             flushConnectionData();
         }
@@ -582,6 +650,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return;
         }
         LoadedData loadedData = WirelessConnectionDataManager.load(this);
+        demandBackoff.clear();
         connections.clear();
         connections.addAll(loadedData.getConnections());
         connectionRevision = loadedData.getRevision();
@@ -611,6 +680,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
     private void connectionDataChanged() {
+        demandBackoff.clear();
         connectionRevision = connectionRevision == Integer.MAX_VALUE ? 1 : connectionRevision + 1;
         clientConnectionCount = connections.size();
         if (emitCursor >= connections.size()) {
@@ -644,6 +714,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     private ConnectionConfig removeConnectionAt(int index) {
         ConnectionConfig removed = connections.remove(index);
+        demandBackoff.remove(removed);
         disconnectConnection(removed);
         if (emitCursor > index) {
             emitCursor--;
@@ -763,6 +834,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return false;
         }
         this.dynamicWirelessCharging = dynamicWirelessCharging;
+        demandBackoff.clear();
         emitCursor = 0;
         markDirty();
         if (getWorld() != null && !getWorld().isRemote) {
@@ -918,6 +990,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     }
 
     public void removeConnectionData() {
+        demandBackoff.clear();
         if (getWorld() == null || getWorld().isRemote || connectionDataRemoved) {
             return;
         }
@@ -992,6 +1065,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
             return false;
         }
         tier = MachineTier.get(upgradeTier);
+        demandBackoff.clear();
         Mekanism.packetHandler.sendUpdatePacket(this);
         markNoUpdateSync();
         return true;
@@ -1087,6 +1161,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
+        demandBackoff.clear();
         tier = MachineTier.byIndex(nbtTags.getInteger("tier"));
         controlType = MekanismUtils.getByIndex(RedstoneControl.values(), nbtTags.getInteger("controlType"), controlType);
         scanMachine = nbtTags.getBoolean("scan");
@@ -1132,6 +1207,9 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public void setControlType(RedstoneControl type) {
+        if (controlType != type) {
+            demandBackoff.clear();
+        }
         controlType = type;
     }
 
@@ -1189,6 +1267,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
 
     @Override
     public void setConfigurationData(NBTTagCompound nbtTags) {
+        demandBackoff.clear();
         setDynamicWirelessCharging(nbtTags.getBoolean(NBT_DYNAMIC_WIRELESS_CHARGING));
     }
 
@@ -1272,6 +1351,7 @@ public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock im
     //设置扫描机器
     public void setScanMachine() {
         ensureConnectionsLoaded();
+        demandBackoff.clear();
         if (scanInProgress && scanChanged) {
             flushConnectionData();
         }

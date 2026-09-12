@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import mekanism.api.Action;
 import mekanism.api.Coord4D;
 import mekanism.api.IContentsListener;
+import mekanism.api.IConfigCardAccess.ISpecialConfigData;
 import mekanism.api.RelativeSide;
 import mekanism.api.TileNetworkList;
 import mekanism.api.gas.Gas;
@@ -20,6 +21,7 @@ import mekanism.common.base.ISideConfiguration;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.base.ITankManager;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
+import mekanism.common.capabilities.Capabilities;
 import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.fluid.BasicFluidTank;
 import mekanism.common.capabilities.gas.BasicGasTank;
@@ -39,14 +41,6 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
-import mekanism.common.recipe.cache.RecipeLaneSnapshot;
-import mekanism.common.recipe.cache.ImmutableResourceSnapshot;
-import mekanism.common.recipe.cache.RecipeRandomContext;
-import mekanism.common.recipe.cache.RecipeLaneCommitTarget;
-import mekanism.common.recipe.cache.RecipeRunSnapshot;
-import mekanism.common.recipe.cache.RecipeExecutionPlan;
-import mekanism.common.recipe.cache.RecipeLanePlan;
 import mekanism.common.recipe.cache.ItemStackConstantFarmCachedRecipe;
 import mekanism.common.recipe.cache.ItemStackConstantGasCachedRecipe.GasUsageMultiplier;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
@@ -84,6 +78,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -100,9 +95,9 @@ import java.util.function.BiConsumer;
  * inventory are shared by all lanes.
  */
 public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITierMachine<MachineTier>,
-      ISideConfiguration, ITankManager, ITierSorting, ISustainedData, IComparatorSupport, IBoundingBlock,
+      ISideConfiguration, ISpecialConfigData, ITankManager, ITierSorting, ISustainedData, IComparatorSupport, IBoundingBlock,
       IRecipeLookupHandler<FarmRecipe>, IRecipeLookupHandler.ConstantUsageRecipeLookupHandler,
-      TierProcessInputSorter.Context, IAsyncRecipeMachine {
+      TierProcessInputSorter.Context {
 
     public static final int BASE_TICKS_REQUIRED = 200;
     public static final int BASE_SECONDARY_PER_TICK = 1;
@@ -127,6 +122,7 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     public final List<FarmOutputInventorySlot> outputSlots = new ArrayList<>(OUTPUT_SLOT_COUNT);
     private final RecipeCacheLookupMonitor<FarmRecipe>[] recipeCacheLookupMonitors;
     private final PoissonSampler[] secondaryUsageSamplers;
+    private final java.util.Random[] outputRandoms;
     private final TierProcessInputSorter inventorySorter = new TierProcessInputSorter(this);
     public BasicGasTank gasTank;
     public BasicFluidTank fluidTank;
@@ -156,6 +152,7 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
         errorProcesses = new boolean[threadCount];
         recipeCacheLookupMonitors = createRecipeCacheLookupMonitors();
         secondaryUsageSamplers = new PoissonSampler[threadCount];
+        outputRandoms = new java.util.Random[threadCount];
         for (int lane = 0; lane < threadCount; lane++) {
             secondaryUsageSamplers[lane] = new PoissonSampler();
         }
@@ -403,82 +400,67 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
-        if (energySlot != null) {
-            energySlot.fillContainerOrConvert();
-        }
+        super.onAsyncUpdateServer();
+        energySlot.fillContainerOrConvert();
         handleSecondaryFuel();
+        if (areRecipeCachesInvalid()) {
+            Arrays.fill(cachedRecipe, null);
+            sortingNeeded = true;
+        }
         if (sortingNeeded && sorting && hasItemInput()) {
             sortingNeeded = false;
             inventorySorter.sort();
-        } else if (!sortingNeeded && areRecipeCachesInvalid()) {
-            sortingNeeded = true;
         }
+        for (int lane = 0; lane < threadCount; lane++) {
+            if (!processLane(lane)) {
+                activeProcesses[lane] = false;
+                errorProcesses[lane] = false;
+                progress[lane] = 0;
+                usedSoFar[lane] = 0;
+                cachedRecipe[lane] = null;
+            }
+        }
+        finishRecipeTick();
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        Class<?> type = getClass();
+        return type == TileEntityTierOrganicFarm.class || type == TileEntityTierOrganicFarmBasic.class ||
+              type == TileEntityTierOrganicFarmAdvanced.class || type == TileEntityTierOrganicFarmElite.class ||
+              type == TileEntityTierOrganicFarmUltimate.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        if (getActive() || prevEnergy != getEnergy() || !energySlot.isEmpty() || !mergedTankSlot.isEmpty() ||
+              sortingNeeded || recipeCachesInvalid || observedRecipeVersion != RecipeHandler.getGlobalRecipeVersion() ||
+              CommonWorldTickHandler.flushTagAndRecipeCaches) {
+            return false;
+        }
+        for (int lane = 0; lane < threadCount; lane++) {
+            if (!inputSlots[lane].isEmpty() || progress[lane] != 0 || usedSoFar[lane] != 0 ||
+                  activeProcesses[lane] ||
+                  !recipeCacheLookupMonitors[lane].canSkipProcessing()) {
+                return false;
+            }
+        }
+        for (FarmOutputInventorySlot output : outputSlots) {
+            if (!output.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void finishRecipeTick() {
         observedRecipeVersion = RecipeHandler.getGlobalRecipeVersion();
         recipeCachesInvalid = false;
+        if (!hasItemInput()) {
+            sortingNeeded = false;
+        }
         setActive(anyLaneActive());
         prevEnergy = getEnergy();
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        List<FarmRecipe> recipes = new ArrayList<>(threadCount);
-        for (int lane = 0; lane < threadCount; lane++) {
-            recipes.add(getRecipe(lane));
-        }
-        return recipes;
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.ORGANIC_FARM.getRecipeGeneration();
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneSnapshot> getAsyncRecipeLaneSnapshots() {
-        Map<Integer, RecipeLaneSnapshot> lanes = new java.util.LinkedHashMap<>();
-        for (int lane = 0; lane < threadCount; lane++) {
-            FarmRecipe recipe = getRecipe(lane);
-            RecipeLaneSnapshot.Builder builder = RecipeLaneSnapshot.builder(lane)
-                  .operatingTicks(progress[lane]).requiredTicks(Math.max(1, ticksRequired))
-                  .baselineMaxOperations(MekanismUtils.canFunction(this) ? 1 : 0)
-                  .energyPerTick(energyPerTick).active(activeProcesses[lane]).pooledOutputs(true)
-                  .errors(mekanism.common.recipe.cache.AsyncMachinePlanSupport.captureErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane)))
-                  .pausedForErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) != null && recipeCacheLookupMonitors[lane].getCachedRecipe(lane).isPausedForErrors())
-                  .input("item.0", ImmutableResourceSnapshot.of(inputSlots[lane].getStack()));
-            if (recipe != null) {
-                String medium = recipe.getInput().isGasInput() ? "gas.1" : "fluid.1";
-                builder.input(medium, recipe.getInput().isGasInput() ?
-                      ImmutableResourceSnapshot.of(mergedTank.getGasTank().getGas()) :
-                      ImmutableResourceSnapshot.of(mergedTank.getFluidTank().getFluid()), true)
-                      .perTickInputMultipliers(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) == null ?
-                            Collections.emptyMap() : recipeCacheLookupMonitors[lane].getCachedRecipe(lane).getPlanInputMultipliers());
-            }
-            for (int index = 0; index < outputSlots.size(); index++) {
-                FarmOutputInventorySlot slot = outputSlots.get(index);
-                String key = "item." + index;
-                builder.output(key, ImmutableResourceSnapshot.of(slot.getStack()), slot.getLimit(ItemStack.EMPTY), true);
-                if (recipe != null) {
-                    for (ItemStack output : recipe.getOutput().getMaxOutputs()) {
-                        builder.outputLimit(key, ImmutableResourceSnapshot.of(output), slot.getLimit(output));
-                    }
-                }
-            }
-            lanes.put(lane, builder.build());
-        }
-        return lanes;
     }
 
     private boolean anyLaneActive() {
@@ -488,34 +470,6 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
             }
         }
         return false;
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        Map<Integer, RecipeLaneCommitTarget> targets = new java.util.LinkedHashMap<>();
-        for (int lane = 0; lane < threadCount; lane++) {
-            RecipeLaneCommitTarget target = new RecipeLaneCommitTarget(recipeCacheLookupMonitors[lane].prepareCache())
-                  .input("item.0", inputSlots[lane]);
-            FarmRecipe recipe = getRecipe(lane);
-            if (recipe != null) {
-                if (recipe.getInput().isGasInput()) target.input("gas.1", mergedTank.getGasTank());
-                else target.input("fluid.1", mergedTank.getFluidTank());
-            }
-            for (int index = 0; index < outputSlots.size(); index++) target.output("item." + index, outputSlots.get(index));
-            targets.put(lane, target);
-        }
-        return targets;
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(RecipeRunSnapshot snapshot, RecipeExecutionPlan plan) {
-        for (RecipeLanePlan lane : plan.getLanes().values()) {
-            int index = lane.getLaneIndex();
-            progress[index] = lane.getNewOperatingTicks();
-            activeProcesses[index] = lane.isActive();
-            errorProcesses[index] = snapshot.getLane(index).isRecipePresent() && !lane.getErrors().isEmpty();
-        }
-        finishRecipeTick();
     }
 
     private boolean hasItemInput() {
@@ -560,11 +514,14 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
         }
         GasUsageMultiplier usage = (used, operatingTicks) ->
               secondaryUsageSamplers[cacheIndex].sample(gasPerTickMeanMultiplier);
+        if (outputRandoms[cacheIndex] == null) {
+            outputRandoms[cacheIndex] = mekanism.common.recipe.cache.RecipeRandom.forLane(getPos().toLong(), cacheIndex);
+        }
         return new ItemStackConstantFarmCachedRecipe<>(recipe, () -> false,
               InputHelper.getInputHandler(inputSlots[cacheIndex], RecipeError.NOT_ENOUGH_INPUT),
               InputHelper.getConstantGasInputHandler(mergedTank.getGasTank(), RecipeError.NOT_ENOUGH_SECONDARY_INPUT, false),
               InputHelper.getConstantFluidInputHandler(mergedTank.getFluidTank(), RecipeError.NOT_ENOUGH_SECONDARY_INPUT, false),
-              OutputHelper.getFarmOutputHandler(new ArrayList<>(outputSlots), RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
+              OutputHelper.getFarmOutputHandler(new ArrayList<>(outputSlots), RecipeError.NOT_ENOUGH_OUTPUT_SPACE, outputRandoms[cacheIndex]),
               usage, used -> usedSoFar[cacheIndex] = used)
               .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
               .setActive(active -> activeProcesses[cacheIndex] = active)
@@ -573,7 +530,10 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
               .setBaselineMaxOperations(() -> 1)
               .setOperatingTicksChanged(ticks -> progress[cacheIndex] = ticks)
               .setErrorsChanged(errors -> errorProcesses[cacheIndex] = !errors.isEmpty())
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  progress[cacheIndex] = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     private void onCachedRecipeFinish() {
@@ -768,6 +728,48 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     @Override
     public TileComponentEjector getEjector() {
         return ejectorComponent;
+    }
+
+    @Override
+    public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing side) {
+        if (isCapabilityDisabled(capability, side)) {
+            return false;
+        }
+        return capability == Capabilities.CONFIG_CARD_CAPABILITY || capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY ||
+              super.hasCapability(capability, side);
+    }
+
+    @Override
+    public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing side) {
+        if (isCapabilityDisabled(capability, side)) {
+            return null;
+        } else if (capability == Capabilities.CONFIG_CARD_CAPABILITY) {
+            return Capabilities.CONFIG_CARD_CAPABILITY.cast(this);
+        } else if (capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY) {
+            return Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY.cast(this);
+        }
+        return super.getCapability(capability, side);
+    }
+
+    @Override
+    public NBTTagCompound getConfigurationData(NBTTagCompound nbtTags) {
+        nbtTags.setBoolean("sorting", sorting);
+        return nbtTags;
+    }
+
+    @Override
+    public void setConfigurationData(NBTTagCompound nbtTags) {
+        runContainerTransaction(() -> {
+            sorting = nbtTags.getBoolean("sorting");
+            sortingNeeded = true;
+            unpauseRecipeCaches();
+            markNoUpdateSync();
+        });
+    }
+
+    @Override
+    public String getDataType() {
+        return getName();
     }
 
     @Override

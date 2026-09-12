@@ -26,7 +26,6 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
 import mekanism.common.recipe.cache.OneInputCachedRecipe;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.inputs.InputHelper;
@@ -79,8 +78,7 @@ import java.util.Objects;
         @Optional.Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
 public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBlock implements IUpgradeTile, IRedstoneControl, ISecurityTile, IComputerIntegration, ISideConfiguration, IConfigCardAccess,
-        IBoundingBlock, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile, IRecipeLookupHandler<SolarNeutronRecipe>, IAsyncRecipeMachine {
-
+        IBoundingBlock, ISustainedData, ITankManager, Upgrade.IUpgradeInfoHandler, IComparatorSupport, IActiveState, ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile, IRecipeLookupHandler<SolarNeutronRecipe> {
 
     public static final int MAX_GAS = 10000;
     private final RecipeCacheLookupMonitor<SolarNeutronRecipe> recipeCacheLookupMonitor = new RecipeCacheLookupMonitor<>(this);
@@ -189,21 +187,29 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         }
     }
 
-
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         inputSlot.fillTank();
         outputSlot.drainTank();
+        if (!recipeCacheLookupMonitor.updateAndProcess()) {
+            setActive(false);
+            operatingTicks = 0;
+        }
+        finishRecipeTick();
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierSolarNeutronActivator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        // Sunlight is sampled on the server thread; even in daylight, empty gas cannot produce output.
+        return inputTank.isEmpty() && outputTank.isEmpty() && inputSlot.isEmpty() && outputSlot.isEmpty() &&
+              !getActive() && operatingTicks == 0 && currentRedstoneLevel == getRedstoneLevel() &&
+              serverWorldTime % 20 != 0 && recipeCacheLookupMonitor.canSkipProcessing();
     }
 
     private void finishRecipeTick() {
@@ -219,35 +225,6 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
             updateComparatorOutputLevelSync();
             currentRedstoneLevel = newRedstoneLevel;
         }
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        return getRecipe();
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.SOLAR_NEUTRON_ACTIVATOR.getRecipeGeneration();
-    }
-
-    @Override
-    public String getAsyncMode() {
-        return hasCurrentSunlight() ? "sun" : "no_sun";
-    }
-
-    @Override
-    public java.util.Map<Integer, mekanism.common.recipe.cache.RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        return java.util.Collections.singletonMap(0,
-              new mekanism.common.recipe.cache.RecipeLaneCommitTarget(recipeCacheLookupMonitor.prepareCache())
-                    .input("gas.0", inputTank).output("gas.0", outputTank));
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        if (!snapshot.getLane(0).isRecipePresent()) setActive(false);
-        finishRecipeTick();
     }
 
     @Override
@@ -326,6 +303,11 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     }
 
     @Override
+    public int getSavedOperatingTicks(int cacheIndex) {
+        return operatingTicks;
+    }
+
+    @Override
     public CachedRecipe<SolarNeutronRecipe> createNewCachedRecipe(SolarNeutronRecipe recipe, int cacheIndex) {
         return new OneInputCachedRecipe<>(recipe, () -> false,
               InputHelper.getGasInputHandler(inputTank, RecipeError.NOT_ENOUGH_INPUT),
@@ -338,6 +320,8 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
               .setCanHolderFunction(() -> seesSunThisTick && MekanismUtils.canFunction(this))
               .setActive(this::setActive)
               .setRequiredTicks(() -> 1)
+              .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
+              .setOnFinish(() -> operatingTicks = 0)
               .setBaselineMaxOperations(() -> getUpgradedUsage(recipe));
     }
 
@@ -453,7 +437,6 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
         return configComponent.isCapabilityDisabled(capability, side, facing) || super.isCapabilityDisabled(capability, side);
     }
 
-
     @Override
     public void writeSustainedData(ItemStack itemStack) {
         if (inputTank.getGas() != null) {
@@ -489,7 +472,6 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     public Object[] getManagedTanks() {
         return new Object[]{inputTank, outputTank};
     }
-
 
     @Override
     public List<String> getInfo(Upgrade upgrade) {

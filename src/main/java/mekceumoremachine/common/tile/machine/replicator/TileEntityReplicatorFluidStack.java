@@ -52,7 +52,6 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
     public ResizableFluidTank outputTank;
     private EnergyInventorySlot energySlot;
 
-
     public TileEntityReplicatorFluidStack() {
         super("prc", "ReplicatorFluidStack", MoreMachineConfig.current().config.ReplicatorFluidStackEnergyStorge.val(), MoreMachineConfig.current().config.ReplicatorFluidStackEnergyUsage.val(), 1, 200);
 
@@ -115,18 +114,21 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
+        processRecipe();
+        prevEnergy = getEnergy();
     }
 
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorFluidStackRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .input("gas.0", uuTank).templateInput("fluid.1", inputTank).output("fluid.0", outputTank);
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityReplicatorFluidStack.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return inputTank.isEmpty() && uuTank.isEmpty() && outputTank.isEmpty() &&
+              energySlot.isEmpty() && isEmptyRecipeStateSettled();
     }
 
     @Override
@@ -207,7 +209,10 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
               .setBaselineMaxOperations(() -> getBaselineMaxOperations(getReplicatorEnergyPerTick(recipe), true))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     private double getReplicatorEnergyPerTick(ReplicatorFluidStackRecipe recipe) {
@@ -248,7 +253,6 @@ public class TileEntityReplicatorFluidStack extends TileEntityBasicMachine<GasAn
         nbtTags.setTag("uuTank", uuTank.write(new NBTTagCompound()));
         nbtTags.setTag("outputTank", outputTank.writeToNBT(new NBTTagCompound()));
     }
-
 
     @Override
     public Map<GasAndFluidInput, ReplicatorFluidStackRecipe> getRecipes() {

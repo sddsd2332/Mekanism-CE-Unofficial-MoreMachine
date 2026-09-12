@@ -30,14 +30,6 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
-import mekanism.common.recipe.cache.RecipeLaneSnapshot;
-import mekanism.common.recipe.cache.ImmutableResourceSnapshot;
-import mekanism.common.recipe.cache.RecipeRandomContext;
-import mekanism.common.recipe.cache.RecipeLaneCommitTarget;
-import mekanism.common.recipe.cache.RecipeRunSnapshot;
-import mekanism.common.recipe.cache.RecipeExecutionPlan;
-import mekanism.common.recipe.cache.RecipeLanePlan;
 import mekanism.common.recipe.cache.ItemStackConstantGasCachedRecipe;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.inputs.InputHelper;
@@ -78,9 +70,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 
-public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting, ISpecialSelectionWireframeTile, IRecipeLookupHandler<DissolutionRecipe>, IRecipeLookupHandler.ConstantUsageRecipeLookupHandler, TierProcessInputSorter.Context, IAsyncRecipeMachine {
+public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine implements ISustainedData, ITankManager, ISpecialConfigData, IComparatorSupport, ISideConfiguration, INeedRepeatTierUpgrade<MachineTier>, ITierSorting, ISpecialSelectionWireframeTile, IRecipeLookupHandler<DissolutionRecipe>, IRecipeLookupHandler.ConstantUsageRecipeLookupHandler, TierProcessInputSorter.Context {
 
     public static final int MAX_GAS = 10000;
     public static final int BASE_INJECT_USAGE = 1;
@@ -98,6 +89,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     public ResizableGasTank outputTank9;
     public double injectUsage = BASE_INJECT_USAGE;
     public int injectUsageThisTick;
+    private final PoissonSampler injectUsageSampler = new PoissonSampler();
     public int[] progress;
     public long[] usedSoFar;
     public int ticksRequired = BASE_TICKS_REQUIRED;
@@ -307,6 +299,9 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
 
     @Override
     public void setActive(boolean active) {
+        if (getActive() == active) {
+            return;
+        }
         super.setActive(active);
         if (updateDelay == 0) {
             Mekanism.packetHandler.sendUpdatePacket(this);
@@ -316,99 +311,79 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         if (updateDelay > 0) {
-            updateDelay--;
-            if (updateDelay == 0) {
+            if (--updateDelay == 0) {
                 needsPacket = true;
             }
         }
         energySlot.fillContainerOrConvert();
         injectSlot.fillTank();
-        injectUsageThisTick = Math.max(BASE_INJECT_USAGE, StatUtils.inversePoisson(injectUsage));
-     //   injectUsageThisTick *= tier.processes;
+        sampleInjectUsage();
+        if (areRecipeCachesInvalid()) {
+            Arrays.fill(cachedRecipe, null);
+            markSortingNeeded();
+        }
         if (shouldSortInventory()) {
             markSortingNotNeeded();
             sortInventory();
-        } else if (!sortingNeeded && areRecipeCachesInvalid()) {
-            markSortingNeeded();
         }
+        for (int process = 0; process < tier.processes; process++) {
+            if (!recipeCacheLookupMonitors[process].updateAndProcess()) {
+                progress[process] = 0;
+                usedSoFar[process] = 0;
+                activeProcesses[process] = false;
+                cachedRecipe[process] = null;
+            }
+        }
+        finishRecipeTick();
+    }
 
+    private void sampleInjectUsage() {
+        injectUsageThisTick = Math.max(BASE_INJECT_USAGE, injectUsageSampler.sample(injectUsage));
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected void onAsyncUpdateSkipped() {
+        sampleInjectUsage();
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        Class<?> type = getClass();
+        return type == TileEntityTierChemicalDissolutionChamber.class || type == TileEntityTierChemicalDissolutionChamberBasic.class ||
+              type == TileEntityTierChemicalDissolutionChamberAdvanced.class || type == TileEntityTierChemicalDissolutionChamberElite.class ||
+              type == TileEntityTierChemicalDissolutionChamberUltimate.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        if (getActive() || prevEnergy != getEnergy() || !energySlot.isEmpty() || updateDelay != 0 || needsPacket ||
+              sortingNeeded || recipeCachesInvalid || observedRecipeVersion != RecipeHandler.getGlobalRecipeVersion() ||
+              CommonWorldTickHandler.flushTagAndRecipeCaches || !injectSlot.isEmpty()) {
+            return false;
+        }
+        for (int process = 0; process < recipeCacheLookupMonitors.length; process++) {
+            if (!getProcessInputSlot(process).isEmpty() || !outPutTanks[process].isEmpty() ||
+                  progress[process] != 0 || activeProcesses[process] ||
+                  usedSoFar[process] != 0 || !recipeCacheLookupMonitors[process].canSkipProcessing()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void finishRecipeTick() {
         markRecipeCachesObserved();
+        if (!hasItemInput()) {
+            markSortingNotNeeded();
+        }
         updateActiveState();
         prevEnergy = getEnergy();
         if (needsPacket) {
             Mekanism.packetHandler.sendUpdatePacket(this);
         }
         needsPacket = false;
-    }
-
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        List<DissolutionRecipe> recipes = new ArrayList<>(tier.processes);
-        for (int process = 0; process < tier.processes; process++) {
-            recipes.add(getRecipe(process));
-        }
-        return recipes;
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneSnapshot> getAsyncRecipeLaneSnapshots() {
-        Map<Integer, RecipeLaneSnapshot> lanes = new LinkedHashMap<>();
-        for (int lane = 0; lane < tier.processes; lane++) {
-            RecipeLaneSnapshot.Builder builder = RecipeLaneSnapshot.builder(lane)
-                  .operatingTicks(progress[lane]).requiredTicks(Math.max(1, ticksRequired))
-                  .baselineMaxOperations(MekanismUtils.canFunction(this) ? getMaxOperationsPerTick() : 0)
-                  .energyPerTick(energyPerTick).active(activeProcesses[lane])
-                  .errors(mekanism.common.recipe.cache.AsyncMachinePlanSupport.captureErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane)))
-                  .pausedForErrors(recipeCacheLookupMonitors[lane].getCachedRecipe(lane) != null && recipeCacheLookupMonitors[lane].getCachedRecipe(lane).isPausedForErrors())
-                  .input("item.0", ImmutableResourceSnapshot.of(getProcessInputSlot(lane).getStack()))
-                  .output("gas.0", ImmutableResourceSnapshot.of(outPutTanks[lane].getGas()), outPutTanks[lane].getCapacity());
-            builder.input("gas.1", ImmutableResourceSnapshot.of(injectTank.getGas()), true)
-                  .perTickInputMultipliers(java.util.Collections.singletonMap("gas.1", getGasUsage(usedSoFar[lane], progress[lane])));
-            lanes.put(lane, builder.build());
-        }
-        return lanes;
-    }
-
-    @Override
-    public Map<Integer, RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        Map<Integer, RecipeLaneCommitTarget> targets = new LinkedHashMap<>();
-        for (int lane = 0; lane < tier.processes; lane++) {
-            recipeCacheLookupMonitors[lane].unpause();
-            RecipeLaneCommitTarget target = new RecipeLaneCommitTarget(recipeCacheLookupMonitors[lane].prepareCache())
-                  .input("item.0", getProcessInputSlot(lane)).output("gas.0", outPutTanks[lane]);
-            target.input("gas.1", injectTank);
-            targets.put(lane, target);
-        }
-        return targets;
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(RecipeRunSnapshot snapshot, RecipeExecutionPlan plan) {
-        for (RecipeLanePlan lane : plan.getLanes().values()) {
-            progress[lane.getLaneIndex()] = lane.getNewOperatingTicks();
-            activeProcesses[lane.getLaneIndex()] = lane.isActive();
-        }
-        finishRecipeTick();
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.CHEMICAL_DISSOLUTION_CHAMBER.getRecipeGeneration();
     }
 
     private boolean isProcessIndex(int process) {
@@ -538,7 +513,11 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
               .setRequiredTicks(() -> ticksRequired)
               .setBaselineMaxOperations(this::getMaxOperationsPerTick)
               .setOperatingTicksChanged(ticks -> progress[cacheIndex] = ticks)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  // Core omits the progress callback for one-tick recipes.
+                  progress[cacheIndex] = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     @Override
@@ -555,12 +534,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         }
     }
 
-
     @Override
     public boolean sideIsConsumer(EnumFacing side) {
         return configComponent.hasSideForData(TransmissionType.ENERGY, facing, DataType.ENERGY, side);
     }
-
 
     public DissolutionRecipe getDissolutionRecipe(ItemStack input) {
         return RecipeHandler.getDissolutionRecipe(new ItemStackInput(input));
@@ -641,7 +618,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         return data;
     }
 
-
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
         super.readCustomNBT(nbtTags);
@@ -669,7 +645,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             nbtTags.setTag("outputTank" + i, outPutTanks[i].write(new NBTTagCompound()));
         }
     }
-
 
     private IInventorySlot getProcessInputSlot(int process) {
         return isProcessIndex(process) && process < inputSlots.size() ? inputSlots.get(process) : null;
@@ -726,7 +701,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         return configComponent;
     }
 
-
     @Override
     public EnumFacing getOrientation() {
         return facing;
@@ -748,7 +722,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         }
         return capability == Capabilities.CONFIG_CARD_CAPABILITY || capability == Capabilities.SPECIAL_CONFIG_DATA_CAPABILITY || super.hasCapability(capability, side);
     }
-
 
     @Override
     public <T> T getCapability(@Nonnull Capability<T> capability, EnumFacing side) {
@@ -831,7 +804,6 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             }
         }
     }
-
 
     @Override
     public void readSustainedData(ItemStack itemStack) {

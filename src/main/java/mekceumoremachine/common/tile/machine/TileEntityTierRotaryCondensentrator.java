@@ -35,7 +35,6 @@ import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.cache.CachedRecipe;
 import mekanism.common.recipe.cache.CachedRecipe.OperationTracker.RecipeError;
 import mekanism.common.recipe.cache.IRecipeLookupHandler;
-import mekanism.common.recipe.cache.IAsyncRecipeMachine;
 import mekanism.common.recipe.cache.RecipeCacheLookupMonitor;
 import mekanism.common.recipe.cache.RotaryCachedRecipe;
 import mekanism.common.recipe.cache.inputs.InputHelper;
@@ -75,8 +74,7 @@ import java.util.function.BooleanSupplier;
 
 public class TileEntityTierRotaryCondensentrator extends TileEntityMachine implements ISustainedData, Upgrade.IUpgradeInfoHandler, ITankManager,
         IComparatorSupport, ISideConfiguration, IConfigCardAccess.ISpecialConfigData, ITierMachine<MachineTier>, ISpecialSelectionWireframeTile,
-        IRecipeLookupHandler<RotaryRecipe>, IAsyncRecipeMachine {
-
+        IRecipeLookupHandler<RotaryRecipe> {
 
     public static final int MAX_FLUID = 10000;
     public static final RecipeError NOT_ENOUGH_FLUID_INPUT_ERROR = RecipeError.create();
@@ -214,11 +212,7 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
         if (mode) {
             gasInputSlot.fillTank();
@@ -228,11 +222,21 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
             fluidSlot.fillTank(fluidContainerOutputSlot);
         }
         sanitizeAndClampTanks();
+        clientEnergyUsed = recipeCacheLookupMonitor.updateAndProcess(getMainEnergyContainer());
+        finishRecipeTick();
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncRecipeMachine.super.commitAsyncRecipeTick();
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierRotaryCondensentrator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return gasTank.isEmpty() && fluidTank.isEmpty() && gasInputSlot.isEmpty() && gasOutputSlot.isEmpty() &&
+              fluidSlot.isEmpty() && fluidContainerOutputSlot.isEmpty() && energySlot.isEmpty() &&
+              !getActive() && clientEnergyUsed == 0 && prevEnergy == getEnergy() &&
+              currentRedstoneLevel == getRedstoneLevel() && recipeCacheLookupMonitor.canSkipProcessing();
     }
 
     private void finishRecipeTick() {
@@ -246,37 +250,6 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
             currentRedstoneLevel = newRedstoneLevel;
 
         }
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        return getRecipe();
-    }
-
-    @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.ROTARY_CONDENSENTRATOR.getRecipeGeneration();
-    }
-
-    @Override
-    public String getAsyncMode() {
-        return mode ? "gas_to_fluid" : "fluid_to_gas";
-    }
-
-    @Override
-    public java.util.Map<Integer, mekanism.common.recipe.cache.RecipeLaneCommitTarget> getAsyncRecipeCommitTargets() {
-        mekanism.common.recipe.cache.RecipeLaneCommitTarget target =
-              new mekanism.common.recipe.cache.RecipeLaneCommitTarget(recipeCacheLookupMonitor.prepareCache());
-        if (mode) target.input("gas.0", gasTank).output("fluid.0", fluidTank);
-        else target.input("fluid.0", fluidTank).output("gas.0", gasTank);
-        return java.util.Collections.singletonMap(0, target);
-    }
-
-    @Override
-    public void afterAsyncRecipeCommit(mekanism.common.recipe.cache.RecipeRunSnapshot snapshot,
-          mekanism.common.recipe.cache.RecipeExecutionPlan plan) {
-        clientEnergyUsed = plan.getEnergyAsDouble();
-        finishRecipeTick();
     }
 
     public int getUpgradedUsage() {
@@ -423,7 +396,6 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         }
     }
 
-
     @Override
     public TileNetworkList getNetworkedData(TileNetworkList data) {
         super.getNetworkedData(data);
@@ -447,7 +419,6 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         }
         sanitizeAndClampTanks();
     }
-
 
     @Override
     public void writeCustomNBT(NBTTagCompound nbtTags) {
@@ -566,7 +537,6 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         return MEKCeuMoreMachine.proxy;
     }
 
-
     @Override
     public NBTTagCompound getConfigurationData(NBTTagCompound nbtTags) {
         nbtTags.setBoolean("mode", mode);
@@ -622,24 +592,20 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         return ITierMachine.super.parseUpgradeData(upgradeData);
     }
 
-
     @Override
     public double getMaxEnergy() {
         return upgradeComponent.isUpgradeInstalled(Upgrade.ENERGY) ? MekanismUtils.getMaxEnergy(this, getTierEnergy()) : getTierEnergy();
     }
 
-
     public double getTierEnergy() {
         return MachineType.ROTARY_CONDENSENTRATOR.getStorage() * tier.processes;
     }
-
 
     @Nonnull
     @Override
     public String getName() {
         return LangUtils.localize("tile.TierRotaryCondensentrator." + tier.getBaseTier().getSimpleName() + ".name");
     }
-
 
     @Override
     public String getDataType() {

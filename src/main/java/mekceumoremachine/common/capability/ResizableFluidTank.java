@@ -81,7 +81,6 @@ public class ResizableFluidTank extends FluidTank implements IExtendedFluidTank,
         return serializeNBT();
     }
 
-    @Override
     public void setStackUncheckedNoUpdate(@Nullable FluidStack stack) {
         super.setFluid(stack == null ? null : stack.copy());
     }

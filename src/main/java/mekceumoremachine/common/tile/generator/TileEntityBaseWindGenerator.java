@@ -54,7 +54,6 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
         return builder.build();
     }
 
-
     @Override
     public void onLoad() {
         super.onLoad();
@@ -92,9 +91,18 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
 
     @Override
     public boolean supportsAsync() {
-        // Wind generation is simple world-dependent arithmetic and stays entirely
-        // on the server thread under the explicit planner model.
-        return false;
+        return true;
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierWindGenerator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return energySlot.isEmpty() && getEnergy() == 0 && !getActive() &&
+              (isBlacklistDimension || currentMultiplier <= 0 || !MekanismUtils.canFunction(this));
     }
 
     public double getEnergyAdd() {
@@ -126,7 +134,6 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
         data.add(isBlacklistDimension);
         return data;
     }
-
 
     /**
      * Determines the current output multiplier, taking sky visibility and height into account.
@@ -208,7 +215,6 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
         tryPlaceBoundingBlocks(world, Coord4D.get(this));
     }
 
-
     @Override
     public double getMaxOutput() {
         return MekanismConfig.current().generators.windGenerationMax.val() * 2 * processes();
@@ -223,7 +229,6 @@ public abstract class TileEntityBaseWindGenerator extends TileEntityGenerator im
     public void onBreak() {
         removeBoundingBlocks(world, getPos());
     }
-
 
     @Override
     public boolean renderUpdate() {

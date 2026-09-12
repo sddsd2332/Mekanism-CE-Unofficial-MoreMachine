@@ -27,6 +27,9 @@ public class MekCEUMoreMachineConfig extends BaseConfig {
 
     public BooleanOption enableTeslaWirelessRecharge = new BooleanOption(this, "enableTeslaWirelessRecharge", true, "Allows machines of the Tesla series to be charged");
 
+    public IntOption WirelessChargingDemandBackoffMaxTicks = new IntOption(this, "WirelessChargingDemandBackoffMaxTicks", 4,
+          "Maximum retry interval for wireless machine targets that accept no energy. The interval doubles from 1 tick; successful transfers reset it. Set to 0 to disable. Dynamic round-robin scheduling may add its normal revisit delay.", 0, 20);
+
     public BooleanOption enableAutoClearErrorMachine = new BooleanOption(this, "enableAutoClearErrorMachine", true, "When the wireless power station detects the coordinates of an incorrect block, it will store them in a map and continuously check whether the block exists at those coordinates. If it does not exist, the error will be cleared.");
 
     public IntOption AutoClearErrorMachineSecond = new IntOption(this, "AutoClearErrorMachineSecond", 60, "How many seconds to clear an error", 1, Integer.MAX_VALUE / 20);

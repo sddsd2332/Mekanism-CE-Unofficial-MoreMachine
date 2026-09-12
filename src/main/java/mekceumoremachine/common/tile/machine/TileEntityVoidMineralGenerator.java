@@ -93,7 +93,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return builder.build();
     }
 
-
     @Override
     public void onAsyncUpdateServer() {
         super.onAsyncUpdateServer();
@@ -122,6 +121,26 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
             }
         }
         return false;
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityVoidMineralGenerator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        // Ore generation has no input slot. Only insufficient power with no residual work is provably idle.
+        if (getActive() || operatingTicks != 0 || prevEnergy != getEnergy() || !energySlot.isEmpty() ||
+              !(energyPerTick > 0 && getEnergy() < energyPerTick)) {
+            return false;
+        }
+        for (IInventorySlot slot : outputSlots) {
+            if (!slot.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean canFitOutput(ItemStack stack) {
@@ -162,7 +181,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return thread;
     }
 
-
     public void addInventory(List<ItemStack> stacks) {
         if (stacks.isEmpty()) {
             return;
@@ -195,7 +213,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return ejectorComponent;
     }
 
-
     @Override
     public void collectBoundingBlocks(java.util.function.BiConsumer<BlockPos, Boolean> consumer) {
         MachineStructureOffsets.collectOneAbove(getPos(), consumer);
@@ -210,8 +227,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
     public void onBreak() {
         removeBoundingBlocks(world, getPos());
     }
-
-
 
     @Override
     public boolean hasCapability(@Nonnull Capability<?> capability, EnumFacing side) {
@@ -253,7 +268,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return tier;
     }
 
-
     @Override
     public void handlePacketData(ByteBuf dataStream) {
         super.handlePacketData(dataStream);
@@ -266,14 +280,12 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         }
     }
 
-
     @Override
     public TileNetworkList getNetworkedData(TileNetworkList data) {
         super.getNetworkedData(data);
         data.add(tier.ordinal());
         return data;
     }
-
 
     @Override
     public void readCustomNBT(NBTTagCompound nbtTags) {
@@ -297,7 +309,6 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         }
     }
 
-
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(getEnergy(), getMaxEnergy());
@@ -308,12 +319,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return configComponent.hasSideForData(TransmissionType.ENERGY, facing, DataType.INPUT, side);
     }
 
-
     @Override
     public boolean canSetFacing(@Nonnull EnumFacing facing) {
         return facing != EnumFacing.DOWN && facing != EnumFacing.UP;
     }
-
 
     @Override
     public int getBlockGuiID(Block block, int i) {

@@ -28,7 +28,6 @@ public class TileEntityTierSolarGenerator extends TileEntitySolarGenerator imple
         super("TierSolarGenerator", 0, 0);
     }
 
-
     @Override
     protected float getConfiguredMax() {
         return (float) MekanismConfig.current().generators.solarGeneration.val() * tier.processes;
@@ -46,6 +45,16 @@ public class TileEntityTierSolarGenerator extends TileEntitySolarGenerator imple
             return 0;
         }
         return getConfiguredMax() * getBrightnessMultiplier() * getGenerationMultiplier(pos);
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierSolarGenerator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return getEnergy() == 0 && super.isAsyncUpdateIdle();
     }
 
     @Override
@@ -125,7 +134,6 @@ public class TileEntityTierSolarGenerator extends TileEntitySolarGenerator imple
     public String getName() {
         return LangUtils.localize("tile." + fullName + "." + tier.getBaseTier().getSimpleName() + ".name");
     }
-
 
     @Override
     public void handlePacketData(ByteBuf dataStream) {

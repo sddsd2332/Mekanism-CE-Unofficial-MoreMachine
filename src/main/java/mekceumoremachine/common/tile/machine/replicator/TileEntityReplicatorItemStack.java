@@ -101,18 +101,21 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
+        processRecipe();
+        prevEnergy = getEnergy();
     }
 
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorItemStackRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .templateInput("item.0", inputSlot).input("gas.1", inputGasTank).output("item.0", outputSlot);
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityReplicatorItemStack.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return inputSlot.isEmpty() && inputGasTank.isEmpty() && outputSlot.isEmpty() &&
+              energySlot.isEmpty() && isEmptyRecipeStateSettled();
     }
 
     @Override
@@ -200,7 +203,10 @@ public class TileEntityReplicatorItemStack extends TileEntityBasicMachine<Nucleo
               .setBaselineMaxOperations(() -> getBaselineMaxOperations(getReplicatorEnergyPerTick(recipe), true))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     private double getReplicatorEnergyPerTick(ReplicatorItemStackRecipe recipe) {

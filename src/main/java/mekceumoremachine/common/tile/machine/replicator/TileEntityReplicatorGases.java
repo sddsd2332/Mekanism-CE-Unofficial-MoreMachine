@@ -105,18 +105,21 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.fillContainerOrConvert();
+        processRecipe();
+        prevEnergy = getEnergy();
     }
 
     @Override
-    protected mekanism.common.recipe.cache.RecipeLaneCommitTarget createAsyncRecipeCommitTarget(CachedRecipe<ReplicatorGasStackRecipe> cache) {
-        return new mekanism.common.recipe.cache.RecipeLaneCommitTarget(cache)
-              .templateInput("gas.0", inputTank).input("gas.1", uuTank).output("gas.0", outputTank);
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityReplicatorGases.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return inputTank.isEmpty() && uuTank.isEmpty() && outputTank.isEmpty() &&
+              energySlot.isEmpty() && isEmptyRecipeStateSettled();
     }
 
     @Override
@@ -197,7 +200,10 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
               .setBaselineMaxOperations(() -> getBaselineMaxOperations(getReplicatorEnergyPerTick(recipe), true))
               .setOperatingTicksChanged(ticks -> operatingTicks = ticks)
               .setErrorsChanged(this::onRecipeErrorsChanged)
-              .setOnFinish(this::onCachedRecipeFinish);
+              .setOnFinish(() -> {
+                  operatingTicks = 0;
+                  onCachedRecipeFinish();
+              });
     }
 
     private double getReplicatorEnergyPerTick(ReplicatorGasStackRecipe recipe) {
@@ -238,7 +244,6 @@ public class TileEntityReplicatorGases extends TileEntityBasicMachine<ChemicalGa
         nbtTags.setTag("uuTank", uuTank.write(new NBTTagCompound()));
         nbtTags.setTag("outputTank", outputTank.write(new NBTTagCompound()));
     }
-
 
     @Override
     public Map<ChemicalGasInput, ReplicatorGasStackRecipe> getRecipes() {

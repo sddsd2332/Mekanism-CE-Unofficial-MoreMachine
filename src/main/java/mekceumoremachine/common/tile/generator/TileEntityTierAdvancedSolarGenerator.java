@@ -33,9 +33,7 @@ import javax.annotation.Nonnull;
 
 public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerator implements IBoundingBlock, IEvaporationSolar, ITierMachine<MachineTier> {
 
-
     public MachineTier tier = MachineTier.BASIC;
-
 
     public TileEntityTierAdvancedSolarGenerator() {
         super("TierAdvancedSolarGenerator", 0, 0);
@@ -46,7 +44,6 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
         return side == facing;
     }
 
-
     @Override
     protected float getConfiguredMax() {
         return (float) MekanismConfig.current().generators.advancedSolarGeneration.val() * tier.processes;
@@ -55,6 +52,16 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
     @Override
     public double getMaxEnergy() {
         return MekanismConfig.current().generators.advancedSolarGeneratorStorage.val() * tier.processes;
+    }
+
+    @Override
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierAdvancedSolarGenerator.class;
+    }
+
+    @Override
+    protected boolean isAsyncUpdateIdle() {
+        return getEnergy() == 0 && super.isAsyncUpdateIdle();
     }
 
     @Override
@@ -176,7 +183,6 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
         return world != null && world.provider.getBiomeForCoords(pos).canRain();
     }
 
-
     @Override
     public MachineTier getTier() {
         return tier;
@@ -203,7 +209,6 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
         }
         return ITierMachine.super.parseUpgradeData(upgradeData);
     }
-
 
     @Override
     public void handlePacketData(ByteBuf dataStream) {
@@ -235,7 +240,6 @@ public class TileEntityTierAdvancedSolarGenerator extends TileEntitySolarGenerat
         super.writeCustomNBT(nbtTags);
         nbtTags.setInteger("tier", tier.ordinal());
     }
-
 
     @Nonnull
     @Override

@@ -23,9 +23,6 @@ import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.inventory.slot.gas.GasInventorySlot;
 import mekanism.common.recipe.GasStackFuelToEnergyRecipe;
 import mekanism.common.recipe.RecipeHandler;
-import mekanism.common.recipe.cache.GasFuelPlan;
-import mekanism.common.recipe.cache.GasFuelState;
-import mekanism.common.recipe.cache.IAsyncGasFuelMachine;
 import mekanism.common.recipe.inputs.GasInput;
 import mekanism.common.tier.BaseTier;
 import mekanism.common.upgrade.IUpgradeData;
@@ -60,7 +57,7 @@ import javax.annotation.Nonnull;
         @Interface(iface = "mekceumoremachine.common.tile.interfaces.ILargeMachine", modid = "mekanismmultiblockmachine"),
 })
 public class TileEntityTierGasGenerator extends TileEntityGenerator implements ISustainedData, IComparatorSupport,
-      ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile, IAsyncGasFuelMachine {
+      ITierMachine<MachineTier>, ILargeMachine, ISpecialSelectionWireframeTile {
 
     private static final String[] methods = new String[]{"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getGas", "getGasNeeded"};
     /**
@@ -115,58 +112,54 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
 
     @Override
     public void onAsyncUpdateServer() {
-        commitAsyncRecipeTick();
-    }
-
-    @Override
-    public void prepareAsyncRecipeTick() {
+        super.onAsyncUpdateServer();
         energySlot.drainContainer();
         fuelSlot.fillTank();
-    }
-
-    @Override
-    public Object getAsyncRecipeSnapshotSource() {
-        return getRecipe();
-    }
-
-    @Override
-    public mekanism.api.gas.IExtendedGasTank getAsyncFuelTank() {
-        return fuelTank;
-    }
-
-    @Override
-    public GasFuelState getAsyncFuelState() {
-        return captureFuelState(burnTicks, maxBurnTicks, generationRate, clientUsed,
-              tier.processes, false, MekanismConfig.current().general.FROM_H2.val() * 2 * tier.processes);
-    }
-
-    @Override
-    public void applyAsyncFuelState(int burnTicks, int maxBurnTicks, double generationRate, double output, double clientUsed) {
-        this.burnTicks = burnTicks;
-        this.maxBurnTicks = maxBurnTicks;
-        this.generationRate = generationRate;
-        this.output = output;
-        this.clientUsed = clientUsed;
-    }
-
-    @Override
-    public void afterAsyncFuelCommit(GasFuelPlan plan) {
-        setActive(plan.isActive());
-        int redstone = getRedstoneLevel();
-        if (redstone != currentRedstoneLevel) {
+        GasStackFuelToEnergyRecipe recipe = getRecipe();
+        if (burnTicks == 0 && recipe != null) {
+            maxBurnTicks = recipe.getInput().ingredient.amount;
+            generationRate = recipe.getOutput().energyOutput;
+        }
+        int toUse = canOperate() ? getToUse() : 0;
+        if (toUse > 0) {
+            // Retain the old fuel's rate until its remainder has burned, even after a fuel/recipe change.
+            boolean useTank = canCombineStoredFuel(recipe);
+            long total = burnTicks + (useTank ? (long) fuelTank.getStored() * maxBurnTicks : 0) - toUse;
+            getEnergyContainer().insert(generationRate * toUse, Action.EXECUTE, AutomationType.INTERNAL);
+            if (useTank) {
+                fuelTank.setStackSize((int) (total / maxBurnTicks), Action.EXECUTE);
+            }
+            burnTicks = (int) (total % maxBurnTicks);
+            clientUsed = toUse / (double) maxBurnTicks;
+            output = Math.max(MekanismConfig.current().general.FROM_H2.val() * 2 * tier.processes, generationRate * toUse * 2);
+            setActive(true);
+            markNoUpdateSync();
+        } else {
+            if (burnTicks == 0 && recipe == null) {
+                reset();
+            }
+            clientUsed = 0;
+            setActive(false);
+        }
+        int newRedstoneLevel = getRedstoneLevel();
+        if (newRedstoneLevel != currentRedstoneLevel) {
             updateComparatorOutputLevelSync();
-            currentRedstoneLevel = redstone;
+            currentRedstoneLevel = newRedstoneLevel;
         }
     }
 
     @Override
-    public long getAsyncRecipeCategoryGeneration() {
-        return RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getRecipeGeneration();
+    protected boolean supportsAsyncIdleSkipping() {
+        return getClass() == TileEntityTierGasGenerator.class;
     }
 
     @Override
-    public void commitAsyncRecipeTick() {
-        IAsyncGasFuelMachine.super.commitAsyncRecipeTick();
+    protected boolean isAsyncUpdateIdle() {
+        return fuelTank.isEmpty() && fuelSlot.isEmpty() && energySlot.isEmpty() && burnTicks == 0 && maxBurnTicks == 0 &&
+              generationRate == 0 && clientUsed == 0 && !getActive() && getEnergy() == 0 &&
+              output == MekanismConfig.current().general.FROM_H2.val() * 2 * tier.processes &&
+              cachedRecipeVersion == RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getRecipeVersion() &&
+              currentRedstoneLevel == getRedstoneLevel();
     }
 
     public void reset() {
@@ -177,14 +170,19 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     }
 
     public int getToUse() {
-        if (generationRate == 0 || fuelTank.getGas() == null) {
+        if (maxBurnTicks <= 0 || generationRate <= 0 || !Double.isFinite(generationRate)) {
             return 0;
         }
-        int max = (int) Math.ceil(((float) fuelTank.getStored() / (float) fuelTank.getMaxGas()) * 256F);
-        max *= tier.processes;
-        max = Math.min((fuelTank.getStored() * maxBurnTicks) + burnTicks, max);
-        max = (int) Math.min((getMaxEnergy() - getEnergy()) / generationRate, max);
-        return max;
+        boolean useTank = canCombineStoredFuel(getRecipe());
+        long available = burnTicks + (useTank ? (long) fuelTank.getStored() * maxBurnTicks : 0);
+        int fullness = (int) Math.ceil((float) fuelTank.getStored() / fuelTank.getMaxGas() * 256F);
+        long limit = (long) Math.max(burnTicks > 0 ? 1 : 0, fullness) * tier.processes;
+        return (int) Math.max(0, Math.min(Math.min(available, limit), getEnergyContainer().getNeeded() / generationRate));
+    }
+
+    private boolean canCombineStoredFuel(GasStackFuelToEnergyRecipe recipe) {
+        return recipe != null && recipe.getInput().ingredient.amount == maxBurnTicks &&
+              recipe.getOutput().energyOutput == generationRate;
     }
 
     @Override
@@ -199,7 +197,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
 
     @Override
     public boolean canOperate() {
-        return (fuelTank.getStored() > 0 || burnTicks > 0) && getRecipe() != null && MekanismUtils.canFunction(this);
+        return (burnTicks > 0 || !fuelTank.isEmpty() && getRecipe() != null) && MekanismUtils.canFunction(this);
     }
 
     @Override
@@ -256,6 +254,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         fuelTank.setMaxGas(tier.processes * MAX_GAS);
         fuelTank.read(nbtTags.getCompoundTag("fuelTank"));
         sanitizeFuelTank();
+        readBurnState(nbtTags);
         updateOutputForStoredFuel();
     }
 
@@ -264,12 +263,16 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         super.writeCustomNBT(nbtTags);
         nbtTags.setInteger("tier", tier.ordinal());
         nbtTags.setTag("fuelTank", fuelTank.write(new NBTTagCompound()));
+        writeBurnState(nbtTags);
     }
 
     @Override
     public void writeSustainedData(ItemStack itemStack) {
         if (fuelTank != null) {
             ItemDataUtils.setCompound(itemStack, "fuelTank", fuelTank.write(new NBTTagCompound()));
+            NBTTagCompound burnState = new NBTTagCompound();
+            writeBurnState(burnState);
+            ItemDataUtils.setCompound(itemStack, "burnState", burnState);
         }
     }
 
@@ -278,6 +281,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         if (ItemDataUtils.hasData(itemStack, "fuelTank")) {
             fuelTank.read(ItemDataUtils.getCompound(itemStack, "fuelTank"));
             sanitizeFuelTank();
+            readBurnState(ItemDataUtils.getCompound(itemStack, "burnState"));
             updateOutputForStoredFuel();
         }
     }
@@ -292,10 +296,30 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     }
 
     private void updateOutputForStoredFuel() {
+        if (burnTicks > 0) {
+            return;
+        }
         GasStackFuelToEnergyRecipe recipe = RecipeHandler.getGasStackFuelToEnergyRecipe(fuelTank.getGas());
         if (recipe != null) {
             generationRate = recipe.getOutput().energyOutput;
             output = generationRate * 2 * tier.processes;
+        }
+    }
+
+    private void writeBurnState(NBTTagCompound tag) {
+        tag.setInteger("burnTicks", burnTicks);
+        tag.setInteger("maxBurnTicks", maxBurnTicks);
+        tag.setDouble("generationRate", generationRate);
+        tag.setDouble("fuelOutput", output);
+    }
+
+    private void readBurnState(NBTTagCompound tag) {
+        burnTicks = Math.max(0, tag.getInteger("burnTicks"));
+        maxBurnTicks = Math.max(0, tag.getInteger("maxBurnTicks"));
+        generationRate = tag.getDouble("generationRate");
+        output = tag.getDouble("fuelOutput");
+        if (maxBurnTicks <= 0 || burnTicks >= maxBurnTicks || !Double.isFinite(generationRate) || generationRate <= 0) {
+            reset();
         }
     }
 
@@ -320,7 +344,6 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     public GasInput getInput() {
         return new GasInput(fuelTank.getGas());
     }
-
 
     public double getUsed() {
         return Math.round(clientUsed * 100) / 100D;
@@ -386,7 +409,7 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         }
 
         private void recheckOutput(GasStack stack, boolean wasEmpty) {
-            if (wasEmpty && stack != null && stack.amount > 0) {
+            if (burnTicks == 0 && wasEmpty && stack != null && stack.amount > 0) {
                 GasStackFuelToEnergyRecipe recipe = RecipeHandler.getGasStackFuelToEnergyRecipe(stack);
                 if (recipe != null) {
                     generationRate = recipe.getOutput().energyOutput;
@@ -484,6 +507,5 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
     public Class<?> getSelectionWireframeModelClass() {
         return mekceumoremachine.client.model.generator.ModelTierGasGenerator.class;
     }
-
 
 }
