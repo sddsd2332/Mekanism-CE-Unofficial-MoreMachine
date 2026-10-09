@@ -69,6 +69,9 @@ public final class WirelessStationRegistryManager {
             return null;
         }
         File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        if (worldDirectory == null) {
+            return null;
+        }
         String worldPath = worldDirectory.getAbsolutePath();
         synchronized (REGISTRIES) {
             StationRegistry registry = REGISTRIES.get(worldPath);
