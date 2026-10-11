@@ -18,6 +18,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraft.world.storage.ISaveHandler;
 import net.minecraftforge.common.util.Constants.NBT;
 
 import java.io.File;
@@ -59,11 +60,19 @@ public final class WirelessMachineTypeTableManager {
     }
 
     public static File getConnectionsDirectory(World world) {
-        if (world == null || world.isRemote || world.getSaveHandler() == null) {
+        return getConnectionsDirectory(getWorldDirectory(world));
+    }
+
+    static File getWorldDirectory(World world) {
+        if (world == null || world.isRemote) {
             return null;
         }
-        File worldDirectory = world.getSaveHandler().getWorldDirectory();
-        return worldDirectory == null ? null : getConnectionsDirectory(worldDirectory);
+        try {
+            ISaveHandler saveHandler = world.getSaveHandler();
+            return saveHandler == null ? null : saveHandler.getWorldDirectory();
+        } catch (UnsupportedOperationException ignored) {
+            return null;
+        }
     }
 
     static File getConnectionsDirectory(File worldDirectory) {
@@ -82,12 +91,12 @@ public final class WirelessMachineTypeTableManager {
     }
 
     private static MachineTypeTable getTable(World world) {
-        File directory = getConnectionsDirectory(world);
-        if (directory == null) {
+        File worldDirectory = getWorldDirectory(world);
+        if (worldDirectory == null) {
             return null;
         }
-        File worldDirectory = world.getSaveHandler().getWorldDirectory();
-        if (worldDirectory == null) {
+        File directory = getConnectionsDirectory(worldDirectory);
+        if (directory == null) {
             return null;
         }
         String worldPath = worldDirectory.getAbsolutePath();

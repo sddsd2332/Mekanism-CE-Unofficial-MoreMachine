@@ -65,10 +65,7 @@ public final class WirelessStationRegistryManager {
     }
 
     private static StationRegistry getRegistry(World world) {
-        if (world == null || world.isRemote || world.getSaveHandler() == null) {
-            return null;
-        }
-        File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        File worldDirectory = WirelessMachineTypeTableManager.getWorldDirectory(world);
         if (worldDirectory == null) {
             return null;
         }
@@ -76,7 +73,7 @@ public final class WirelessStationRegistryManager {
         synchronized (REGISTRIES) {
             StationRegistry registry = REGISTRIES.get(worldPath);
             if (registry == null) {
-                File directory = WirelessMachineTypeTableManager.getConnectionsDirectory(world);
+                File directory = WirelessMachineTypeTableManager.getConnectionsDirectory(worldDirectory);
                 if (directory == null) {
                     return null;
                 }

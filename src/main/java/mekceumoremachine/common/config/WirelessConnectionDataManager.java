@@ -206,10 +206,14 @@ public final class WirelessConnectionDataManager {
     }
 
     private static File resolveFile(World world, UUID stationId) {
-        if (world == null || world.isRemote || stationId == null || world.getSaveHandler() == null) {
+        if (stationId == null) {
             return null;
         }
-        File connectionDirectory = WirelessMachineTypeTableManager.getConnectionsDirectory(world);
+        File worldDirectory = WirelessMachineTypeTableManager.getWorldDirectory(world);
+        if (worldDirectory == null) {
+            return null;
+        }
+        File connectionDirectory = WirelessMachineTypeTableManager.getConnectionsDirectory(worldDirectory);
         if (connectionDirectory == null) {
             return null;
         }
@@ -280,10 +284,7 @@ public final class WirelessConnectionDataManager {
     }
 
     private static String getWorldPath(World world) {
-        if (world == null || world.isRemote || world.getSaveHandler() == null) {
-            return null;
-        }
-        File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        File worldDirectory = WirelessMachineTypeTableManager.getWorldDirectory(world);
         return worldDirectory == null ? null : worldDirectory.getAbsolutePath();
     }
 
