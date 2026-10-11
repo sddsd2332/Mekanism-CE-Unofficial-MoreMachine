@@ -328,6 +328,10 @@ public class TileEntityTierGasGenerator extends TileEntityGenerator implements I
         return MekanismUtils.redstoneLevelFromContents(fuelTank.getStored(), fuelTank.getMaxGas());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
+    }
+
     public GasStackFuelToEnergyRecipe getRecipe() {
         int recipeVersion = RecipeHandler.Recipe.GAS_FUEL_TO_ENERGY_RECIPE.getRecipeVersion();
         if (cachedRecipeVersion != recipeVersion) {

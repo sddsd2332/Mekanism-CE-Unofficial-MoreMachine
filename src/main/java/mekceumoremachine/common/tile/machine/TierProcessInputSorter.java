@@ -10,6 +10,7 @@ import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,8 @@ public class TierProcessInputSorter {
     private final Map<HashedItem, RecipeProcessInfo> processMap = new LinkedHashMap<>();
     private final List<RecipeProcessInfo> processes = new ArrayList<>();
     private final List<ProcessInfo> emptyProcesses = new ArrayList<>();
+    /** Per-sort input validity memo. Slot predicates are live, but no slot contents mutate during validation. */
+    private final IdentityHashMap<IInventorySlot, Map<HashedItem, Boolean>> inputValidityMemo = new IdentityHashMap<>();
 
     public TierProcessInputSorter(Context context) {
         this.context = context;
@@ -54,6 +57,7 @@ public class TierProcessInputSorter {
         processes.clear();
         processMap.clear();
         emptyProcesses.clear();
+        inputValidityMemo.clear();
     }
 
     private void collectProcesses() {
@@ -162,13 +166,25 @@ public class TierProcessInputSorter {
             }
             if (sizeForSlot > 0) {
                 ItemStack stack = target.item.createStack(sizeForSlot);
-                if (sizeForSlot > target.inputSlot.getLimit(stack) || !target.inputSlot.isItemValid(stack)) {
+                if (sizeForSlot > target.inputSlot.getLimit(stack) || !isItemValid(target.inputSlot, stack)) {
                     return false;
                 }
             }
             totalCount += sizeForSlot;
         }
         return totalCount == recipeProcessInfo.totalCount;
+    }
+
+    private boolean isItemValid(IInventorySlot slot, ItemStack stack) {
+        Map<HashedItem, Boolean> memo = inputValidityMemo.computeIfAbsent(slot, ignored -> new LinkedHashMap<>());
+        HashedItem key = HashedItem.raw(stack);
+        Boolean cached = memo.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        boolean valid = slot.isItemValid(stack);
+        memo.put(key, valid);
+        return valid;
     }
 
     private List<DistributionPlan> buildDistributionPlan(RecipeProcessInfo recipeProcessInfo, DistributionState state, int processCount) {

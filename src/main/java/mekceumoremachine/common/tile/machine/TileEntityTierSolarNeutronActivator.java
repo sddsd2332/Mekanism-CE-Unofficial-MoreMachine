@@ -115,7 +115,10 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     public TileEntityTierSolarNeutronActivator(int baseTicksRequired) {
         super("TierSolarNeutronActivator");
         ticksRequired = BASE_TICKS_REQUIRED = baseTicksRequired;
-        upgradeComponent = new TileComponentUpgrade(this, Upgrade.SPEED);
+        upgradeComponent = new TileComponentUpgrade(this);
+        // Preserve the original tier machine contract: speed plus the new
+        // comparator opt-in, without enabling energy upgrades.
+        upgradeComponent.removeSupported(Upgrade.ENERGY);
         configComponent = new TileComponentConfig(this, TransmissionType.ITEM, TransmissionType.GAS);
         initializeInventorySlots();
         configComponent.setupItemIOConfig(inputSlot, outputSlot);
@@ -488,6 +491,10 @@ public class TileEntityTierSolarNeutronActivator extends TileEntityContainerBloc
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(inputTank.getStored(), inputTank.getMaxGas());
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
     }
 
     @Override

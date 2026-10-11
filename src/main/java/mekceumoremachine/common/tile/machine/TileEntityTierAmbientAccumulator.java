@@ -345,6 +345,10 @@ public class TileEntityTierAmbientAccumulator extends TileEntityMachine implemen
         return MekanismUtils.redstoneLevelFromContents(outputTank.getStored(), outputTank.getMaxGas());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
+    }
+
     @Override
     public boolean renderUpdate() {
         return false;

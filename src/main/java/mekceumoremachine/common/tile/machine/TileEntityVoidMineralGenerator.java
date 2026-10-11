@@ -314,6 +314,10 @@ public class TileEntityVoidMineralGenerator extends TileEntityOperationalMachine
         return MekanismUtils.redstoneLevelFromContents(getEnergy(), getMaxEnergy());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.ENERGY;
+    }
+
     @Override
     public boolean sideIsConsumer(EnumFacing side) {
         return configComponent.hasSideForData(TransmissionType.ENERGY, facing, DataType.INPUT, side);

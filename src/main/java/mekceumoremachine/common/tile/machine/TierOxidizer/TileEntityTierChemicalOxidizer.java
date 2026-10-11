@@ -162,7 +162,9 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
         energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 8, 13));
         for (int process = 0; process < 9; process++) {
             int processIndex = process;
-            InputInventorySlot inputSlot = builder.addSlot(InputInventorySlot.at(stack -> RecipeHandler.getOxidizerRecipe(new ItemStackInput(stack)) != null,
+            // Hidden process slots remain persisted, but must not accept automation input.
+            InputInventorySlot inputSlot = builder.addSlot(InputInventorySlot.at(stack -> isProcessIndex(processIndex),
+                  stack -> RecipeHandler.getOxidizerRecipe(new ItemStackInput(stack)) != null,
                   getRecipeCacheChangeListener(listener, process), getProcessSlotX(process), 13));
             inputSlot.setEnabledSupplier(() -> isProcessIndex(processIndex));
             inputSlots.add(inputSlot);
@@ -714,6 +716,10 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
         return Container.calcRedstoneFromInventory(this);
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.ITEM;
+    }
+
     public boolean isUpgrade = true;
 
     @Override
@@ -825,4 +831,3 @@ public class TileEntityTierChemicalOxidizer extends TileEntityMachine implements
     }
 
 }
-

@@ -748,6 +748,10 @@ public class TileEntityTierChemicalCrystallizer extends TileEntityMachine implem
         return capacity == 0 ? Container.calcRedstoneFromInventory(this) : MekanismUtils.redstoneLevelFromContents(stored, capacity);
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
+    }
+
     @Override
     public IBlockState getUpgradeResult(BaseTier upgradeTier) {
         return tier.canUpgradeTo(upgradeTier) ? MEKCeuMoreMachineBlocks.TierChemicalCrystallizer.getStateFromMeta(MachineTier.get(upgradeTier).ordinal()) : null;

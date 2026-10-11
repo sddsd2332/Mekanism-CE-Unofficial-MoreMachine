@@ -512,6 +512,11 @@ public class TileEntityTierRotaryCondensentrator extends TileEntityMachine imple
         return MekanismUtils.redstoneLevelFromContents(fluidTank.getFluidAmount(), fluidTank.getCapacity());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS ||
+              type == mekanism.api.transmitters.TransmissionType.FLUID;
+    }
+
     @Override
     public TileComponentConfig getConfig() {
         return configComponent;

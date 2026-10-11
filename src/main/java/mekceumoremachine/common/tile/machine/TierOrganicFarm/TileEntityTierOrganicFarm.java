@@ -10,7 +10,6 @@ import mekanism.api.TileNetworkList;
 import mekanism.api.gas.Gas;
 import mekanism.api.gas.GasStack;
 import mekanism.api.inventory.IInventorySlot;
-import mekanism.api.math.MathUtils;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.CommonWorldTickHandler;
 import mekanism.common.Upgrade;
@@ -135,6 +134,7 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     public boolean sorting;
     private double secondaryEnergyPerTick = BASE_SECONDARY_PER_TICK;
     private double gasPerTickMeanMultiplier = 1;
+    private long baseTotalUsage = BASE_TICKS_REQUIRED;
     private boolean sortingNeeded = true;
     private int observedRecipeVersion = RecipeHandler.getGlobalRecipeVersion();
     private boolean recipeCachesInvalid;
@@ -378,8 +378,10 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     }
 
     public int getRecipeGasUsagePerOperation() {
-        double usage = 3D * Math.max(1, Math.ceil(Math.max(secondaryEnergyPerTick, 0))) * Math.max(1, ticksRequired);
-        return Math.max(1, MathUtils.clampToInt(usage));
+        return mekanism.common.recipe.cache.ItemStackConstantGasCachedRecipe.getGasUsagePerOperation(
+              mekanism.common.recipe.cache.SecondaryFuelUsage.isRandomized(this),
+              baseTotalUsage,
+              gasPerTickMeanMultiplier, ticksRequired);
     }
 
     private boolean processLane(int lane) {
@@ -513,7 +515,11 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
             return null;
         }
         GasUsageMultiplier usage = (used, operatingTicks) ->
-              secondaryUsageSamplers[cacheIndex].sample(gasPerTickMeanMultiplier);
+              mekanism.common.recipe.cache.SecondaryFuelUsage.isRandomized(this)
+                    ? secondaryUsageSamplers[cacheIndex].sample(gasPerTickMeanMultiplier)
+                    : mekanism.common.recipe.cache.SecondaryFuelUsage.constantUse(
+                          baseTotalUsage,
+                          used, ticksRequired, operatingTicks);
         if (outputRandoms[cacheIndex] == null) {
             outputRandoms[cacheIndex] = mekanism.common.recipe.cache.RecipeRandom.forLane(getPos().toLong(), cacheIndex);
         }
@@ -704,6 +710,7 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     private void recalculateSecondaryUsage() {
         secondaryEnergyPerTick = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_SECONDARY_PER_TICK);
         gasPerTickMeanMultiplier = MekanismUtils.getGasPerTickMeanMultiplier(this);
+        baseTotalUsage = mekanism.common.recipe.cache.SecondaryFuelUsage.fixedTotal(this, BASE_TICKS_REQUIRED);
     }
 
     @Override
@@ -879,6 +886,10 @@ public class TileEntityTierOrganicFarm extends TileEntityMachine implements ITie
     @Override
     public int getRedstoneLevel() {
         return Container.calcRedstoneFromInventory(this);
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.ITEM;
     }
 
     @Override

@@ -92,6 +92,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     private final PoissonSampler injectUsageSampler = new PoissonSampler();
     public int[] progress;
     public long[] usedSoFar;
+    public int[] batchOperations;
     public int ticksRequired = BASE_TICKS_REQUIRED;
     public DissolutionRecipe[] cachedRecipe;
     private final RecipeCacheLookupMonitor<DissolutionRecipe>[] recipeCacheLookupMonitors;
@@ -121,6 +122,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         isActive = false;
         cachedRecipe = new DissolutionRecipe[tier.processes];
         usedSoFar = new long[tier.processes];
+        batchOperations = new int[tier.processes];
         activeProcesses = new boolean[tier.processes];
         recipeCacheLookupMonitors = createRecipeCacheLookupMonitors();
         outPutTanks = new ResizableGasTank[9];
@@ -198,7 +200,9 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         energySlot = builder.addSlot(EnergyInventorySlot.fillOrConvert(getMainEnergyContainer(), this::getWorld, listener, 8, 13));
         for (int process = 0; process < 9; process++) {
             int processIndex = process;
-            InputInventorySlot inputSlot = builder.addSlot(InputInventorySlot.at(stack -> RecipeHandler.getDissolutionRecipe(new ItemStackInput(stack)) != null,
+            // Hidden process slots remain persisted, but must not accept automation input.
+            InputInventorySlot inputSlot = builder.addSlot(InputInventorySlot.at(stack -> isProcessIndex(processIndex),
+                  stack -> RecipeHandler.getDissolutionRecipe(new ItemStackInput(stack)) != null,
                   getRecipeCacheChangeListener(listener, process), getProcessSlotX(process), 13));
             inputSlot.setEnabledSupplier(() -> isProcessIndex(processIndex));
             inputSlots.add(inputSlot);
@@ -457,16 +461,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     }
 
     private long getGasUsage(long usedSoFar, int operatingTicks) {
-        long baseRemaining = baseTotalUsage - usedSoFar;
-        int remainingTicks = ticksRequired - operatingTicks;
-        if (remainingTicks <= 0) {
-            return Math.max(baseRemaining, 0);
-        } else if (baseRemaining < remainingTicks) {
-            return 0;
-        } else if (baseRemaining == remainingTicks) {
-            return 1;
-        }
-        return Math.max(MathUtils.clampToLong(baseRemaining / (double) remainingTicks), 0);
+        return mekanism.common.recipe.cache.SecondaryFuelUsage.isRandomized(this)
+              ? injectUsageSampler.sample(injectUsage)
+              : mekanism.common.recipe.cache.SecondaryFuelUsage.constantUse(
+                    baseTotalUsage, usedSoFar, ticksRequired, operatingTicks);
     }
 
     protected void onCachedRecipeFinish() {
@@ -481,6 +479,11 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     @Override
     public long getSavedUsedSoFar(int cacheIndex) {
         return isProcessIndex(cacheIndex) ? usedSoFar[cacheIndex] : 0;
+    }
+
+    @Override
+    public int getSavedBatchOperations(int cacheIndex) {
+        return isProcessIndex(cacheIndex) ? batchOperations[cacheIndex] : 1;
     }
 
     @Override
@@ -507,6 +510,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
               InputHelper.getConstantGasInputHandler(injectTank, RecipeError.NOT_ENOUGH_SECONDARY_INPUT, false),
               OutputHelper.getGasOutputHandler(outPutTanks[cacheIndex], RecipeError.NOT_ENOUGH_OUTPUT_SPACE),
               this::getGasUsage, used -> usedSoFar[cacheIndex] = used)
+              .setBatchOperationsChanged(count -> batchOperations[cacheIndex] = count)
               .setCanHolderFunction(() -> MekanismUtils.canFunction(this))
               .setActive(active -> setProcessActive(cacheIndex, active))
               .setEnergyRequirements(() -> energyPerTick, getMainEnergyContainer())
@@ -625,6 +629,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         for (int i = 0; i < tier.processes; i++) {
             progress[i] = nbtTags.getInteger("progress" + i);
             usedSoFar[i] = nbtTags.getLong("usedSoFar" + i);
+            batchOperations[i] = Math.max(1, nbtTags.getInteger("secondaryBatchOperations" + i));
         }
         injectTank.read(nbtTags.getCompoundTag("injectTank"));
         for (int i = 0; i < outPutTanks.length; i++) {
@@ -639,6 +644,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         for (int i = 0; i < tier.processes; i++) {
             nbtTags.setInteger("progress" + i, progress[i]);
             nbtTags.setLong("usedSoFar" + i, usedSoFar[i]);
+            nbtTags.setInteger("secondaryBatchOperations" + i, batchOperations[i]);
         }
         nbtTags.setTag("injectTank", injectTank.write(new NBTTagCompound()));
         for (int i = 0; i < outPutTanks.length; i++) {
@@ -656,7 +662,8 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
     }
 
     public int getGasUsagePerOperation() {
-        return Math.max(1, mekanism.api.math.MathUtils.clampToInt(baseTotalUsage));
+        return mekanism.common.recipe.cache.ItemStackConstantGasCachedRecipe.getGasUsagePerOperation(
+              mekanism.common.recipe.cache.SecondaryFuelUsage.isRandomized(this), baseTotalUsage, injectUsage, ticksRequired);
     }
 
     @Override
@@ -742,12 +749,12 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_PER_TICK); // incorporate speed upgrades
         } else if (upgrade == Upgrade.GAS) {
             injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
-            baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
+            baseTotalUsage = mekanism.common.recipe.cache.SecondaryFuelUsage.fixedTotal(this, BASE_TICKS_REQUIRED);
         } else if (upgrade == Upgrade.SPEED) {
             ticksRequired = MekanismUtils.getTicks(this, BASE_TICKS_REQUIRED);
             energyPerTick = MekanismUtils.getEnergyPerTick(this, BASE_ENERGY_USAGE);
             injectUsage = MekanismUtils.getSecondaryEnergyPerTickMean(this, BASE_INJECT_USAGE);
-            baseTotalUsage = MekanismUtils.getBaseUsage(this, BASE_INJECT_USAGE);
+            baseTotalUsage = mekanism.common.recipe.cache.SecondaryFuelUsage.fixedTotal(this, BASE_TICKS_REQUIRED);
         }
         if (world != null && !world.isRemote) {
             unpauseRecipeCaches();
@@ -818,6 +825,10 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         return Container.calcRedstoneFromInventory(this);
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.ITEM;
+    }
+
     public boolean isUpgrade = true;
 
     @Override
@@ -886,6 +897,7 @@ public class TileEntityTierChemicalDissolutionChamber extends TileEntityMachine 
         prevEnergy = data.prevEnergy;
         System.arraycopy(data.progress, 0, progress, 0, Math.min(data.progress.length, progress.length));
         System.arraycopy(data.usedSoFar, 0, usedSoFar, 0, Math.min(data.usedSoFar.length, usedSoFar.length));
+        System.arraycopy(data.batchOperations, 0, batchOperations, 0, Math.min(data.batchOperations.length, batchOperations.length));
         sorting = data.sorting;
         markSortingNeeded();
         configComponent.read(data.configComponentData.copy());

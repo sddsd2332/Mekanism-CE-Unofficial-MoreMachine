@@ -300,6 +300,8 @@ public final class MoreMachineRecipeProviders {
               new MachineRecipeProvider<TILE>() {
                   @Override
                   public Object getRecipeSourceKey(TILE tile) {
+                      // Core 023 identifies shared QIO recipe families by this native map's identity.
+                      // Keep tier, lane, mode and template state in routes/revisions, not a copied source map.
                       return recipeSource.apply(tile);
                   }
 

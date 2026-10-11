@@ -71,7 +71,7 @@ public class GuiTierOrganicFarm extends GuiConfigurableTile<TileEntityTierOrgani
         GuiDynamicResourceSlot preview = GuiDynamicResourceSlot.withFrameWidth(this, firstSlotX, OUTPUT_PREVIEW_Y,
                         frameWidth, 1, this::getDisplayedOutputResources)
                 .autoFitSpacing(GuiDynamicResourceSlot.DEFAULT_RESOURCE_GAP)
-                .borderColor(GuiDynamicResourceSlot.BorderColor.OUTPUT)
+                    .borderColor(GuiDynamicResourceSlot.BorderColor.OUTPUT)
                 .click((element, mouseX, mouseY) -> openOutputWindow());
         preview.active = true;
         addButton(preview);

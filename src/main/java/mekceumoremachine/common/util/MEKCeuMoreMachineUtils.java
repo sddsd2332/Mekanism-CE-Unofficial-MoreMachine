@@ -232,8 +232,8 @@ public class MEKCeuMoreMachineUtils {
     }
 
     public static int getComparatorInputOverride(IBlockState state, World world, BlockPos pos) {
-        if (world.getTileEntity(pos) instanceof IComparatorSupport support) {
-            return support.getRedstoneLevel();
+        if (world.getTileEntity(pos) instanceof IComparatorSupport support && support.supportsComparator()) {
+            return support.getCurrentRedstoneLevel();
         }
         return 0;
     }

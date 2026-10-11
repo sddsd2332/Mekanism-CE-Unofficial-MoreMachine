@@ -101,7 +101,7 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
                 processTicks = 0;
                 gasTank.extract(decayAmount, Action.EXECUTE, AutomationType.INTERNAL);
             }
-            if (getActive()) {
+            if (getActive() && !gasTank.isEmpty()) {
                 GasUtils.emit(Collections.singleton(EnumFacing.DOWN), gasTank, this, getDownOutputLimit());
             }
         }
@@ -257,6 +257,10 @@ public class TileEntityTierRadioactiveWasteBarrel extends TileEntityContainerBlo
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(gasTank.getStored(), gasTank.getMaxGas());
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
     }
 
     @Override

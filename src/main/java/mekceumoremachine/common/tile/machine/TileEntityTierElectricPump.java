@@ -402,11 +402,6 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     @Override
     public void setEnergy(double energy) {
         super.setEnergy(energy);
-        int newRedstoneLevel = getRedstoneLevel();
-        if (newRedstoneLevel != currentRedstoneLevel) {
-            markNoUpdateSync();
-            currentRedstoneLevel = newRedstoneLevel;
-        }
     }
 
     @Override
@@ -538,6 +533,10 @@ public class TileEntityTierElectricPump extends TileEntityElectricBlock implemen
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(fluidTank.getFluidAmount(), fluidTank.getCapacity());
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.FLUID;
     }
 
     @Override

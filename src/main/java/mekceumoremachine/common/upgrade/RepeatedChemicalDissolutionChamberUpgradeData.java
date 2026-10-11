@@ -12,6 +12,7 @@ public class RepeatedChemicalDissolutionChamberUpgradeData extends LargeMachineU
     public final double prevEnergy;
     public final int[] progress;
     public final long[] usedSoFar;
+    public final int[] batchOperations;
     public final boolean sorting;
     public final NBTTagCompound configComponentData;
     public final NBTTagCompound ejectorComponentData;
@@ -23,6 +24,7 @@ public class RepeatedChemicalDissolutionChamberUpgradeData extends LargeMachineU
         prevEnergy = source.prevEnergy;
         progress = source.progress.clone();
         usedSoFar = source.usedSoFar.clone();
+        batchOperations = source.batchOperations.clone();
         sorting = source.sorting;
         configComponentData = new NBTTagCompound();
         source.configComponent.write(configComponentData);

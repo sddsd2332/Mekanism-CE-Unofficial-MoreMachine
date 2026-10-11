@@ -175,11 +175,6 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     @Override
     public void setEnergy(double energy) {
         super.setEnergy(energy);
-        int newRedstoneLevel = getRedstoneLevel();
-        if (newRedstoneLevel != currentRedstoneLevel) {
-            markNoUpdateSync();
-            currentRedstoneLevel = newRedstoneLevel;
-        }
     }
 
     @Override
@@ -340,6 +335,10 @@ public class TileEntityTierIsotopicCentrifuge extends TileEntityBasicMachine<Gas
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(inputTank.getStored(), inputTank.getMaxGas());
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
     }
 
     @Override

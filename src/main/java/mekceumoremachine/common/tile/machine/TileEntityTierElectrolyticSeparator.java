@@ -235,6 +235,9 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     @Override
     protected void onUpdateServerPreComponents() {
         super.onUpdateServerPreComponents();
+        if (leftTank.isEmpty() && rightTank.isEmpty()) {
+            return;
+        }
         gasSpeedController.ensureSize(2, () -> Arrays.asList(new TankProvider.Gas(leftTank), new TankProvider.Gas(rightTank)));
         handleTank(leftTank, dumpLeft, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_1), dumpAmount, 0);
         handleTank(rightTank, dumpRight, configComponent.getSidesForData(TransmissionType.GAS, facing, DataType.OUTPUT_2), dumpAmount, 1);
@@ -518,6 +521,10 @@ public class TileEntityTierElectrolyticSeparator extends TileEntityBasicMachine<
     @Override
     public int getRedstoneLevel() {
         return MekanismUtils.redstoneLevelFromContents(fluidTank.getFluidAmount(), fluidTank.getCapacity());
+    }
+
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.FLUID;
     }
 
     @Override

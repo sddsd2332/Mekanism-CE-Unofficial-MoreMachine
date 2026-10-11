@@ -353,6 +353,10 @@ public class TileEntityTierChemicalWasher extends TileEntityBasicMachine<GasAndF
         return MekanismUtils.redstoneLevelFromContents(inputTank.getStored(), inputTank.getMaxGas());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.GAS;
+    }
+
     @Override
     public String[] getMethods() {
         return new String[0];

@@ -352,6 +352,10 @@ public class TileEntityWirelessChargingStation extends TileEntityElectricBlock i
         return MekanismUtils.redstoneLevelFromContents(getEnergy(), getMaxEnergy());
     }
 
+    public boolean isComparatorInput(mekanism.api.transmitters.TransmissionType type) {
+        return type == mekanism.api.transmitters.TransmissionType.ENERGY;
+    }
+
     @Override
     public RedstoneControl getControlType() {
         return controlType;
