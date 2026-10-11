@@ -280,8 +280,11 @@ public final class WirelessConnectionDataManager {
     }
 
     private static String getWorldPath(World world) {
-        return world == null || world.isRemote || world.getSaveHandler() == null ? null :
-              world.getSaveHandler().getWorldDirectory().getAbsolutePath();
+        if (world == null || world.isRemote || world.getSaveHandler() == null) {
+            return null;
+        }
+        File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        return worldDirectory == null ? null : worldDirectory.getAbsolutePath();
     }
 
     private static EnumFacing getFacing(int index) {

@@ -62,10 +62,14 @@ public final class WirelessMachineTypeTableManager {
         if (world == null || world.isRemote || world.getSaveHandler() == null) {
             return null;
         }
-        return getConnectionsDirectory(world.getSaveHandler().getWorldDirectory());
+        File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        return worldDirectory == null ? null : getConnectionsDirectory(worldDirectory);
     }
 
     static File getConnectionsDirectory(File worldDirectory) {
+        if (worldDirectory == null) {
+            return null;
+        }
         File dataDirectory = new File(worldDirectory, "data");
         return new File(new File(new File(new File(dataDirectory, "mek"), "moremachine"), "wireless_energy"), "connections");
     }
@@ -82,7 +86,11 @@ public final class WirelessMachineTypeTableManager {
         if (directory == null) {
             return null;
         }
-        String worldPath = world.getSaveHandler().getWorldDirectory().getAbsolutePath();
+        File worldDirectory = world.getSaveHandler().getWorldDirectory();
+        if (worldDirectory == null) {
+            return null;
+        }
+        String worldPath = worldDirectory.getAbsolutePath();
         synchronized (TABLES) {
             MachineTypeTable table = TABLES.get(worldPath);
             if (table == null) {
