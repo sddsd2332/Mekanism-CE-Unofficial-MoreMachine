@@ -55,7 +55,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
+public class TileEntityWirelessChargingStation extends TileEntityElectricBlock implements mekanism.common.integration.ic2.IEnergyInIC2OutputWrapper, IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
         ISpecialConfigData, IComparatorSupport, IBoundingBlock, ITierMachine<MachineTier>, IHasVisualization, ISpecialSelectionWireframeTile {
 
     private static final Predicate<EntityLivingBase> CHARGE_PREDICATE = entity -> entity.isEntityAlive() && !entity.isDead && ((entity instanceof EntityPlayer player && !player.isSpectator()) || entity instanceof EntityRobit);

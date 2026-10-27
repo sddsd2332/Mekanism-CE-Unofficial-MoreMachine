@@ -64,7 +64,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.*;
 
-public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
+public class TileEntityWirelessChargingEnergy extends TileEntityElectricBlock implements mekanism.common.integration.ic2.IEnergyInIC2OutputWrapper, IComputerIntegration, IRedstoneControl, ISideConfiguration, ISecurityTile,
         ISpecialConfigData, IComparatorSupport, IBoundingBlock, ISustainedData, ITierMachine<MachineTier>, INoWirelessChargingEnergy, IHasVisualization,
         ITileConnect, IConnectorPreviewProvider, ISpecialSelectionWireframeTile {
 
